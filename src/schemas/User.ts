@@ -28,8 +28,8 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>(
     is_active: { type: Boolean, default: false },
     type: {
       type: String,
-      enum: ["customer", "vendor"],
-      default: "customer",
+      enum: ["user", "admin", "super-admin"],
+      default: "user",
     },
     password: { type: String, trim: true },
     deletedAt:{
