@@ -3,12 +3,13 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface UserInterface extends Document {
   name: string;
   email?: string;
-  mobile_no: string;
+  phone: string;
   gender: string;
   pic: string;
   bio?: string;
   company: Schema.Types.ObjectId;
   is_active: boolean;
+  is_verified?: boolean;
   type: string;
   password?: string;
   deletedAt?:Date,
@@ -20,15 +21,16 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>(
   {
     name: { type: String, trim: true },
     email: { type: String },
-    mobile_no: { type: String, required: true},
+    phone: { type: String, required: true},
     pic: { type: String, trim: true },
     gender : { type: String, default: "male" },
     company: { type: Schema.Types.ObjectId, ref: "Company" },
     bio: { type: String, trim: true },
     is_active: { type: Boolean, default: false },
+    is_verified: {type: Boolean, default: false },
     type: {
       type: String,
-      enum: ["user", "admin", "super-admin"],
+      enum: ["user", "admin", "superAdmin"],
       default: "user",
     },
     password: { type: String, trim: true },

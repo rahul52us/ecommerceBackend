@@ -12,7 +12,7 @@ const app = express();
 dotenv.config();
 
 //create the server 
-const server = http.createServer();
+const server = http.createServer(app);
 
 //registering body-parder middleware
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -27,7 +27,7 @@ app.use(cors({
 //import routing function 
 importRoutings(app);
 
-app.use('/',(req,res) => {
+app.get('/',(req,res) => {
     res.status(200).send("Welcome to our app")
 });
 
