@@ -9,7 +9,6 @@ export interface UserInterface extends Document {
   bio?: string;
   company: Schema.Types.ObjectId;
   is_active: boolean;
-  is_verified?: boolean;
   type: string;
   password?: string;
   deletedAt?:Date,
@@ -27,7 +26,6 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>(
     company: { type: Schema.Types.ObjectId, ref: "Company" },
     bio: { type: String, trim: true },
     is_active: { type: Boolean, default: false },
-    is_verified: {type: Boolean, default: false },
     type: {
       type: String,
       enum: ["user", "admin", "superAdmin"],

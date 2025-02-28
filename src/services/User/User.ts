@@ -2,115 +2,110 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import { generateError } from "../../config/Error/functions";
 import User from "../../schemas/User";
-import OTP from "../../schemas/Verification";
+import Token from "../../schemas/token";
 import { generateOTP } from "../../config/helper/generateOTP";
 import generateToken from "../../config/helper/generateToken";
+import Company from "../../schemas/Company";
 
-const createUser = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+const createAdminUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone || !/^\d{10}$/.test(phone)) {
+      throw generateError("Please provide a valid 10-digit mobile number", 400);
+    }
+
+    const existUser = await User.findOne({ phone: phone });
+
+    if (existUser) {
+      throw generateError("User with this mobile number already exists", 400);
+    }
+
+    const user = new User({
+      ...req.body,
+    });
+
+    const savedUser = await user.save();
+
+    if (!savedUser) {
+      throw generateError("Failed to create user", 500);
+    }
+
+    // Will generate the otp here
+    const otp: any = generateOTP();
+
+    let generatedToken = generateToken({ userId: savedUser._id });
+    const tokenDoc = new Token({
+      userId: savedUser._id,
+      token: generatedToken,
+      otp: otp,
+      isActive: true,
+    });
+
+    await tokenDoc.save();
+
+    //  will send the otp here
+
+    return res.status(201).send({
+      message:
+        "Account created successfully. Please verify your account using the OTP sent to your mobile number.",
+      data: {
+        userId: savedUser._id,
+        mobile_no: savedUser.phone,
+        token: generatedToken,
+      },
+      statusCode: 201,
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifySignUpUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> => {
     try {
-        const { phone, password } = req.body;
+      const { token, otp } = req.body;
 
-        if (!phone || !/^\d{10}$/.test(phone)) {
-            throw generateError("Please provide a valid 10-digit mobile number", 400);
-        }
-
-        if (!password) {
-            throw generateError("Please provide a password", 400);
-        }
-
-        const existUser = await User.findOne({ phone: phone });
-
-        if (existUser) {
-            throw generateError("User with this mobile number already exists", 400);
-        }
-
-        //hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const user = new User({
-            ...req.body,
-            password: hashedPassword
-        });
-
-        const savedUser = await user.save();
-
-        if (!savedUser) {
-            throw generateError("Failed to create user", 500);
-        }
-
-        //generate a 4 to 6 digit otp
-        const otp: any = generateOTP();
-
-        const otpDoc = new OTP({
-            userId: savedUser._id,
-            phone: phone,
-            otp: otp
-        });
-
-        await otpDoc.save();
-
-        //send otp via whatsapp
-        // await sendOTP(phone, otp)
-
-        return res.status(201).send({
-            message: "Account created successfully. Please verify your account using the OTP sent to your mobile number.",
-            data: {
-                userId: savedUser._id,
-                mobile_no: savedUser.phone
-            },
-            statusCode: 201,
-            success: true,
-        });
-    } catch (error) {
-        next(error);
-    }
-}
-
-const verifyUser = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-    const { phone, otp } = req.body;
-
-    if (!phone || !otp) {
+      if (!token || !otp) {
         throw generateError("Please provide mobile number and OTP", 400);
-    }
+      }
 
-    //vefiy otp
-    const isOTPValid = await OTP.findOneAndUpdate(
-        { phone: phone, otp: otp },
-        { used: true },
-        { new: true }
-    );
-
-    if (!isOTPValid) {
+      // Verify OTP
+      const checkToken = await Token.findOne({ token, isActive: true });
+      if (!checkToken || checkToken.otp !== otp) {
         throw generateError("Invalid OTP", 400);
-    }
+      }
 
-    const updatedUser = await User.findOneAndUpdate(
-        { phone },
-        { is_verified: true },
-        { new: true }
-    );
+      const updatedUser: any = await User.findById(checkToken.userId);
+      if (!updatedUser) {
+        throw generateError("User not found", 404);
+      }
 
-    if (!updatedUser) {
-        throw generateError("Failed to update user verification status", 500);
-    }
+      const savedCompany = await new Company({ type: "vendor" }).save();
+      updatedUser.company = savedCompany._id;
+      updatedUser.is_active = true;
+      await updatedUser.save();
 
-    //generate jwt token
-    const token = generateToken({ userId: updatedUser._id, phone: phone, role: updatedUser.type });
+      const authToken = generateToken({userId : updatedUser._id.toString()});
 
-    // Return response
-    return res.status(200).send({
+      return res.status(200).json({
         message: "Account verified successfully",
-        data: {
-            token,
-            userId: updatedUser._id,
-            mobile_no: updatedUser.phone
-        },
+        data: { token: authToken },
         statusCode: 200,
         success: true,
-    });
-}
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 
-export {
-    createUser,
-    verifyUser
-}
+
+export { createAdminUser, verifySignUpUser };

@@ -11,20 +11,20 @@ import * as path from "path";
 const app = express();
 dotenv.config();
 
-//create the server 
+//create the server
 const server = http.createServer(app);
 
 //registering body-parder middleware
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-//Enable CORS for all routes and all origin 
+//Enable CORS for all routes and all origin
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST", "DELETE", "PUT", "PATCH"]
 }));
 
-//import routing function 
+//import routing function
 importRoutings(app);
 
 app.get('/',(req,res) => {

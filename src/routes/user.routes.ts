@@ -1,9 +1,9 @@
 import express from "express";
-import { createUser, verifyUser } from "../services/User/User";
+import { createAdminUser, verifySignUpUser } from "../services/User/User";
 
 const router = express.Router();
 
-router.post("/create", createUser);
-router.post("/verify", verifyUser);
+router.post("/admin/create", createAdminUser);
+router.post("/verify", verifySignUpUser);
 
 export default router;
