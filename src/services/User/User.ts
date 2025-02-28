@@ -91,11 +91,12 @@ const verifySignUpUser = async (
 
       const savedCompany = await new Company({ type: "vendor" }).save();
       updatedUser.company = savedCompany._id;
-      updatedUser.is_active = true;
+      updatedUser.isActive = true;
       await updatedUser.save();
 
       const authToken = generateToken({userId : updatedUser._id.toString()});
-
+      checkToken.isActive = false
+      await checkToken.save()
       return res.status(200).json({
         message: "Account verified successfully",
         data: { token: authToken },
