@@ -3,10 +3,9 @@ import dotenv from "dotenv";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-// import errorMiddleware from "./modules/config/errorHandler";
 import importRoutings from "./routes/index";
 import http from "http";
-import * as path from "path";
+import errorMiddleware from "./config/errorHandler";
 
 const app = express();
 dotenv.config();
@@ -32,7 +31,7 @@ app.get('/',(req,res) => {
 });
 
 //registering custom middleware
-// app.use(errorMiddleware);
+app.use(errorMiddleware);
 
 server.listen(process.env.PORT, () => {
     console.log(`The server is running on port ${process.env.PORT}`);

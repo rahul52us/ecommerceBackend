@@ -4,6 +4,7 @@ export interface tokenVerificationInterface extends Document {
     userId: Schema.Types.ObjectId;
     otp: string;
     token: string;
+    type:string;
     isActive?: boolean;
     createdAt?: Date;
     updatedAt?:Date
@@ -18,6 +19,9 @@ const tokenVerificationSchema: Schema<tokenVerificationInterface> = new Schema<t
     otp: {
         type: String,
         required: true,
+    },
+    type : {
+        type : String
     },
     token: {
         type: String,

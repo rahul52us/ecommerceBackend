@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import bcrypt from "bcrypt";
 import { generateError } from "../../config/Error/functions";
 import User from "../../schemas/User";
 import Token from "../../schemas/token";
@@ -44,6 +43,7 @@ const createAdminUser = async (
       token: generatedToken,
       otp: otp,
       isActive: true,
+      type : 'sign_up'
     });
 
     await tokenDoc.save();
@@ -56,7 +56,7 @@ const createAdminUser = async (
       data: {
         userId: savedUser._id,
         mobile_no: savedUser.phone,
-        token: generatedToken,
+        token: generatedToken
       },
       statusCode: 201,
       success: true,
@@ -106,7 +106,7 @@ const verifySignUpUser = async (
     } catch (error) {
       next(error);
     }
-  };
+};
 
 
 export { createAdminUser, verifySignUpUser };
