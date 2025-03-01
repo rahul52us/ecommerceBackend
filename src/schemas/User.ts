@@ -8,6 +8,7 @@ export interface UserInterface extends Document {
   pic: string;
   bio?: string;
   company: Schema.Types.ObjectId;
+  permissions:Schema.Types.Mixed,
   isActive: boolean;
   type: string;
   password?: string;
@@ -26,6 +27,7 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>(
     company: { type: Schema.Types.ObjectId, ref: "Company" },
     bio: { type: String, trim: true },
     isActive: { type: Boolean, default: false },
+    permissions : {type : Schema.Types.Mixed},
     type: {
       type: String,
       enum: ["user", "admin", "superAdmin"],

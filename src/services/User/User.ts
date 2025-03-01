@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { generateError } from "../../config/Error/functions";
-import User, { UserInterface } from "../../schemas/User";
+import User from "../../schemas/User";
 import Token from "../../schemas/token";
 import { generateOTP, sendOtp } from "../../config/helper/generateOTP";
 import generateToken from "../../config/helper/generateToken";
 import Company from "../../schemas/Company";
+import { getUserDetailsById } from "../../repository/user.repository";
 
 const createAdminUser = async (
   req: Request,
@@ -47,8 +48,6 @@ const createAdminUser = async (
     });
 
     const savedToken = await tokenDoc.save();
-
-    //  will send the otp here
 
     const {status, data} = await sendOtp(otp, phone)
     if(status === "success" && data){
@@ -215,5 +214,19 @@ const verifyLoginUser = async (
   }
 };
 
+const getUserDetailsByIdService = async (req : any, res : Response, next : any) => {
+    try
+    {
+        const {status, data, message, statusCode} = await getUserDetailsById(req.userId)
+        res.status(statusCode).send({
+          status,
+          data, message
+        })
+    }
+    catch(err : any)
+    {
+      next(err)
+    }
+}
 
-export { createAdminUser, verifySignUpUser, loginUser, verifyLoginUser };
+export { createAdminUser, verifySignUpUser, loginUser, verifyLoginUser,getUserDetailsByIdService };

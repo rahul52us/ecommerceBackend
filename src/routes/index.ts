@@ -1,4 +1,4 @@
-import UserRouter from "./user.routes";
+import UserRouter from "./auth.routes";
 
 const importRoutings = (app: any) => {
     app.use("/api/auth", UserRouter);
