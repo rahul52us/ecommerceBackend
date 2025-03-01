@@ -152,18 +152,24 @@ const loginUser = async (
     await tokenDoc.save();
 
     //  will send the otp here
-
-    return res.status(201).send({
-      message:
-        "OTP sent to your registered mobile number",
-      data: {
-        userId: user._id,
-        mobile_no: user.phone,
-        token: generatedToken
-      },
-      statusCode: 201,
-      success: true,
-    });
+    const {status, data} = await sendOtp(otp, phone)
+    if(status === "success" && data){
+      return res.status(201).send({
+        message:
+          "otp has been shared to your registered number",
+        data: {
+          token: generatedToken
+        },
+        statusCode: 201,
+        success: true,
+    })
+  }
+  else{
+    return res.status(400).send({
+      message : 'Failed to send the otp on the given mobile No',
+      data : 'Failed to send the otp on the given mobile No'
+    })
+  }
   } catch (error) {
     next(error);
   }
@@ -195,9 +201,7 @@ const verifyLoginUser = async (
     }
 
     const authToken = generateToken({userId : updatedUser._id.toString()});
-
     checkToken.isActive = false;
-
     await checkToken.save();
 
     return res.status(200).json({
