@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { generateError } from "../../config/Error/functions";
 import User, { UserInterface } from "../../schemas/User";
 import Token from "../../schemas/token";
-import { generateOTP } from "../../config/helper/generateOTP";
+import { generateOTP, sendOtp } from "../../config/helper/generateOTP";
 import generateToken from "../../config/helper/generateToken";
 import Company from "../../schemas/Company";
 
@@ -46,21 +46,31 @@ const createAdminUser = async (
       type : 'sign_up'
     });
 
-    await tokenDoc.save();
+    const savedToken = await tokenDoc.save();
 
     //  will send the otp here
 
-    return res.status(201).send({
-      message:
-        "Account created successfully. Please verify your account using the OTP sent to your mobile number.",
-      data: {
-        userId: savedUser._id,
-        mobile_no: savedUser.phone,
-        token: generatedToken
-      },
-      statusCode: 201,
-      success: true,
-    });
+    const {status, data} = await sendOtp(otp, phone)
+    if(status === "success" && data){
+      return res.status(201).send({
+        message:
+          "Account created successfully. Please verify your account using the OTP sent to your mobile number.",
+        data: {
+          mobile_no: savedUser.phone,
+          token: generatedToken
+        },
+        statusCode: 201,
+        success: true,
+      });
+    }
+    else{
+      await user.deleteOne()
+      await savedToken.deleteOne()
+      return res.status(400).send({
+        message : 'Failed to send the otp on the given mobile No',
+        data : 'Failed to send the otp on the given mobile No'
+      })
+    }
   } catch (error) {
     next(error);
   }
@@ -130,7 +140,7 @@ const loginUser = async (
     const otp: any = generateOTP();
 
     let generatedToken = generateToken({ userId: user._id });
-    
+
     const tokenDoc = new Token({
       userId: user._id,
       token: generatedToken,
@@ -179,15 +189,15 @@ const verifyLoginUser = async (
     }
 
     const updatedUser: any = await User.findById(checkToken.userId);
-    
+
     if (!updatedUser) {
       throw generateError("User not found", 404);
     }
 
     const authToken = generateToken({userId : updatedUser._id.toString()});
-    
+
     checkToken.isActive = false;
-    
+
     await checkToken.save();
 
     return res.status(200).json({
