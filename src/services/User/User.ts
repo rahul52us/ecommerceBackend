@@ -129,7 +129,7 @@ const loginUser = async (
       throw generateError("Please provide a valid 10-digit mobile number", 400);
     }
 
-    const user: any = await User.findOne({ phone }).exec();
+    const user: any = await User.findOne({ phone });
 
     if(!user) {
       throw generateError("This phone is not registered. Please sign up first.", 404);

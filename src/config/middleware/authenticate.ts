@@ -13,7 +13,9 @@ const authenticate = async (req: any, res: Response, next: NextFunction) => {
       throw generateError("Unauthorized User: No token provided", 401);
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY!!) as { userId: string };
+    const secretKey = process.env.SECRET_KEY ?? "@#$4515KapilKharera_675@#";
+
+    const decoded = jwt.verify(token, secretKey) as { userId: string };
 
     const user = await User.findById(decoded.userId).select("-password");
 

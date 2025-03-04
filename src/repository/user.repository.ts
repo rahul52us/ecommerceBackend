@@ -3,7 +3,7 @@ import User from "../schemas/User";
 
 export const getUserDetailsById = async (id: string) => {
   try {
-    const userData = await User.findById(id).populate("company");
+    const userData = await User.findById(id).populate('company')
     return userData
       ? {
           statusCode: 200,
