@@ -229,4 +229,4 @@ const getUserDetailsByIdService = async (req : any, res : Response, next : any) 
     }
 }
 
-export { createAdminUser, verifySignUpUser, loginUser, verifyLoginUser,getUserDetailsByIdService };
+export { createAdminUser, verifySignUpUser, loginUser, verifyLoginUser, getUserDetailsByIdService };
