@@ -17,6 +17,23 @@ const server = http.createServer(app);
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.post("/whatsapp-webhook", async (req, res) => {
+    const { From, Body, NumMedia, MediaUrl0 } = req.body;
+    const userPhone = From.replace("whatsapp:", ""); // Extract user's phone number
+
+    if (NumMedia > 0) {
+        // User sent a photo
+        console.log(`Received image from ${userPhone}: ${MediaUrl0}`);
+        res.send(`<Response><Message>✅ Image received! Now send product name & price.</Message></Response>`);
+    } else {
+        // User sent text (Product Name & Price)
+        const [name, price] = Body.split(","); // Example: "Nike Shoes, 2000"
+        console.log(`Received product from ${userPhone}: ${name} - ₹${price}`);
+        res.send(`<Response><Message>✅ Product added to your account!</Message></Response>`);
+    }
+});
+
+
 //Enable CORS for all routes and all origin
 app.use(cors({
     origin: "*",

@@ -14,6 +14,6 @@ router.post("/admin/signup", createAdminUser);
 router.post("/admin/signup/verify", verifySignUpUser);
 router.post("/login", loginUser);
 router.post("/login/verify", verifyLoginUser);
-router.get("/me", authenticate, getUserDetailsByIdService);
+router.post("/me", authenticate, getUserDetailsByIdService);
 
 export default router;

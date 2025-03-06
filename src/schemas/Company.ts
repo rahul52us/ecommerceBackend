@@ -166,6 +166,6 @@ const UserCompanySchema: Schema<UserCompanyInterface> = new Schema<UserCompanyIn
     }
 );
 
-const Company = mongoose.model<UserCompanyInterface>("company", UserCompanySchema);
+const Company = mongoose.model<UserCompanyInterface>("Company", UserCompanySchema);
 
 export default Company;
