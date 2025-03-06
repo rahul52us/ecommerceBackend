@@ -16,13 +16,13 @@ const createAdminUser = async (
     const { phone } = req.body;
 
     if (!phone || !/^\d{10}$/.test(phone)) {
-      throw generateError("Please provide a valid 10-digit mobile number", 400);
+      throw generateError("Please provide a valid 10-digit mobile number", 300);
     }
 
     const existUser = await User.findOne({ phone: phone });
 
     if (existUser) {
-      throw generateError("User with this mobile number already exists", 400);
+      throw generateError("User with this mobile number already exists", 300);
     }
 
     const user = new User({
@@ -90,12 +90,12 @@ const verifySignUpUser = async (
       // Verify OTP
       const checkToken = await Token.findOne({ token, isActive: true });
       if (!checkToken || checkToken.otp !== otp) {
-        throw generateError("Invalid OTP", 400);
+        throw generateError("Invalid OTP", 300);
       }
 
       const updatedUser: any = await User.findById(checkToken.userId);
       if (!updatedUser) {
-        throw generateError("User not found", 404);
+        throw generateError("User not found", 300);
       }
 
       const savedCompany = await new Company({ type: "vendor" }).save();
@@ -108,7 +108,7 @@ const verifySignUpUser = async (
       await checkToken.save()
       return res.status(200).json({
         message: "Account verified successfully",
-        data: { token: authToken },
+        data: { authorization_token: authToken },
         statusCode: 200,
         success: true,
       });
@@ -190,13 +190,13 @@ const verifyLoginUser = async (
     // Verify OTP
     const checkToken = await Token.findOne({ token, isActive: true });
     if (!checkToken || checkToken.otp !== otp) {
-      throw generateError("Invalid OTP", 400);
+      throw generateError("Invalid OTP", 300);
     }
 
     const updatedUser: any = await User.findById(checkToken.userId);
 
     if (!updatedUser) {
-      throw generateError("User not found", 404);
+      throw generateError("User not found", 300);
     }
 
     const authToken = generateToken({userId : updatedUser._id.toString()});
@@ -205,7 +205,7 @@ const verifyLoginUser = async (
 
     return res.status(200).json({
       message: "Account verified successfully",
-      data: { token: authToken },
+      data: { authorization_token: authToken },
       statusCode: 200,
       success: true,
     });
