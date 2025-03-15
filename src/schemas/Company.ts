@@ -16,6 +16,7 @@ interface IShop extends Document {
   };
   categories: string[];
   tags: string[];
+  about?:mongoose.Schema.Types.Mixed,
   ratings: { averageRating: number; totalRatings: number };
   location: {
     type: string;
@@ -78,6 +79,9 @@ const companySchema = new Schema<IShop>({
     type: String,
     required: true,
     trim: true
+  },
+  about : {
+    type : mongoose.Schema.Types.Mixed
   },
   logo: {
     name: {
@@ -241,7 +245,7 @@ const companySchema = new Schema<IShop>({
   },
   isActive: {
     type: Boolean,
-    default: true
+    default: false
   },
   createdAt: {
     type: Date,

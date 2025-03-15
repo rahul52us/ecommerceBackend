@@ -1,19 +1,36 @@
-import { updateCompany } from "../../repository/company.repository";
+import { getShops, updateCompany } from "../../repository/company.repository";
 import { NextFunction } from "express";
 
 export const updateCompanyService = async (
-req: any,
-res: any,
-next: NextFunction
+  req: any,
+  res: any,
+  next: NextFunction
 ) => {
-try {
+  try {
     const { statusCode, status, message, data } = await updateCompany(req.body);
     res.status(statusCode).send({
-    message,
-    data,
-    status
+      message,
+      data,
+      status,
     });
-} catch (err: any) {
+  } catch (err: any) {
     next(err);
-}
+  }
+};
+
+export const getCompanyService = async (
+  req: any,
+  res: any,
+  next: NextFunction
+) => {
+  try {
+    const { statusCode, status, message, data } = await getShops(req.body);
+    res.status(statusCode).send({
+      message,
+      data,
+      status,
+    });
+  } catch (err: any) {
+    next(err);
+  }
 };
