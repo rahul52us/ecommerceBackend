@@ -1,171 +1,255 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface UserCompanyInterface extends Document {
-    type: "customer" | "vendor";
-    company_ids?: Schema.Types.ObjectId[];
-    company_details?: {
-        name: string;
-        address: [
-            {
-                street: string;
-                city: string;
-                state: string;
-                pincode: string;
-                country: string;
-            }
-        ],
-        billingAddress: [
-            {
-                street: string;
-                city: string;
-                state: string;
-                pincode: string;
-                country: string;
-            }
-        ],
-        phone: string;
-        email: string;
-        gstin?: string;
-        pan: string;
-        primaryContact: {
-            name: string;
-            phone: string;
-        },
-        secondaryContact: {
-            name: string;
-            phone: string;
-        },
-        website: string;
-        industryType: string;
-        businessType: string;
-        registrationDate: Date;
-        bankDetails: {
-            accountHolderName: string;
-            accountNumber: string;
-            bankName: string;
-            branchName: string;
-            ifscCode: string;
-        },
-        taxDetails: {
-            tdsRate: number;
-            taxSlab: string;
-        },
-        currency: string;
-        gstCertificate: string;
-        incorporationCertificate: string;
-        otherDocuments: {
-            documentName: string;
-            documentUrl: string;
-        }[],
-        status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
-        tags: string[];
-        socialMedia: {
-            facebook: string;
-            instagram: string;
-            linkedin: string;
-            twitter: string;
-        }
+interface IShop extends Document {
+  userId: mongoose.Types.ObjectId;
+  name: string;
+  description: string;
+  logo: {
+    name: string;
+    url: string;
+    type: string;
+  };
+  coverImage: {
+    name: string;
+    url: string;
+    type: string;
+  };
+  categories: string[];
+  tags: string[];
+  ratings: { averageRating: number; totalRatings: number };
+  location: {
+    type: string;
+    coordinates: [number, number];
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  multipleLocations?: {
+    type: string;
+    coordinates: [number, number];
+    address: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }[];
+  contactInfo: {
+    phone: string;
+    email?: string;
+    website?: string;
+    socialMedia?: {
+      facebook?: string;
+      instagram?: string;
+      twitter?: string;
+      linkedin?: string;
+      youtube?: string;
     };
-    deletedAt?: Date,
-    createdAt?: Date,
-    updatedAt?: Date
+  };
+  operatingHours: {
+    monday?: string;
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+    saturday?: string;
+    sunday?: string;
+  };
+  shopStatus: "active" | "inactive" | "pending" | "suspended";
+  isActive: boolean;
+  createdAt: Date;
 }
 
-const UserCompanySchema: Schema<UserCompanyInterface> = new Schema<UserCompanyInterface>(
-    {
-        type: {
-            type: String,
-            enum: ["customer", "vendor"],
-            default: "customer",
-        },
-        company_ids: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "Company"
-            }
-        ],
-        company_details: {
-            name: { type: String, trim: true },
-            address: [
-                {
-                    street: { type: String, trim: true },
-                    city: { type: String, trim: true },
-                    state: { type: String, trim: true },
-                    pincode: { type: String, trim: true },
-                    country: { type: String, trim: true, default: "India" }
-                }
-            ],
-            billingAddress: [
-                {
-                    street: { type: String, trim: true },
-                    city: { type: String, trim: true },
-                    state: { type: String, trim: true },
-                    pincode: { type: String, trim: true },
-                    country: { type: String, trim: true, default: "India" }
-                }
-            ],
-            phone: { type: String, trim: true },
-            email: { type: String, trim: true },
-            gstin: { type: String, trim: true },
-            pan: { type: String, trim: true },
-            primaryContact: {
-                name: { type: String, trim: true },
-                phone: { type: String, trim: true }
-            },
-            secondaryContact: {
-                name: { type: String, trim: true },
-                phone: { type: String, trim: true }
-            },
-            website: { type: String, trim: true },
-            industryType: { type: String, trim: true },
-            businessType: { type: String, trim: true },
-            registrationDate: { type: Date },
-            bankDetails: {
-                accountHolderName: { type: String, trim: true },
-                accountNumber: { type: String, trim: true },
-                bankName: { type: String, trim: true },
-                branchName: { type: String, trim: true },
-                ifscCode: { type: String, trim: true }
-            },
-            taxDetails: {
-                tdsRate: { type: Number, default: 0 },
-                taxSlab: { type: String, trim: true }
-            },
-            currency: { type: String, trim: true, default: "INR" },
-            gstCertificate: { type: String, trim: true },
-            incorporationCertificate: { type: String, trim: true },
-            otherDocuments: [
-                {
-                    documentName: { type: String, trim: true },
-                    documentUrl: { type: String, trim: true }
-                }
-            ],
-            status: {
-                type: String,
-                enum: ["active", "inactive", "suspended"],
-                default: "active"
-            },
-            tags: [{ type: String, trim: true }],
-            socialMedia: {
-                facebook: { type: String, trim: true },
-                instagram: { type: String, trim: true },
-                linkedin: { type: String, trim: true },
-                twitter: { type: String, trim: true }
-            }
-        },
-        deletedAt: {
-            type: Date
-        },
-        createdAt: {
-            type: Date,
-            default: new Date()
-        },
-        updatedAt: {
-            type: Date
-        }
+const companySchema = new Schema<IShop>({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+    index: true
+  },
+  name: {
+    type: String,
+    required: true,
+    index: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  logo: {
+    name: {
+      type: String,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      required: true
     }
-);
+  },
+  coverImage: {
+    name: {
+      type: String,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      required: true
+    }
+  },
+  categories: [
+    {
+      type: String,
+      index: true
+    }
+  ],
+  tags: [
+    {
+      type: String,
+      index: true
+    }
+  ],
+  ratings: {
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
+    },
+    totalRatings: {
+      type: Number,
+      default: 0
+    }
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      default: "Point"
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+      index: "2dsphere"
+    },
+    address: {
+      type: String,
+      required: true
+    },
+    city: {
+      type: String,
+      required: true
+    },
+    state: {
+      type: String,
+      required: true
+    },
+    postalCode: {
+      type: String,
+      required: true
+    },
+    country: {
+      type: String,
+      required: true
+    }
+  },
+  multipleLocations: [
+    {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point"
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+        index: "2dsphere"
+      },
+      address: {
+        type: String
+      },
+      city: {
+        type: String
+      },
+      state: {
+        type: String
+      },
+      postalCode: {
+        type: String
+      },
+      country: {
+        type: String
+      }
+    }
+  ],
+  contactInfo: {
+    phone: {
+      type: String,
+      required: true,
+      match: [/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number"]
+    },
+    email: {
+      type: String,
+      match: [/\S+@\S+\.\S+/, "Please enter a valid email address"]
+    },
+    website: {
+      type: String,
+      match: [/https?:\/\/(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/, "Please enter a valid website URL"]
+    },
+    socialMedia: {
+      facebook: {
+        type: String
+      },
+      instagram: {
+        type: String
+      },
+      twitter: {
+        type: String
+      },
+      linkedin: {
+        type: String
+      },
+      youtube: {
+        type: String
+      }
+    }
+  },
+  operatingHours: {
+    monday: { type: String },
+    tuesday: { type: String },
+    wednesday: { type: String },
+    thursday: { type: String },
+    friday: { type: String },
+    saturday: { type: String },
+    sunday: { type: String }
+  },
+  shopStatus: {
+    type: String,
+    enum: ["active", "inactive", "pending", "suspended"],
+    default: "pending",
+    index: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
-const Company = mongoose.model<UserCompanyInterface>("Company", UserCompanySchema);
+companySchema.index({ name: 1, shopStatus: 1, createdAt: -1 });
 
+const Company = mongoose.model<IShop>("Company", companySchema);
 export default Company;
