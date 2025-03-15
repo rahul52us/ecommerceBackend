@@ -1,4 +1,4 @@
-import { getShops, updateCompany } from "../../repository/company.repository";
+import { getShopByTitle, getShops, updateCompany } from "../../repository/company.repository";
 import { NextFunction } from "express";
 
 export const updateCompanyService = async (
@@ -34,3 +34,21 @@ export const getCompanyService = async (
     next(err);
   }
 };
+
+export const getShopByTitleService = async (
+    req: any,
+    res: any,
+    next: NextFunction
+  ) => {
+    try {
+      const { statusCode, status, message, data } = await getShopByTitle(req.params.title);
+      res.status(statusCode).send({
+        message,
+        data,
+        status,
+      });
+    } catch (err: any) {
+      next(err);
+    }
+  };
+

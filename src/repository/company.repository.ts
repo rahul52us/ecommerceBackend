@@ -165,3 +165,36 @@ export const getShops = async (body: any) => {
     };
   }
 };
+
+export const getShopByTitle = async (title: string) : Promise<any> => {
+    try {
+
+      const shop = await Company.findOne({
+        name: { $regex: new RegExp(title, "i") },
+        shopStatus : 'active'
+      });
+
+      if (!shop) {
+        return {
+          status: "error",
+          statusCode: statusCode.info,
+          message: "Shop not found",
+          data: null,
+        };
+      }
+
+      return {
+        status: "success",
+        statusCode: statusCode.success,
+        message: "Shop retrieved successfully",
+        data: shop,
+      };
+    } catch (error: any) {
+      return {
+        status: "error",
+        statusCode: statusCode.serverError,
+        message: error.message,
+        data: null,
+      };
+    }
+  };
