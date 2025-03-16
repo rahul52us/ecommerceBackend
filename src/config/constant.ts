@@ -29,7 +29,6 @@ export function generateFileName(originalName: string): string {
   const randomChars = Math.random().toString(36).substring(2, 7); // Generate 5 random alphanumeric characters
   const extension = originalName.split('.').pop(); // Get the file extension
   const baseName = originalName.replace(/\.[^/.]+$/, ""); // Get the file name without the extension
-
   return `${randomChars}_${baseName}.${extension}`; // Combine random characters, base name, and extension
 }
 

@@ -48,18 +48,13 @@ interface IShop extends Document {
       youtube?: string;
     };
   };
-  operatingHours: {
-    monday?: string;
-    tuesday?: string;
-    wednesday?: string;
-    thursday?: string;
-    friday?: string;
-    saturday?: string;
-    sunday?: string;
-  };
+  gallery:any;
+  operatingHours: mongoose.Schema.Types.Mixed,
+  closedDates : any;
   shopStatus: "active" | "inactive" | "pending" | "suspended";
   isActive: boolean;
   createdAt: Date;
+  updatedAt:Date;
 }
 
 const companySchema = new Schema<IShop>({
@@ -229,13 +224,14 @@ const companySchema = new Schema<IShop>({
     }
   },
   operatingHours: {
-    monday: { type: String },
-    tuesday: { type: String },
-    wednesday: { type: String },
-    thursday: { type: String },
-    friday: { type: String },
-    saturday: { type: String },
-    sunday: { type: String }
+    type: mongoose.Schema.Types.Mixed },
+    closedDates : {
+      type : Array,
+      default : []
+    },
+  gallery : {
+    type : mongoose.Schema.Types.Mixed,
+    default : []
   },
   shopStatus: {
     type: String,
@@ -250,6 +246,9 @@ const companySchema = new Schema<IShop>({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt : {
+    type : Date
   }
 });
 
