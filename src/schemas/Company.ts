@@ -72,7 +72,6 @@ const companySchema = new Schema<IShop>({
   },
   description: {
     type: String,
-    required: true,
     trim: true
   },
   about : {
@@ -80,30 +79,24 @@ const companySchema = new Schema<IShop>({
   },
   logo: {
     name: {
-      type: String,
-      required: true
+      type: String
     },
     url: {
-      type: String,
-      required: true
+      type: String
     },
     type: {
-      type: String,
-      required: true
+      type: String
     }
   },
   coverImage: {
     name: {
       type: String,
-      required: true
     },
     url: {
       type: String,
-      required: true
     },
     type: {
       type: String,
-      required: true
     }
   },
   categories: [
@@ -138,28 +131,22 @@ const companySchema = new Schema<IShop>({
     },
     coordinates: {
       type: [Number],
-      required: true,
       index: "2dsphere"
     },
     address: {
       type: String,
-      required: true
     },
     city: {
       type: String,
-      required: true
     },
     state: {
       type: String,
-      required: true
     },
     postalCode: {
       type: String,
-      required: true
     },
     country: {
       type: String,
-      required: true
     }
   },
   multipleLocations: [
@@ -171,7 +158,6 @@ const companySchema = new Schema<IShop>({
       },
       coordinates: {
         type: [Number],
-        required: true,
         index: "2dsphere"
       },
       address: {
@@ -194,7 +180,6 @@ const companySchema = new Schema<IShop>({
   contactInfo: {
     phone: {
       type: String,
-      required: true,
       match: [/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number"]
     },
     email: {

@@ -2,6 +2,7 @@ import { statusCode } from "../config/statusCode";
 import { createCatchError, generateFileName } from "../config/constant";
 import Company from "../schemas/Company";
 import { deleteFile, uploadFile } from "./uploadDoc.repository";
+import axios from "axios";
 
 export const updateCompany = async (data: any) => {
   try {
@@ -106,15 +107,31 @@ export const updateCompany = async (data: any) => {
 
 export const getShops = async (body: any) => {
   try {
+
+    // let LOCATIONIQ_API_KEY = "pk.a3a7065c1f20ee235141b9c0b812eca7"
+    //   // Static coordinates (Indore, MP)
+    //   const latitude = 26.185691401326544;
+    //   const longitude = 78.1343454815237;
+    //   const url = `https://us1.locationiq.com/v1/reverse.php?key=${LOCATIONIQ_API_KEY}&lat=${latitude}&lon=${longitude}&format=json`;
+
+    //   const response = await axios.get(url);
+    //   console.log(response.data)
+
+    //   const token = "a6152aecd95ca2"; // Your IPInfo token
+    //   const responses = await fetch(`https://ipinfo.io/json?token=${token}`);
+    //   const datas = await responses.json();
+
+    //   console.log(datas)
+
     const conditions: any = {};
 
     // Set default values for isActive and shopStatus if not provided
     if (!body.isActive) {
       body.isActive = true; // Default to true if isActive is not provided
     }
-    if (!body.shopStatus) {
-      body.shopStatus = "active"; // Default to 'active' if shopStatus is not provided
-    }
+    // if (!body.shopStatus) {
+    //   body.shopStatus = "active"; // Default to 'active' if shopStatus is not provided
+    // }
 
     // Handle name filter
     if (body.name) {
@@ -136,7 +153,7 @@ export const getShops = async (body: any) => {
     }
 
     // Handle shopStatus filter (already set in default above)
-    conditions.shopStatus = body.shopStatus;
+    // conditions.shopStatus = body.shopStatus;
 
     // Handle isActive filter (already set in default above)
     conditions.isActive = body.isActive;
@@ -211,8 +228,7 @@ export const getShopByTitle = async (title: string) : Promise<any> => {
     try {
 
       const shop = await Company.findOne({
-        name: { $regex: new RegExp(title, "i") },
-        shopStatus : 'active'
+        name: { $regex: new RegExp(title, "i") }
       });
 
       if (!shop) {

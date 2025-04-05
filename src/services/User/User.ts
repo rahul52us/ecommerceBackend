@@ -98,7 +98,15 @@ const verifySignUpUser = async (
         throw generateError("User not found", 300);
       }
 
-      const savedCompany = await new Company({ type: "vendor" }).save();
+      const companyName = await Company.findOne({name : req.body.companyName})
+
+      if(companyName)
+      {
+        throw generateError(`${companyName} is already exists`, 300);
+      }
+
+      console.log(req.body)
+      const savedCompany = await new Company({ type: "vendor", name : req.body.companyName, userId : updatedUser?._id, isActive : true }).save();
       updatedUser.company = savedCompany._id;
       updatedUser.isActive = true;
       await updatedUser.save();
