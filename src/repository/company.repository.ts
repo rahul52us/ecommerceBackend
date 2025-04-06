@@ -100,45 +100,21 @@ export const updateCompany = async (data: any) => {
   }
 };
 
-
-
-
 // get all shops
-
 export const getShops = async (body: any) => {
   try {
-
-    // let LOCATIONIQ_API_KEY = "pk.a3a7065c1f20ee235141b9c0b812eca7"
-    //   // Static coordinates (Indore, MP)
-    //   const latitude = 26.185691401326544;
-    //   const longitude = 78.1343454815237;
-    //   const url = `https://us1.locationiq.com/v1/reverse.php?key=${LOCATIONIQ_API_KEY}&lat=${latitude}&lon=${longitude}&format=json`;
-
-    //   const response = await axios.get(url);
-    //   console.log(response.data)
-
-    //   const token = "a6152aecd95ca2"; // Your IPInfo token
-    //   const responses = await fetch(`https://ipinfo.io/json?token=${token}`);
-    //   const datas = await responses.json();
-
-    //   console.log(datas)
-
     const conditions: any = {};
 
-    // Set default values for isActive and shopStatus if not provided
     if (!body.isActive) {
-      body.isActive = true; // Default to true if isActive is not provided
+      body.isActive = true;
     }
-    // if (!body.shopStatus) {
-    //   body.shopStatus = "active"; // Default to 'active' if shopStatus is not provided
-    // }
 
-    // Handle name filter
+    // Name filter
     if (body.name) {
       conditions.name = { $regex: body.name, $options: "i" };
     }
 
-    // Handle categories filter
+    // Categories
     if (body.categories) {
       const categories = body.categories
         .split(",")
@@ -146,19 +122,19 @@ export const getShops = async (body: any) => {
       conditions.categories = { $in: categories };
     }
 
-    // Handle tags filter
+    // Tags
     if (body.tags) {
       const tags = body.tags.split(",").map((tag: string) => tag.trim());
       conditions.tags = { $in: tags };
     }
 
-    // Handle shopStatus filter (already set in default above)
+    // Shop Status
     conditions.shopStatus = body.shopStatus || "active";
 
-    // Handle isActive filter (already set in default above)
+    // Is Active
     conditions.isActive = body.isActive;
 
-    // Handle location filter
+    // Location filtering
     if (body.location) {
       const [lat, lng] = body.location
         .split(",")
@@ -166,15 +142,18 @@ export const getShops = async (body: any) => {
       conditions.location = {
         $nearSphere: {
           $geometry: { type: "Point", coordinates: [lng, lat] },
-          $maxDistance: 2000, // You can adjust this distance as needed
+          $maxDistance: 2000,
         },
       };
     }
 
-    const pipeline: any = [
-      {
-        $match: conditions, // Apply the conditions for filtering
-      },
+    const page = parseInt(body.page) || 1;
+    const limit = parseInt(body.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Pipeline for paginated data
+    const pipeline: any[] = [
+      { $match: conditions },
       {
         $project: {
           name: 1,
@@ -192,27 +171,25 @@ export const getShops = async (body: any) => {
           createdAt: 1,
         },
       },
-      {
-        $sort: {
-          createdAt: -1, // Sort by createdAt in descending order
-        },
-      },
-      {
-        $skip: parseInt(body.skip) || 0, // Pagination: Skip number of documents
-      },
-      {
-        $limit: parseInt(body.limit) || 10, // Pagination: Limit number of documents
-      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
     ];
 
-    // Execute aggregation pipeline
     const shops = await Company.aggregate(pipeline);
+    const totalCount = await Company.countDocuments(conditions);
+    const totalPages = Math.ceil(totalCount / limit);
 
     return {
       status: "success",
       statusCode: statusCode.success,
-      message: "Retrieve Shops Details",
-      data: shops,
+      message: "Retrieved Shops Details",
+      data: {
+        data: shops,
+        total: totalCount,
+        totalPages,
+        currentPage: page,
+      },
     };
   } catch (error: any) {
     return {
@@ -223,6 +200,9 @@ export const getShops = async (body: any) => {
     };
   }
 };
+
+
+
 
 export const getShopByTitle = async (title: string) : Promise<any> => {
     try {
