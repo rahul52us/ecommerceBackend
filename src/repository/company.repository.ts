@@ -153,7 +153,7 @@ export const getShops = async (body: any) => {
     }
 
     // Handle shopStatus filter (already set in default above)
-    // conditions.shopStatus = body.shopStatus;
+    conditions.shopStatus = body.shopStatus || "active";
 
     // Handle isActive filter (already set in default above)
     conditions.isActive = body.isActive;
