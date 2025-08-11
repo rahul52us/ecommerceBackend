@@ -3,20 +3,14 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 cloudinary.config({
-  cloud_name: 'dsckn1jjj',
-  api_key: '591561974842918',
-  api_secret: 'ANFnW5o7KEt4YGbjiefwKKf-XK8'
+  cloud_name: 'dekfm4tfh',
+  api_key: '445446396628993',
+  api_secret: '-MJadL_KwXTHQZzpppV2RN6NsVU'
 });
-
-interface UploadedFile {
-  buffer: string;
-  filename: string;
-}
 
 async function uploadFile(file: any): Promise<string> {
   try {
     const result = await cloudinary.uploader.upload(file.buffer, {
-      folder: process.env.bucketFolder_Name,
       public_id: file.filename.replace(/\.[^/.]+$/, ""),
       resource_type: 'auto'
     });
