@@ -12,6 +12,7 @@ export interface UserInterface extends Document {
   profile_details: Schema.Types.ObjectId;
   is_active: boolean;
   role: string;
+  userType:string;
   password: string;
   deletedAt?: Date;
   createdAt?: Date;
@@ -27,6 +28,7 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   username: { type: String, required: true, index: true, trim: true },
   code : {type : String, index : true},
   company : {type : Schema.Types.ObjectId, ref:'Company'},
+  userType:{type: String, required: true, index: true, trim: true},
   pic: {
     name: {
       type: String,

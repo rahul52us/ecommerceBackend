@@ -4,23 +4,23 @@ dotenv.config();
 
 const generateToken = (payload: object): string => {
   const secretKey = process.env.SECRET_KEY ?? '@#$4515Rahulkushwa_675@#';
-  const token = jwt.sign(payload, secretKey, { expiresIn: process.env.EXPIRES_TOKEN });
-  return token;
+  const expiresIn: any = (process.env.EXPIRES_TOKEN as any) ?? '3d'; // ✅ fallback applied here
+  return jwt.sign(payload, secretKey, { expiresIn });
 };
 
 export default generateToken;
 
-
-export const generateResetPasswordToken = (userId : string) => {
+export const generateResetPasswordToken = (userId: string): string => {
   const secretKey = process.env.SECRET_KEY ?? '@#$4515Rahulkushwa_675@#';
-  const token = jwt.sign({userId : userId}, secretKey, { expiresIn: '24h' });
-  return token;
-}
+  return jwt.sign({ userId }, secretKey, { expiresIn: '24h' });
+};
 
-export const verifyResetPasswordToken = (token : string) : any => {
+export const verifyResetPasswordToken = (token: string): string | null => {
   const secretKey = process.env.SECRET_KEY ?? '@#$4515Rahulkushwa_675@#';
-  const decoded = jwt.verify(token, secretKey) as {
-    userId: string;
-  };
-  return decoded?.userId
-}
+  try {
+    const decoded = jwt.verify(token, secretKey) as { userId: string };
+    return decoded.userId;
+  } catch {
+    return null;
+  }
+};
