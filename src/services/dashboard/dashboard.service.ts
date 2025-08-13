@@ -1,39 +1,48 @@
 import { Response } from "express";
 import mongoose from "mongoose";
-import BlogModel from "../../schemas/Blog/BlogSchema";
-import contactSchema from "../../schemas/contact/contact.schema";
-import Testimonial from "../../schemas/Testimonial";
 import UserModel from "../../schemas/User/User";
 
 export const getDashboardData = async (req: any, res: Response, next: any) => {
   try {
     const companyId = new mongoose.Types.ObjectId(req.body.company);
+    const userTypeCounts = await UserModel.aggregate([
+      {
+        $match: {
+          // company: companyId,
+          userType: { $in: ["doctor", "staff", "patient"] },
+        },
+      },
+      {
+        $group: {
+          _id: "$userType",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
 
-    const countActiveDocuments = async (model: any) => {
-      const result = await model.aggregate([
-        { $match: { } },
-        { $count: "count" }
-      ]);
-      return result.length > 0 ? result[0].count : 0;
+    const keyMap: Record<string, string> = {
+      doctor: "doctors",
+      staff: "staffs",
+      patient: "patients",
     };
 
-    // Fetch counts for each collection in parallel
-    const [blogCount, contactCount, testimonialCount, userCount] = await Promise.all([
-      countActiveDocuments(BlogModel),
-      countActiveDocuments(contactSchema),
-      countActiveDocuments(Testimonial),
-      countActiveDocuments(UserModel),
-    ]);
+    const countsMap: any = {
+      doctors: 0,
+      staffs: 0,
+      patients: 0,
+    };
+
+    userTypeCounts.forEach((item) => {
+      const frontendKey = keyMap[item._id];
+      if (frontendKey) {
+        countsMap[frontendKey] = item.count;
+      }
+    });
 
     return res.status(200).send({
       message: "Dashboard data fetched successfully",
       status: true,
-      data: {
-        blogs: blogCount,
-        contacts: contactCount,
-        testimonials: testimonialCount,
-        users: userCount,
-      },
+      data: countsMap,
     });
   } catch (err: any) {
     next(err);

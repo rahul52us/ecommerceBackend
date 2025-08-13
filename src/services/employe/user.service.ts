@@ -49,11 +49,6 @@ const createUserservice = async (
       createdBy: req.userId,
     });
 
-    const pUsers = await ProfileDetails.findOneAndUpdate(
-          { user: data.userId },
-          { $set: { personalInfo : {...req.body} } }
-        );
-
     if (status === "success") {
       res.status(200).send({
         message: "CREATE User SUCCESSFULLY",
@@ -178,7 +173,9 @@ const getAllUserService = async (
     const page = req.body.page || 1;
     const limit = req.body.limit || 10;
     const search = req.body.search || undefined;
+    const type = req.body.type || undefined
     const { data, status, totalPages } = await getUsers({
+      userType:type,
       page: Number(page),
       limit: Number(limit),
       search: search,

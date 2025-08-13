@@ -1,6 +1,6 @@
 import ProfileDetails from "../../schemas/User/ProfileDetails";
 import BankDetails from "../../schemas/User/BankDetails";
-import DocumentDetails from "../../schemas/User/Document";
+import bcrypt from "bcrypt";
 import WorkExperience from "../../schemas/User/WorkExperience";
 import { generateError } from "../../config/Error/functions";
 import { deleteFile, uploadFile } from "../uploadDoc.repository";
@@ -22,35 +22,39 @@ const createUser = async (data: any) => {
   try {
     const user = await User.findOne({ username: data.username });
     if (user) {
-      throw generateError(`${user.username} user is already exists`, 300);
+      throw generateError(`${user.username} user already exists`, 300);
     }
 
     const userCode = await User.findOne({ code: data.code });
     if (userCode) {
       throw generateError(
-        `${userCode.username} is already exists with ${data.code}`,
+        `${userCode.username} already exists with ${data.code}`,
         300
       );
     }
+
+    const { pic, password, confirmPassword, ...rest } = data;
+
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const createdUser = new User({
       username: data.username,
       company: data.company,
       name: data.name,
       code: data.code,
-      password: data.password,
+      userType: data.type,
+      password: hashedPassword,
       bio: data.bio,
       is_active: true,
       title: data.title,
     });
 
     const savedUser = await createdUser.save();
-
     if (!savedUser) {
-      throw generateError(`cannot create the user`, 400);
+      throw generateError(`Cannot create the user`, 400);
     }
 
-    const { pic, ...rest } = data;
     const profile = new ProfileDetails({
       user: savedUser._id,
       personalInfo: { ...rest },
@@ -60,33 +64,37 @@ const createUser = async (data: any) => {
     savedUser.profile_details = savedProfile._id;
     await savedUser.save();
 
-    const { password, ...restUser } = savedUser.toObject();
-
-    if (pic && pic?.buffer !== "" && Object.entries(pic || {}).length) {
+    if (pic.filename && pic && pic?.buffer !== "" && Object.entries(pic || {}).length) {
       pic.filename = generateFileName(pic.filename);
-      let url = await uploadFile(pic);
+      const url = await uploadFile(pic);
       savedUser.pic = {
         name: pic?.filename,
-        url: url,
+        url,
         type: pic?.type,
       };
       await savedUser.save();
     }
 
+    // Remove password from the response
+    const userObj : any = savedUser.toObject();
+    delete userObj.password;
+
     return {
       status: "success",
       data: {
-        ...restUser,
+        ...userObj,
         profile_details: savedProfile.toObject(),
       },
     };
   } catch (err: any) {
+    console.log(err)
     return {
       status: "error",
       data: err,
     };
   }
 };
+
 
 const deleteUser = async (userId: any) => {
   try {
@@ -222,7 +230,7 @@ export const updateSalaryStructure = async (data: any) => {
     try {
       const { pic, _id, ...rest } = data;
       const users: any = await User.findByIdAndUpdate(data.userId, {
-        $set: { ...rest },
+        $set: { ...rest, updatedAt : new Date() },
       });
 
 
@@ -273,6 +281,7 @@ export const updateSalaryStructure = async (data: any) => {
   };
 
 const getUsers = async (data: {
+  userType:string;
   page: number;
   limit: number;
   search?: string;
@@ -287,6 +296,7 @@ const getUsers = async (data: {
     let matchConditions: any = {
       is_active: true,
       deletedAt: { $exists: false },
+      userType : data.userType,
       role: { $ne: 'admin' },    };
 
     // Add company filter if provided
