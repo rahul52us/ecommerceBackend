@@ -70,6 +70,7 @@ const createUser = async (
       const user = new User({
         username: req.body.username,
         name: req.body.name,
+        mobileNumber:req.body.mobileNumber,
         password: req.body.password,
         company: selectedCompany._id,
         role: req.body.role,

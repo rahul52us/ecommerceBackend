@@ -1,6 +1,35 @@
 import mongoose from "mongoose";
 import { statusCode } from "./statusCode";
 
+// utils/security.ts
+import bcrypt from "bcryptjs"; // Lightweight bcrypt for frontend
+import CryptoJS from "crypto-js"; // AES encryption
+
+const SECRET_KEY = "myanothdasd55das45dasernewkey775sda85dadas5"; // Store in env or config
+
+// AES Encrypt
+export const encryptAES = (text: string): string => {
+  return CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
+};
+
+// AES Decrypt
+export const decryptAES = (cipher: string): string => {
+  const bytes = CryptoJS.AES.decrypt(cipher, SECRET_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+};
+
+// Bcrypt Hash
+export const hashBcrypt = async (text: string): Promise<string> => {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(text, salt);
+};
+
+// Bcrypt Compare
+export const compareBcrypt = async (text: string, hash: string): Promise<boolean> => {
+  return await bcrypt.compare(text, hash);
+};
+
+
 export const createCatchError = (err: any) => {
   return {
     status: "error",

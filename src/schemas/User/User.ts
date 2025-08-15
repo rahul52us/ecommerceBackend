@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface UserInterface extends Document {
   title: String;
   name: string;
+  mobileNumber:string;
   username: string;
   code: string;
   pic: any;
@@ -26,6 +27,7 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   },
   name: { type: String, trim: true },
   username: { type: String, required: true, index: true, trim: true },
+  mobileNumber:{type : String, index : true},
   code : {type : String, index : true},
   company : {type : Schema.Types.ObjectId, ref:'Company'},
   userType:{type: String, required: true, index: true, trim: true},

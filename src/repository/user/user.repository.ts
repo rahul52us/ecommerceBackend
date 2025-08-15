@@ -12,6 +12,7 @@ import User from "../../schemas/User/User";
 import {
   createCatchError,
   generateFileName,
+  hashBcrypt,
 } from "../../config/helper/function";
 import { statusCode } from "../../config/helper/statusCode";
 import Qualification from "../../schemas/User/Qualifications";
@@ -36,13 +37,13 @@ const createUser = async (data: any) => {
     const { pic, password, confirmPassword, ...rest } = data;
 
     // Hash the password before storing
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    const hashedPassword = await hashBcrypt(password)
     const createdUser = new User({
       username: data.username,
       company: data.company,
       name: data.name,
       code: data.code,
+      mobileNumber:data.mobileNumber,
       userType: data.type,
       password: hashedPassword,
       bio: data.bio,
@@ -87,7 +88,6 @@ const createUser = async (data: any) => {
       },
     };
   } catch (err: any) {
-    console.log(err)
     return {
       status: "error",
       data: err,
