@@ -1,6 +1,7 @@
 import generateToken from "../../config/helper/generateToken";
 import { generateError } from "../../config/Error/functions";
 import User from "../../schemas/User/User";
+import { compareBcrypt, hashBcrypt } from "../../config/helper/function";
 
 const findUserByUserName = async (data: any) => {
   try {
@@ -42,7 +43,8 @@ const loginUser = async (data: any): Promise<any> => {
       throw generateError(`${data.username} user does not exist`, 401);
     }
 
-    if (existUser.password !== data.password) {
+    let checkPassword = await compareBcrypt(data.password,existUser.password)
+    if (!checkPassword) {
       throw generateError(`Invalid username and password`, 400);
     }
 
@@ -64,13 +66,15 @@ const changePassword = async (data: any) => {
   try {
     const user = await User.findById(data.user);
     if (user) {
-      if (!(user.password === data.oldPassword)) {
+      let checkPassword = await compareBcrypt(data.oldPassword,user.password)
+      if (!checkPassword) {
         throw generateError(
           `Current Password does not match to the Old Password`,
           400
         );
       }
-      user.password = data.newPassword;
+      let hashPassword =  await hashBcrypt(data.newPassword)
+      user.password = hashPassword;
       await user.save();
       return { status: "success", data: null };
     } else {

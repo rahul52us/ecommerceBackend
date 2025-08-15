@@ -37,13 +37,13 @@ const createUser = async (data: any) => {
     const { pic, password, confirmPassword, ...rest } = data;
 
     // Hash the password before storing
-    const hashedPassword = await hashBcrypt(password)
+    const hashedPassword = await hashBcrypt(password);
     const createdUser = new User({
       username: data.username,
       company: data.company,
       name: data.name,
       code: data.code,
-      mobileNumber:data.mobileNumber,
+      mobileNumber: data.mobileNumber,
       userType: data.type,
       password: hashedPassword,
       bio: data.bio,
@@ -65,7 +65,12 @@ const createUser = async (data: any) => {
     savedUser.profile_details = savedProfile._id;
     await savedUser.save();
 
-    if (pic.filename && pic && pic?.buffer !== "" && Object.entries(pic || {}).length) {
+    if (
+      pic.filename &&
+      pic &&
+      pic?.buffer !== "" &&
+      Object.entries(pic || {}).length
+    ) {
       pic.filename = generateFileName(pic.filename);
       const url = await uploadFile(pic);
       savedUser.pic = {
@@ -77,7 +82,7 @@ const createUser = async (data: any) => {
     }
 
     // Remove password from the response
-    const userObj : any = savedUser.toObject();
+    const userObj: any = savedUser.toObject();
     delete userObj.password;
 
     return {
@@ -94,7 +99,6 @@ const createUser = async (data: any) => {
     };
   }
 };
-
 
 const deleteUser = async (userId: any) => {
   try {
@@ -116,19 +120,18 @@ const deleteUser = async (userId: any) => {
     return {
       status: "success",
       message: "User deleted successfully",
-      statusCode : 200,
-      data : "USer deleted Successfully"
+      statusCode: 200,
+      data: "USer deleted Successfully",
     };
   } catch (err: any) {
     return {
       status: "error",
       data: err,
-      statusCode:500,
-      message : err?.message
+      statusCode: 500,
+      message: err?.message,
     };
   }
 };
-
 
 export const getSalaryStructure = async (data: any) => {
   try {
@@ -226,62 +229,85 @@ export const updateSalaryStructure = async (data: any) => {
   }
 };
 
-  const updateUserProfileDetails = async (data: any) => {
-    try {
-      const { pic, _id, ...rest } = data;
-      const users: any = await User.findByIdAndUpdate(data.userId, {
-        $set: { ...rest, updatedAt : new Date() },
-      });
+const updateUserProfileDetails = async (data: any) => {
+  try {
+    const { pic, _id, ...rest } = data;
 
-
-      delete rest.pic;
-      delete rest?.profileDetails
-      const pUsers = await ProfileDetails.findOneAndUpdate(
-        { user: data.userId },
-        { $set: { personalInfo : {...rest} } }
-      );
-      if (!pUsers && !users) {
-        return {
-          status: "error",
-          data: "User does not exists",
-        };
-      }
-
-      if (pic.isDeleted && users.pic?.url && users.pic?.name) {
-        await deleteFile(users.pic.name);
-        users.pic = {
-          name: undefined,
-          url: undefined,
-          type: undefined,
-        };
-        await users.save();
-      }
-
-      if (pic?.filename && pic?.buffer && pic && pic?.isAdd) {
-        pic.filename = generateFileName(pic.filename);
-        const url = await uploadFile(pic);
-        users.pic = {
-          name: data.pic.filename,
-          url,
-          type: data.pic.type,
-        };
-        await users.save();
-      }
-
+    const existUsername = await User.exists({
+      username: data.username,
+      _id: { $ne: data.userId },
+    });
+    if(existUsername){
       return {
-        status: "success",
-        data: "User has been updated successfully",
-      };
-    } catch (err) {
+      status: "error",
+      data: `${data.username} username is already registered`,
+    };
+    }
+
+    const existCode = await User.exists({
+      code: data.code,
+      _id: { $ne: data.userId },
+    });
+
+    if(existCode){
+      return {
+      status: "error",
+      data: `${data.code} code is already registered`,
+    };
+    }
+
+    const users: any = await User.findByIdAndUpdate(data.userId, {
+      $set: { ...rest, updatedAt: new Date() },
+    });
+
+    delete rest.pic;
+    delete rest?.profileDetails;
+    const pUsers = await ProfileDetails.findOneAndUpdate(
+      { user: data.userId },
+      { $set: { personalInfo: { ...rest } } }
+    );
+    if (!pUsers && !users) {
       return {
         status: "error",
-        data: err,
+        data: "User does not exists",
       };
     }
-  };
+
+    if (pic.isDeleted && users.pic?.url && users.pic?.name) {
+      await deleteFile(users.pic.name);
+      users.pic = {
+        name: undefined,
+        url: undefined,
+        type: undefined,
+      };
+      await users.save();
+    }
+
+    if (pic?.filename && pic?.buffer && pic && pic?.isAdd) {
+      pic.filename = generateFileName(pic.filename);
+      const url = await uploadFile(pic);
+      users.pic = {
+        name: data.pic.filename,
+        url,
+        type: data.pic.type,
+      };
+      await users.save();
+    }
+
+    return {
+      status: "success",
+      data: "User has been updated successfully",
+    };
+  } catch (err) {
+    return {
+      status: "error",
+      data: err,
+    };
+  }
+};
 
 const getUsers = async (data: {
-  userType:string;
+  userType: string;
   page: number;
   limit: number;
   search?: string;
@@ -296,8 +322,9 @@ const getUsers = async (data: {
     let matchConditions: any = {
       is_active: true,
       deletedAt: { $exists: false },
-      userType : data.userType,
-      role: { $ne: 'admin' },    };
+      userType: data.userType,
+      role: { $ne: "admin" },
+    };
 
     // Add company filter if provided
     if (data.company?.length) {
@@ -325,6 +352,11 @@ const getUsers = async (data: {
         },
       },
       { $unwind: "$profileDetails" },
+      {
+        $project: {
+          password: 0,
+        },
+      },
       { $sort: { createdAt: -1 } },
     ];
 
@@ -1675,5 +1707,5 @@ export {
   updatePermissions,
   getManagerUsersCounts,
   getManagersOfUser,
-  deleteUser
+  deleteUser,
 };

@@ -150,12 +150,12 @@ const updateUserProfileService = async (
     if (status === "success") {
       res.status(200).send({
         status: "success",
-        data: data,
+        message: data,
       });
     } else {
       res.status(400).send({
         status: "error",
-        data: data,
+        message: data,
       });
     }
   } catch (err) {
