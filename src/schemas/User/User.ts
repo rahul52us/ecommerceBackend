@@ -28,12 +28,12 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   name: { type: String, trim: true },
   username: { type: String, required: true, index: true, trim: true },
   mobileNumber:{type : String, index : true},
-  code : {type : String, index : true},
+  code : {type : String, index : true, unique : true},
   company : {type : Schema.Types.ObjectId, ref:'Company'},
   userType:{type: String, required: true, index: true, trim: true},
   pic: {
     name: {
-      type: String,
+      type: String
     },
     url: {
       type: String,

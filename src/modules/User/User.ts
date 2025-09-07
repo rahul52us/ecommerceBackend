@@ -19,19 +19,21 @@ import {
   FORGOT_PASSWORD_EMAIL_TOKEN_TYPE,
   REGISTER_NEW_USER_TOKEN_TYPE,
 } from "../config/sendMail/utils";
-import {baseURL} from '../../config/helper/urls'
-import { convertIdsToObjects, createCatchError } from "../../config/helper/function";
+import { baseURL } from "../../config/helper/urls";
+import {
+  convertIdsToObjects,
+  createCatchError,
+} from "../../config/helper/function";
 import { statusCode } from "../../config/helper/statusCode";
 import { createToken } from "../../services/token/token.service";
 
 dotenv.config();
 const MeUser = async (req: any, res: Response): Promise<any> => {
-
   const profile_details = await ProfileDetails.findById(
     req.bodyData.profile_details
-  )
+  );
 
-  const companyDetails = await Company.findById(req.bodyData?.company)
+  const companyDetails = await Company.findById(req.bodyData?.company);
 
   return res.status(200).send({
     message: `get successfully data`,
@@ -70,7 +72,7 @@ const createUser = async (
       const user = new User({
         username: req.body.username,
         name: req.body.name,
-        mobileNumber:req.body.mobileNumber,
+        mobileNumber: req.body.mobileNumber,
         password: req.body.password,
         company: selectedCompany._id,
         role: req.body.role,
@@ -93,8 +95,8 @@ const createUser = async (
         await createToken({
           userId: savedUser._id,
           token: token,
-          type: REGISTER_NEW_USER_TOKEN_TYPE
-        })
+          type: REGISTER_NEW_USER_TOKEN_TYPE,
+        });
         const sendMail: any = await SendMail(
           savedUser.name,
           savedUser.username,
@@ -316,51 +318,41 @@ const getUsersByCompany = async (
   next: NextFunction
 ) => {
   try {
-    const { is_active, designation, company } = req.body;
+    const { searchValue, userType } = req.query;
+
     try {
+      const matchConditions: any = {};
+
+      if (searchValue) {
+        matchConditions.$or = [
+          { username: { $regex: searchValue, $options: "i" } },
+          { code: { $regex: searchValue, $options: "i" } },
+        ];
+      }
+
+      if (userType) {
+        matchConditions.userType = userType;
+      }
+
       const users = await User.aggregate([
-        {
-          $lookup: {
-            from: "companydetails",
-            localField: "companyDetail",
-            foreignField: "_id",
-            as: "companyDetails"
-          }
-        },
-        { $unwind: "$companyDetails" },
-        {
-          $lookup: {
-            from: "companies",
-            localField: "companyDetails.company",
-            foreignField: "_id",
-            as: "company"
-          }
-        },
-        { $unwind: "$company" },
-        {
-          $match: {
-            "company._id": {$in : await convertIdsToObjects(company)},
-            "companyOrg" : new mongoose.Types.ObjectId(req.bodyData.companyOrg)
-          }
-        },
+        { $match: matchConditions },
         {
           $project: {
             _id: 1,
             username: 1,
-            code: 1
-          }
-        }
+            code: 1,
+            type: 1, // include type in response if needed
+          },
+        },
       ]);
 
       res.status(statusCode.success).send({
         message: "Fetch Users Successfully",
         data: users,
-        status : 'success'
+        status: "success",
       });
-    }
-    catch(err)
-    {
-      return createCatchError(err)
+    } catch (err) {
+      return createCatchError(err);
     }
   } catch (err) {
     next(err);

@@ -19,6 +19,26 @@ import Qualification from "../../schemas/User/Qualifications";
 import SalaryStructure from "../../schemas/salaryStructure/SalaryStructure.schema";
 import companyDetails from "../../schemas/company/companyDetails";
 
+async function generateUniqueCode(this: any): Promise<string> {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*_-";
+  let code: string;
+  let exists = true;
+
+  while (exists) {
+    code = Array.from({ length: 5 }, () =>
+      chars.charAt(Math.floor(Math.random() * chars.length))
+    ).join("");
+
+    const user = await mongoose.models.User.findOne({ code: code.toUpperCase() });
+    if (!user) {
+      exists = false;
+    }
+  }
+
+  return code!;
+}
+
+
 const createUser = async (data: any) => {
   try {
     const user = await User.findOne({ username: data.username });
@@ -26,23 +46,27 @@ const createUser = async (data: any) => {
       throw generateError(`${user.username} user already exists`, 300);
     }
 
-    const userCode = await User.findOne({ code: data.code });
-    if (userCode) {
-      throw generateError(
-        `${userCode.username} already exists with ${data.code}`,
-        300
-      );
+    let finalCode = data.code;
+    if (!finalCode) {
+      finalCode = await generateUniqueCode();
+    } else {
+      const userCode = await User.findOne({ code: finalCode });
+      if (userCode) {
+        throw generateError(
+          `${userCode.username} already exists with ${finalCode}`,
+          300
+        );
+      }
     }
 
     const { pic, password, confirmPassword, ...rest } = data;
 
-    // Hash the password before storing
     const hashedPassword = await hashBcrypt(password);
     const createdUser = new User({
       username: data.username,
       company: data.company,
       name: data.name,
-      code: data.code,
+      code: finalCode,
       mobileNumber: data.mobileNumber,
       userType: data.type,
       password: hashedPassword,
@@ -66,8 +90,8 @@ const createUser = async (data: any) => {
     await savedUser.save();
 
     if (
-      pic.filename &&
       pic &&
+      pic.filename &&
       pic?.buffer !== "" &&
       Object.entries(pic || {}).length
     ) {
@@ -99,6 +123,7 @@ const createUser = async (data: any) => {
     };
   }
 };
+
 
 const deleteUser = async (userId: any) => {
   try {

@@ -1,5 +1,8 @@
 import { NextFunction, Response } from "express";
-import { createContact, getContacts } from "../../repository/contact/contact.repository";
+import {
+  createContact,
+  getContacts,
+} from "../../repository/contact/contact.repository";
 import SendMail from "../../config/sendMail/sendMail";
 import mongoose from "mongoose";
 
@@ -9,9 +12,7 @@ export const createContactService = async (
   next: any
 ) => {
   try {
-
-    if(req.body.type === "subscriber")
-    {
+    if (req.body.type === "subscriber") {
       const websiteEmail = process.env.WEBSITE_EMAIL;
 
       if (!websiteEmail) {
@@ -23,67 +24,67 @@ export const createContactService = async (
 
       SendMail(
         websiteEmail,
-"New Subscriber Submission Alert",
-         "contact/adminSubscription.html",
-        { ...req.body, userEmail : req.body?.email, reciever_mail: websiteEmail }
+        "New Subscriber Submission Alert",
+        "contact/adminSubscription.html",
+        { ...req.body, userEmail: req.body?.email, reciever_mail: websiteEmail }
       );
 
       SendMail(
         req.body.email,
         "Your Information Has Been Successfully Submitted",
         "contact/userSubscription.html",
-        { ...req.body, userEmail : req.body?.email }
+        { ...req.body, userEmail: req.body?.email }
       );
 
       return res.status(200).send({
-        message: 'Subscribe Successfully',
+        message: "Subscribe Successfully",
         data: req.body,
-        status: 'success',
-      });
-    }
-    else
-    {
-      const { status, statusCode, data, message } = await createContact({...req.body, name : `${req.body.firstName} ${req.body.lastName}`});
-
-    if (status === "success") {
-      const websiteEmail = process.env.WEBSITE_EMAIL;
-
-      if (!websiteEmail) {
-        return res.status(500).send({
-          message: "Website email is not configured.",
-          status: "error",
-        });
-      }
-
-      SendMail(
-        websiteEmail,
-        "User Information Submission Alert",
-        "contact/userInfo.html",
-        { ...req.body, reciever_mail: websiteEmail }
-      );
-
-      SendMail(
-        req.body.email,
-        "Your Information Has Been Successfully Submitted",
-        "contact/customerMail.html",
-        { ...req.body }
-      );
-
-      return res.status(statusCode).send({
-        message: message,
-        data: req.body,
-        status: status,
+        status: "success",
       });
     } else {
-      // If creation fails, return the error response
-      return res.status(statusCode).send({
-        data,
-        message,
-        status,
+      const { status, statusCode, data, message } = await createContact({
+        ...req.body,
+        name: `${req.body.firstName} ${req.body.lastName}`,
       });
-    }
-    }
 
+      if (status === "success") {
+        const websiteEmail = process.env.WEBSITE_EMAIL;
+
+        if (!websiteEmail) {
+          return res.status(500).send({
+            message: "Website email is not configured.",
+            status: "error",
+          });
+        }
+
+        SendMail(
+          websiteEmail,
+          "User Information Submission Alert",
+          "contact/userInfo.html",
+          { ...req.body, reciever_mail: websiteEmail }
+        );
+
+        SendMail(
+          req.body.email,
+          "Your Information Has Been Successfully Submitted",
+          "contact/customerMail.html",
+          { ...req.body }
+        );
+
+        return res.status(statusCode).send({
+          message: message,
+          data: req.body,
+          status: status,
+        });
+      } else {
+        // If creation fails, return the error response
+        return res.status(statusCode).send({
+          data,
+          message,
+          status,
+        });
+      }
+    }
   } catch (err: any) {
     next(err);
   }
@@ -99,26 +100,35 @@ export const getContactsService = async (
     const limit = parseInt(req.query.limit) || 10;
     const search = req?.query?.search?.trim() || undefined;
 
-    const { status, statusCode, data , totalPages, message } = await getContacts(search, page, limit, new mongoose.Types.ObjectId(req.body.company));
+    const { status, statusCode, data, totalPages, message } = await getContacts(
+      search,
+      page,
+      limit,
+      new mongoose.Types.ObjectId(req.body.company)
+    );
 
     return res.status(statusCode).send({
       message: message,
       status: status,
-      data: {data, totalPages},
-      totalPages
+      data: { data, totalPages },
+      totalPages,
     });
   } catch (err: any) {
     next(err);
   }
 };
 
-export const sendResume = async (req: any, res: Response, next: NextFunction) => {
+export const sendResume = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const {
-      attachmentBase64String
-    } = req.body;
+    const { attachmentBase64String } = req.body;
 
-    const applicantName = `${req.body?.firstName || "Applicant"} ${req.body?.lastName || ""}`.trim();
+    const applicantName = `${req.body?.firstName || "Applicant"} ${
+      req.body?.lastName || ""
+    }`.trim();
     const emailSubject = `New Resume Submission from ${applicantName}`;
 
     await SendMail(
@@ -145,5 +155,3 @@ export const sendResume = async (req: any, res: Response, next: NextFunction) =>
     next(err);
   }
 };
-
-
