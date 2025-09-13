@@ -29,6 +29,7 @@ import { createToken } from "../../services/token/token.service";
 
 dotenv.config();
 const MeUser = async (req: any, res: Response): Promise<any> => {
+
   const profile_details = await ProfileDetails.findById(
     req.bodyData.profile_details
   );
@@ -76,6 +77,7 @@ const createUser = async (
         password: req.body.password,
         company: selectedCompany._id,
         role: req.body.role,
+        refrenceBy:req.body.refrenceBy || undefined,
         is_active: selectedCompany.verified_email_allowed ? false : true,
       });
       const savedUser = await user.save();

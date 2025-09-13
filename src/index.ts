@@ -31,6 +31,7 @@ const corsOptions = {
   credentials: false, // Allow cookies to be sent
   allowedHeaders: ["Content-Type", "Authorization"]
 };
+
 app.use(cors(corsOptions));
 
 importRoutings(app);
@@ -38,7 +39,6 @@ importRoutings(app);
 app.use('/', (req: Request, res: Response) => {
   res.status(statusCode.info).send("Welcome to our app");
 });
-
 
 app.use(errorMiddleware);
 

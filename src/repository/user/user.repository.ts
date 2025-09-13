@@ -29,7 +29,9 @@ async function generateUniqueCode(this: any): Promise<string> {
       chars.charAt(Math.floor(Math.random() * chars.length))
     ).join("");
 
-    const user = await mongoose.models.User.findOne({ code: code.toUpperCase() });
+    const user = await mongoose.models.User.findOne({
+      code: code.toUpperCase(),
+    });
     if (!user) {
       exists = false;
     }
@@ -37,7 +39,6 @@ async function generateUniqueCode(this: any): Promise<string> {
 
   return code!;
 }
-
 
 const createUser = async (data: any) => {
   try {
@@ -123,7 +124,6 @@ const createUser = async (data: any) => {
     };
   }
 };
-
 
 const deleteUser = async (userId: any) => {
   try {
@@ -262,11 +262,11 @@ const updateUserProfileDetails = async (data: any) => {
       username: data.username,
       _id: { $ne: data.userId },
     });
-    if(existUsername){
+    if (existUsername) {
       return {
-      status: "error",
-      data: `${data.username} username is already registered`,
-    };
+        status: "error",
+        data: `${data.username} username is already registered`,
+      };
     }
 
     const existCode = await User.exists({
@@ -274,11 +274,11 @@ const updateUserProfileDetails = async (data: any) => {
       _id: { $ne: data.userId },
     });
 
-    if(existCode){
+    if (existCode) {
       return {
-      status: "error",
-      data: `${data.code} code is already registered`,
-    };
+        status: "error",
+        data: `${data.code} code is already registered`,
+      };
     }
 
     const users: any = await User.findByIdAndUpdate(data.userId, {
@@ -341,8 +341,9 @@ const getUsers = async (data: {
   try {
     // Validate and set default values for pagination parameters
     const page = Math.max(1, Number(data.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(data.limit) || 10)); // Enforce reasonable limit range
+    const limit = Math.max(1, Math.min(100, Number(data.limit) || 10));
     const skip = (page - 1) * limit;
+
     // Base match conditions
     let matchConditions: any = {
       is_active: true,
@@ -351,12 +352,12 @@ const getUsers = async (data: {
       role: { $ne: "admin" },
     };
 
-    // Add company filter if provided
+    // Company filter
     if (data.company?.length) {
       matchConditions.company = { $in: data.company };
     }
 
-    // Add search conditions if provided
+    // Search filter
     if (data.search?.trim()) {
       const searchRegex = new RegExp(data.search.trim(), "i");
       matchConditions.$or = [
@@ -365,9 +366,21 @@ const getUsers = async (data: {
       ];
     }
 
-    // Main aggregation pipeline
+    // Aggregation pipeline
     const pipeline: any = [
       { $match: matchConditions },
+      {
+        $lookup: {
+          from: "users", // ensure correct collection name
+          let: { refId: "$refrenceBy" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$refId"] } } },
+            { $project: { _id: 1, name: 1, username: 1, code: 1 } },
+          ],
+          as: "refrenceBy",
+        },
+      },
+      { $unwind: { path: "$refrenceBy", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "profiledetails",
@@ -376,39 +389,33 @@ const getUsers = async (data: {
           as: "profileDetails",
         },
       },
-      { $unwind: "$profileDetails" },
+      {
+        $unwind: { path: "$profileDetails", preserveNullAndEmptyArrays: true },
+      },
       {
         $project: {
-          password: 0,
+          password: 0, // exclude sensitive field
         },
       },
       { $sort: { createdAt: -1 } },
     ];
 
-    // Execute parallel aggregations for data and metadata
+    // Execute parallel queries
     const [usersResult, totalResult]: any = await Promise.all([
-      // Data pipeline
       User.aggregate([...pipeline, { $skip: skip }, { $limit: limit }]),
-      // Counts pipeline
-      User.aggregate([
-        { $match: matchConditions },
-        {
-          $facet: {
-            total: [{ $count: "count" }],
-          },
-        },
-      ]),
+      User.aggregate([{ $match: matchConditions }, { $count: "count" }]),
     ]);
 
-    // Extract total count
-    const totalCount = totalResult[0]?.total[0]?.count || 0;
-
+    const totalCount = totalResult[0]?.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
 
     return {
       status: "success",
       data: usersResult,
       totalPages,
+      totalCount,
+      page,
+      limit,
     };
   } catch (err: any) {
     console.error("Error in getUsers:", err);

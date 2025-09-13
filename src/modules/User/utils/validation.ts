@@ -19,6 +19,7 @@ const UserValidation = Joi.object({
       "string.min": "mobile Number must have a minimum length of {#limit}",
       "string.max": "mobile Number should not exceed a maximum length of {#limit}"
   }),
+  refrenceBy:Joi.any(),
   pic: Joi.string().allow("").optional(),
   is_active: Joi.boolean().default(true),
   role: Joi.string().valid("user", "admin", "superadmin", "manager", "customer", "support").default("user"),

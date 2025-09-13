@@ -8,6 +8,7 @@ dotenv.config();
 
 const authenticate = async (req: any, res: Response, next: NextFunction) => {
   try {
+
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       throw generateError("Unauthorized User", 401);
@@ -40,3 +41,5 @@ const authenticate = async (req: any, res: Response, next: NextFunction) => {
 };
 
 export default authenticate;
+
+

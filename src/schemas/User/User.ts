@@ -19,6 +19,7 @@ export interface UserInterface extends Document {
   createdAt?: Date;
   updatedAt?: Date;
   permissions?:any
+  refrenceBy?:any
 }
 
 const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
@@ -55,6 +56,9 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
     default : {}
   },
   password: { type: String, trim: true },
+  refrenceBy:{
+    type : mongoose.Schema.Types.ObjectId
+  },
   deletedAt: {
     type: Date,
   },
