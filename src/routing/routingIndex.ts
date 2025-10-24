@@ -14,6 +14,7 @@ import dashboardRouting from "./dashboard/dashboard.routing";
 import eventRouting from './event/event.routing'
 import notificationRouting from './notification/notification.routing'
 import labRouting from "./lab/lab.routing";
+import masterRouting from "./masters/master.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -32,6 +33,7 @@ const importRoutings = (app: any) => {
   app.use("/api/blog", blogRouting);
   app.use("/api/student", StudentRouting);
   app.use("/api/trip", TripRouting);
+  app.use('/api/masters',masterRouting)
 };
 
 export default importRoutings;
