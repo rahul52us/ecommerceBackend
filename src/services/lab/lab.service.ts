@@ -18,18 +18,26 @@ export const createLabService = async (req: any, res: Response, next: any) => {
     });
     if (status === "success") {
       let items = req.body.items || [];
-      let result = items.map((it: any) => ({
-        ...it,
-        lab: data?._id,
-        createdBy: req.userId,
-        createdAt: new Date(),
-        company: req.body.company,
-      }));
-      await LabItemModal.insertMany(result);
+
+      // ✅ Filter only valid items
+      let validItems = items.filter((it: any) => it.itemName && it.itemCode);
+
+      if (validItems.length > 0) {
+        let result = validItems.map((it: any) => ({
+          ...it,
+          lab: data?._id,
+          createdBy: req.userId,
+          createdAt: new Date(),
+          company: req.body.company,
+        }));
+
+        await LabItemModal.insertMany(result);
+      }
+
       return res.status(statusCode).send({
-        message: message,
+        message,
         data: req.body,
-        status: status,
+        status,
       });
     } else {
       return res.status(statusCode).send({
@@ -91,8 +99,6 @@ export const deleteLabService = async (req: any, res: Response, next: any) => {
   }
 };
 
-
-
 export const createLabItemservice = async (
   req: any,
   res: Response,
@@ -116,9 +122,13 @@ export const createLabItemservice = async (
 
 export const deleteLabItem = async (req: any, res: Response, next: any) => {
   try {
-    const lineItem = await LabItemModal.findByIdAndUpdate(req.params.id, {
-      $set: { deletedAt: new Date() },
-    },{new : true});
+    const lineItem = await LabItemModal.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: { deletedAt: new Date() },
+      },
+      { new: true }
+    );
     const savedLineItems = await lineItem.save();
     return res.status(200).send({
       status: "success",
@@ -259,7 +269,7 @@ export const getPatientLabItems = async (
 
     const match: any = {
       isActive: true,
-      patientName:patientName,
+      patientName: patientName,
       deletedAt: { $exists: false },
     };
 
@@ -315,9 +325,9 @@ export const getPatientLabItems = async (
           "patientDetails.name": 1,
           "patientDetails.code": 1,
           "patientDetails.username": 1,
-          "labDetails._id":1,
-          "labDetails.name":1,
-          "labDetails.isActive":1
+          "labDetails._id": 1,
+          "labDetails.name": 1,
+          "labDetails.isActive": 1,
         },
       },
       { $sort: { createdAt: -1 } },
@@ -347,7 +357,6 @@ export const getPatientLabItems = async (
     next(err);
   }
 };
-
 
 export const updateLineItems = async (
   req: any,

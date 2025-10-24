@@ -11,8 +11,7 @@ const LabSchema = new Schema<any>({
   staffs: [
     {
       name: {
-        type: String,
-        required: true,
+        type: String
       },
       email: {
         type: String,
