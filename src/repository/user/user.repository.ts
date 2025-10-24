@@ -36,16 +36,16 @@ async function generateUniqueCode(this: any): Promise<string> {
       exists = false;
     }
   }
-
   return code!;
 }
 
 const createUser = async (data: any) => {
   try {
-    const user = await User.findOne({ username: data.username });
-    if (user) {
-      throw generateError(`${user.username} user already exists`, 300);
-    }
+    // const user = await User.findOne({ username: data.username });
+    // if (user) {
+    //   throw generateError(`${user.username} user already exists`, 300);
+    // }
+
 
     let finalCode = data.code;
     if (!finalCode) {
@@ -60,9 +60,9 @@ const createUser = async (data: any) => {
       }
     }
 
-    const { pic, password, confirmPassword, ...rest } = data;
+    const { pic, ...rest } = data;
 
-    const hashedPassword = await hashBcrypt(password);
+    const hashedPassword = await hashBcrypt(`${finalCode}@123`);
     const createdUser = new User({
       username: data.username,
       company: data.company,
@@ -258,16 +258,16 @@ const updateUserProfileDetails = async (data: any) => {
   try {
     const { pic, _id, ...rest } = data;
 
-    const existUsername = await User.exists({
-      username: data.username,
-      _id: { $ne: data.userId },
-    });
-    if (existUsername) {
-      return {
-        status: "error",
-        data: `${data.username} username is already registered`,
-      };
-    }
+    // const existUsername = await User.exists({
+    //   username: data.username,
+    //   _id: { $ne: data.userId },
+    // });
+    // if (existUsername) {
+    //   return {
+    //     status: "error",
+    //     data: `${data.username} username is already registered`,
+    //   };
+    // }
 
     const existCode = await User.exists({
       code: data.code,
