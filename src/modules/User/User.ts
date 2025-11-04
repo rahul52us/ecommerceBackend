@@ -341,7 +341,7 @@ const getUsersByCompany = async (
         {
           $project: {
             _id: 1,
-            username: 1,
+            username: "$name",
             code: 1,
             type: 1, // include type in response if needed
           },
