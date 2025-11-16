@@ -336,6 +336,8 @@ const getUsersByCompany = async (
         matchConditions.userType = userType;
       }
 
+      matchConditions.company = new mongoose.Types.ObjectId(req.bodyData.company)
+
       const users = await User.aggregate([
         { $match: matchConditions },
         {

@@ -50,6 +50,7 @@ const loginUser = async (data: any): Promise<any> => {
 
     const responseUser = {
       authorization_token: generateToken({ userId: existUser._id }),
+      userType : existUser?.userType
     };
 
     return {

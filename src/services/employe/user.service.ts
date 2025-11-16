@@ -26,6 +26,7 @@ import {
   getCompanyDetailsByUserId,
   getUserByName,
   deleteUser,
+  createAdminUser,
 } from "../../repository/user/user.repository";
 import mongoose from "mongoose";
 import { getRoleUsersService } from "../auth/auth.service";
@@ -47,6 +48,35 @@ const createUserservice = async (
       ...req.body,
       company: req.body.company,
       createdBy: req.userId,
+    });
+
+    if (status === "success") {
+      res.status(200).send({
+        message: "CREATE User SUCCESSFULLY",
+        statusCode: 201,
+        data: data,
+        success: true,
+      });
+    } else {
+      next(data);
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createAdminUserservice = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { status, data } = await createAdminUser({
+      ...req.body,
+      company: req.bodyData?.company,
+      createdBy: req.userId,
+      userType:'admin',
+      role : 'admin'
     });
 
     if (status === "success") {
@@ -173,7 +203,7 @@ const getAllUserService = async (
     const page = req.body.page || 1;
     const limit = req.body.limit || 10;
     const search = req.body.search || undefined;
-    const type = req.body.type || undefined
+    const type = req.body.type || req.bodyData?.userType || req.bodyData?.role || undefined
     const { data, status, totalPages } = await getUsers({
       userType:type,
       page: Number(page),
@@ -697,5 +727,6 @@ export {
   getUserInfoWithManagerActionService,
   getManagersOfUserService,
   getRoleCountOfCompanyService,
-  getCompanyDetailsByUserIdService
+  getCompanyDetailsByUserIdService,
+  createAdminUserservice
 };

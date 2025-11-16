@@ -26,17 +26,19 @@ import {
   getAllUserService,
   getUserByNameService,
   deleteUserService,
+  createAdminUserservice,
 } from "../services/employe/user.service";
 
 const router = express.Router();
 
 router.post("/create", authenticate, createUserservice);
+router.post("/admin/create", authenticate, createAdminUserservice);
 router.put("/profile/:id", authenticate, updateUserProfileService);
 router.delete("/profile/:id", authenticate, deleteUserService);
 router.get('/details/:id',authenticate,getCompanyDetailsByIdService)
 router.get("/:_id", getUserByNameService);
 router.get('/companydetails/:id',authenticate,getCompanyDetailsByUserIdService)
-router.post("/", getAllUserService);
+router.post("/", authenticate, getAllUserService);
 router.get("/managers/:id", authenticate, getManagersEmploysService);
 router.post('/salaryStructure',authenticate,getSalaryStructureService)
 router.post("/total/count", authenticate, getTotalUsersService);

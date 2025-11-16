@@ -4,8 +4,11 @@ import { createAppointment, getAppointments, updateAppointmentStatus } from "../
 
 export const getDoctorAppointmentsService = async (req: any, res: any) => {
   try {
+
     const { statusCode, success, message, data, count }: any = await getAppointments({
       ...req.body,
+      userType:req.bodyData?.userType,
+      userId : req.userId,
       company: req.body?.company || req.query?.company,
     });
 

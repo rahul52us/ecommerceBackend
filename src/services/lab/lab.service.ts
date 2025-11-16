@@ -150,7 +150,7 @@ export const getLabServices = async (req: any, res: Response, next: any) => {
       search,
       page,
       limit,
-      req.body.company
+      req.bodyData.company
     );
 
     return res.status(statusCode).send({
@@ -173,17 +173,24 @@ export const getLabItems = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const lab = new mongoose.Types.ObjectId(req.query.lab);
+    const lab = req.query.lab ? new mongoose.Types.ObjectId(req.query.lab) : null
 
     const search = req?.query?.search
       ? (req.query.search as string).trim()
       : undefined;
 
-    const match: any = {
+    let match: any = {
       isActive: true,
-      lab: lab,
       deletedAt: { $exists: false },
     };
+
+    if(lab){
+      match = {...match, lab : lab}
+    }
+
+    if(req.query.patientId){
+      match = {...match, patientName : new mongoose.Types.ObjectId(req.query.patientId)}
+    }
 
     if (search) {
       match.$or = [

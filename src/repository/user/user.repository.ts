@@ -18,6 +18,7 @@ import { statusCode } from "../../config/helper/statusCode";
 import Qualification from "../../schemas/User/Qualifications";
 import SalaryStructure from "../../schemas/salaryStructure/SalaryStructure.schema";
 import companyDetails from "../../schemas/company/companyDetails";
+import Company from "../../schemas/company/Company";
 
 async function generateUniqueCode(this: any): Promise<string> {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*_-";
@@ -39,14 +40,142 @@ async function generateUniqueCode(this: any): Promise<string> {
   return code!;
 }
 
+const createAdminUser = async (data: any) => {
+  try {
+    // -------------------------------
+    // 1️⃣ Generate unique user code
+    // -------------------------------
+    let finalCode = data.code;
+    if (!finalCode) {
+      finalCode = await generateUniqueCode();
+    } else {
+      const userCode = await User.findOne({ code: finalCode });
+      if (userCode) {
+        throw generateError(
+          `${userCode.username} already exists with ${finalCode}`,
+          300
+        );
+      }
+    }
+
+    let savedCompany : any = null
+    // -------------------------------
+    // 2️⃣ COMPANY CHECK / CREATE
+    // -------------------------------
+    let companyId;
+
+    // 💥 Company name is mandatory if user is admin/superAdmin
+    if (!data.companyName) {
+      throw generateError("Company name is required", 400);
+    }
+
+    // Check if company already exists
+    let existingCompany = await Company.findOne({
+      company_name: data.companyName.trim(),
+    });
+
+    if (existingCompany) {
+      throw generateError(`Company Already Registered With this Name`, 400);
+    } else {
+      // Create new company
+      const newCompany = new Company({
+        company_name: data.companyName.trim(),
+        companyCode: data.companyCode || `COMP-${Date.now()}`,
+        companyType: data.companyType || "company",
+        verified_email_allowed: false,
+        createdBy: null,
+        activeUser: null,
+        is_active: true,
+        addressInfo: data.addressInfo || [],
+      });
+
+      savedCompany = await newCompany.save();
+      companyId = savedCompany._id;
+    }
+
+    // -------------------------------
+    // 3️⃣ Create User
+    // -------------------------------
+    const { pic, ...rest } = data;
+    const hashedPassword = await hashBcrypt(data?.password);
+
+    const createdUser = new User({
+      username: data.username,
+      company: companyId, // <-- COMPANY LINKED HERE
+      name: data.name,
+      code: finalCode,
+      mobileNumber: data.mobileNumber,
+      userType: data.userType,
+      password: hashedPassword,
+      bio: data.bio,
+      is_active: true,
+      role: data.role,
+      title: data.title,
+    });
+
+    const savedUser = await createdUser.save();
+    if (!savedUser) throw generateError(`Cannot create the user`, 400);
+
+    // -------------------------------
+    // 4️⃣ Create Profile
+    // -------------------------------
+    const profile = new ProfileDetails({
+      user: savedUser._id,
+      personalInfo: { ...rest },
+    });
+
+    const savedProfile = await profile.save();
+    savedUser.profile_details = savedProfile._id;
+    await savedUser.save();
+
+    // -------------------------------
+    // 5️⃣ Upload Picture (optional)
+    // -------------------------------
+    if (pic && pic.filename && pic?.buffer !== "" && Object.entries(pic || {}).length) {
+      pic.filename = generateFileName(pic.filename);
+      const url = await uploadFile(pic);
+
+      savedUser.pic = {
+        name: pic?.filename,
+        url,
+        type: pic?.type,
+      };
+
+      savedCompany.logo = {
+        name: pic?.filename,
+        url,
+        type: pic?.type,
+      };
+
+      await savedCompany.save()
+
+      await savedUser.save();
+    }
+
+    // -------------------------------
+    // 6️⃣ Final Response
+    // -------------------------------
+    const userObj: any = savedUser.toObject();
+    delete userObj.password;
+
+    return {
+      status: "success",
+      data: {
+        ...userObj,
+        profile_details: savedProfile.toObject(),
+      },
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: err,
+    };
+  }
+};
+
+
 const createUser = async (data: any) => {
   try {
-    // const user = await User.findOne({ username: data.username });
-    // if (user) {
-    //   throw generateError(`${user.username} user already exists`, 300);
-    // }
-
-
     let finalCode = data.code;
     if (!finalCode) {
       finalCode = await generateUniqueCode();
@@ -333,12 +462,15 @@ const updateUserProfileDetails = async (data: any) => {
 
 const getUsers = async (data: {
   userType: string;
+  role?:string;
   page: number;
   limit: number;
   search?: string;
   company?: string[];
 }) => {
   try {
+
+    console.log(data)
     // Validate and set default values for pagination parameters
     const page = Math.max(1, Number(data.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(data.limit) || 10));
@@ -348,14 +480,30 @@ const getUsers = async (data: {
     let matchConditions: any = {
       is_active: true,
       deletedAt: { $exists: false },
-      userType: data.userType,
       role: { $ne: "admin" },
     };
 
+    if (data.userType === "superAdmin") {
+  matchConditions = {
+    ...matchConditions,
+    userType: "admin",
+    role: "admin"
+  };
+} else {
+  matchConditions = {
+    ...matchConditions,
+    userType: data.userType,
+    role: { $ne: "admin" }
+  };
+}
+
+
     // Company filter
+    if(data.userType !== "superAdmin"){
     if (data.company?.length) {
       matchConditions.company = { $in: data.company };
     }
+  }
 
     // Search filter
     if (data.search?.trim()) {
@@ -1740,4 +1888,5 @@ export {
   getManagerUsersCounts,
   getManagersOfUser,
   deleteUser,
+  createAdminUser
 };

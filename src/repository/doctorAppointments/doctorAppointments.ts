@@ -169,6 +169,8 @@ export const getAppointments = async (query: any) => {
       company,
       limit = 20,
       skip = 0,
+      userId,
+      userType
     } = query;
 
     const matchStage: any = {};
@@ -196,6 +198,9 @@ export const getAppointments = async (query: any) => {
       matchStage.appointmentDate = { $gte: dayStart, $lte: dayEnd };
     }
 
+    if(userType === "patient"){
+      matchStage.patient = new mongoose.Types.ObjectId(userId)
+    }
     // 🧩 Aggregation pipeline
     const pipeline : any = [
       { $match: matchStage },

@@ -70,7 +70,7 @@ export const getLabs = async (
 
     const skip = (page - 1) * limit;
 
-    const query: any = {deletedAt : {$exists : false}, isActive : true};
+    const query: any = {deletedAt : {$exists : false}, isActive : true , company : company};
 
     if (search) {
       query.$or = [
