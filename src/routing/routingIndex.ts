@@ -16,6 +16,7 @@ import notificationRouting from './notification/notification.routing'
 import labRouting from "./lab/lab.routing";
 import masterRouting from "./masters/master.routing";
 import doctorAppointmentRouting from "./doctorAppointment/doctorAppointment.routing";
+import chairsRouting from "./chairs/chairs.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -36,6 +37,7 @@ const importRoutings = (app: any) => {
   app.use("/api/trip", TripRouting);
   app.use('/api/masters',masterRouting)
   app.use('/api/doctor/appointment',doctorAppointmentRouting)
+  app.use('/api/chairs',chairsRouting)
 };
 
 export default importRoutings;
