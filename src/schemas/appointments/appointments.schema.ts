@@ -90,6 +90,7 @@ const appointmentSchema = new mongoose.Schema(
         "cancelled",
         "rescheduled",
         "no-show",
+        "arrived"
       ],
       default: "scheduled",
     },
