@@ -19,7 +19,7 @@ const app = express();
 const server = http.createServer(app);
 setupSocket(server);
 
-// Use body-parser
+// //Use body-parser
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/notes', express.static(path.join(__dirname, 'src', '../public/notes')));
