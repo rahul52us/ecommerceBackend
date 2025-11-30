@@ -19,6 +19,7 @@ export const createAppointment = async ( data : any) => {
       status,
       followUp,
       doctorNote,
+      chair
     } = data;
 
     // ✅ Basic required field validation
@@ -57,6 +58,7 @@ export const createAppointment = async ( data : any) => {
       title,
       description,
       mode,
+      chair,
       company:data.company,
       meetingLink: mode === "online" ? meetingLink : null,
       location: mode === "offline" ? location : null,

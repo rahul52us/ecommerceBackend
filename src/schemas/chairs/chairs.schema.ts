@@ -21,7 +21,7 @@ const ChairSchema = new mongoose.Schema(
     },
 
     chairNo: {
-      type: Number,
+      type: String,
       required: true,
       unique: true,
     },

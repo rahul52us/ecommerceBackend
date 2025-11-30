@@ -26,7 +26,7 @@ export const createChairsRepo = async (payload: any) => {
     // Create new chair
     const newChair = await Chair.create({
       chairName,
-      chairColor:chairColor.value,
+      chairColor,
       chairDetails,
       chairNo,
       createdBy: user,     // mapped from req.userId

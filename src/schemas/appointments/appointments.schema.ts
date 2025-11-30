@@ -29,6 +29,11 @@ const appointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    chair:{
+      type : mongoose.Schema.Types.ObjectId,
+      ref : 'Chair',
+      required : true
+    },
 
     // 📅 Appointment scheduling
     appointmentDate: {
