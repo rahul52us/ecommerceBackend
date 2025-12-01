@@ -435,6 +435,27 @@ export const updatedCompanyDetails = async(req : any , res : Response, next : Ne
   }
 }
 
+export const updatedOperatingHours = async (req:any, res:Response, next:NextFunction) => {
+  try {
+    const dt = await Company.findOneAndUpdate(
+      { _id: req.body.company }, 
+      { $set: { operatingHours: req.body.operatingHours } },
+      { new: true }
+    );
+
+    res.status(200).send({
+      message: "Details updated",
+      data: dt,
+      statusCode: 200,
+      success: true
+    });
+  }
+  catch (err) {
+    next(err);
+  }
+};
+
+
 
 export const getCompanyDetails = async(req : any , res : Response, next : NextFunction) => {
   try

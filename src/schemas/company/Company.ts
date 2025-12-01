@@ -38,7 +38,8 @@ interface CompanyI extends Document {
   deletedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
-  addressInfo?:addressInfo[]
+  addressInfo?:addressInfo[];
+  operatingHours?:any[]
 }
 
 const companySchema = new mongoose.Schema<CompanyI>({
@@ -117,6 +118,7 @@ const companySchema = new mongoose.Schema<CompanyI>({
       pinCode: String
     }]
   },
+  operatingHours: { type: Array, default: [] },
   activeUser : {
       type : mongoose.Schema.Types.ObjectId,
       ref : 'User'
