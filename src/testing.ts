@@ -3,7 +3,7 @@ import { AssemblyAI } from "assemblyai";
 import fs from "fs";
 import path from "path";
 
-// Initialize AssemblyAI client with your API key
+// // Initialize AssemblyAI client with your API key
 const client = new AssemblyAI({
   apiKey: "6d5279b4526d4c209f31de7a3ef45344", // Ensure this key is valid
 });
