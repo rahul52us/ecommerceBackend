@@ -320,7 +320,7 @@ const getUsersByCompany = async (
   next: NextFunction
 ) => {
   try {
-    const { searchValue, userType } = req.query;
+    const { searchValue, type } = req.query;
 
     try {
       const matchConditions: any = {};
@@ -332,8 +332,8 @@ const getUsersByCompany = async (
         ];
       }
 
-      if (userType) {
-        matchConditions.userType = userType;
+      if (type) {
+        matchConditions.userType = type;
       }
 
       matchConditions.company = new mongoose.Types.ObjectId(req.bodyData.company)
