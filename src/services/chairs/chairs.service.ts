@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
-import {createChairsRepo, getChairsRepo} from '../../repository/chairs/chairs.repository'
+import {createChairsRepo, deleteChair, getChairsRepo} from '../../repository/chairs/chairs.repository'
+import { NextFunction, Response } from "express";
+
 
 export const createChairsService = async (req: any, res: any) => {
   try {
@@ -49,3 +51,22 @@ export const getChairsService = async (req: any, res: any) => {
   }
 };
 
+
+export const deleteChairService = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { status, data, message } = await deleteChair(req.params.id);
+
+    if (status === "success") {
+      return res.status(200).json({
+        message,
+        statusCode: 200,
+        data,
+        success: true,
+      });
+    }
+
+    next(data); // forward error to global error handler
+  } catch (err) {
+    next(err);
+  }
+};
