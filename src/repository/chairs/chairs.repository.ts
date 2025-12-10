@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Chair from "../../schemas/chairs/chairs.schema"; // <-- adjust path as needed
+import { generateError } from "../../modules/config/function";
 
 export const createChairsRepo = async (payload: any) => {
   try {
@@ -108,3 +109,28 @@ export const getChairsRepo = async (query: any) => {
   }
 };
 
+
+export const deleteChair = async (id: string) => {
+  try {
+    const chair = await Chair.findById(id);
+    if (!chair) {
+      throw generateError("Chair not found", 404);
+    }
+
+    await Chair.findByIdAndDelete(id);
+
+    return {
+      status: "success",
+      message: "Chair deleted successfully",
+      statusCode: 200,
+      data: "Chair deleted Successfully",
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: err,
+      statusCode: err.statusCode || 500,
+      message: err.message,
+    };
+  }
+};
