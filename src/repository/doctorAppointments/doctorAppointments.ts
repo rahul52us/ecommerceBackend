@@ -240,6 +240,16 @@ export const getAppointments = async (query: any) => {
           as: "createdBy",
         },
       },
+      {
+  $lookup: {
+    from: "chairs",
+    localField: "chair",
+    foreignField: "_id",
+    as: "chair",
+  },
+},
+{ $unwind: { path: "$chair", preserveNullAndEmptyArrays: true } },
+
       { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
@@ -267,6 +277,7 @@ export const getAppointments = async (query: any) => {
           location: 1,
           created_At: 1,
           updated_At: 1,
+          chair:1,
           "primaryDoctor._id": 1,
           "primaryDoctor.name": 1,
           "primaryDoctor.code": 1,
