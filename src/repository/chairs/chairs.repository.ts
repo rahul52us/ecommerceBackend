@@ -134,3 +134,28 @@ export const deleteChair = async (id: string) => {
     };
   }
 };
+
+export const updateChairsRepo = async (id: string, payload: any) => {
+  try {
+    const updatedChair = await Chair.findByIdAndUpdate(id, payload, {
+      new: true,
+    });
+
+    if (!updatedChair) {
+      throw generateError("Chair not found", 404);
+    }
+
+    return {
+      status: "success",
+      message: "Chair updated successfully",
+      statusCode: 200,
+      data: updatedChair,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      statusCode: err.statusCode || 500,
+      message: err.message,
+    };
+  }
+};
