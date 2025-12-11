@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import {createChairsRepo, deleteChair, getChairsRepo, updateChairsRepo} from '../../repository/chairs/chairs.repository'
+import {createChairsRepo, deleteChair, getChairsRepo, getTodayChairSummary, updateChairsRepo} from '../../repository/chairs/chairs.repository'
 import { NextFunction, Response } from "express";
 
 
@@ -87,3 +87,23 @@ export const updateChairService = async (req:any, res:any) => {
     console.log(error);
   }
 };
+
+export const  getChairSummaryService = async(req : any ,res : any) => {
+  try
+  {
+   const {data, status, message, statusCode} =  await getTodayChairSummary({company: req.body.company})
+   return res.status(statusCode).send({
+    status,
+    data,
+    message
+   })
+  }
+  catch(err : any)
+  {
+    return res.status(500).send({
+      status : 'error',
+      data : err?.message,
+      message : err?.message
+    })
+  }
+}
