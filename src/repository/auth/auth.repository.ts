@@ -33,7 +33,7 @@ const loginUser = async (data: any): Promise<any> => {
   try {
     const query: any = {};
     if (data.loginType === "code") {
-      query.code = data.code
+      query.code = data.username
     } else {
       query.username = { $regex: `^${data.username}$`, $options: 'i' };
     }
