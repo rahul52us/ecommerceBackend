@@ -315,3 +315,51 @@ export const getAppointments = async (query: any) => {
     };
   }
 };
+
+export const getAppointmentStatusCounts = async (query : any) => {
+  try {
+    const statuses = ["rescheduled", "cancelled", "no-show"];
+
+    if(query.patient){
+      query = {patient : new mongoose.Types.ObjectId(query.patient)}
+    }
+
+    const result = await AppointmentSchema.aggregate([
+      {
+        $match: {
+          ...query,
+          status: { $in: statuses }
+        }
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const counts : any = {
+      rescheduled: 0,
+      cancelled: 0,
+      "no-show": 0
+    };
+
+    result.forEach((item) => {
+      counts[item._id] = item.count;
+    });
+
+    return {
+      status: "success",
+      data: counts,
+      message : 'Retrieved Patients Status',
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return {
+      status: "error",
+      message: error.message,
+      statusCode: 500
+    };
+  }
+};
