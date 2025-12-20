@@ -96,6 +96,113 @@ export const createAppointment = async ( data : any) => {
   }
 };
 
+export const updateAppointment = async (data: any) => {
+  try {
+    const {
+      appointmentId, // 🔴 REQUIRED
+      primaryDoctor,
+      additionalDoctors,
+      patient,
+      appointmentDate,
+      startTime,
+      endTime,
+      title,
+      description,
+      mode,
+      meetingLink,
+      location,
+      status,
+      followUp,
+      doctorNote,
+      chair,
+      company,
+      user,
+    } = data;
+
+    // ✅ Required validation
+    if (
+      !appointmentId ||
+      !primaryDoctor ||
+      !patient ||
+      !appointmentDate ||
+      !startTime ||
+      !title
+    ) {
+      return {
+        success: "error",
+        message: "Missing required fields.",
+        statusCode: 400,
+      };
+    }
+
+    // ✅ Build update payload
+    const updatePayload: any = {
+      primaryDoctor,
+      additionalDoctors,
+      patient,
+      appointmentDate: new Date(appointmentDate),
+      startTime,
+      endTime,
+      title,
+      description,
+      mode,
+      chair,
+      company,
+      status: status || "scheduled",
+      followUpOf: followUp?.isFollowUp
+        ? followUp.referenceAppointmentId
+        : null,
+      meetingLink: mode === "online" ? meetingLink : null,
+      location: mode === "offline" ? location : null,
+      updatedAt: new Date(),
+      updatedBy: user,
+    };
+
+    // ✅ Push note only if exists
+    const updateQuery: any = { $set: updatePayload };
+
+    if (String(doctorNote || "").trim()) {
+      updateQuery.$push = {
+        notes: {
+          author: user || null,
+          text: doctorNote,
+          createdAt: new Date(),
+        },
+      };
+    }
+
+    // ✅ Update appointment
+    const updatedAppointment = await AppointmentSchema.findByIdAndUpdate(
+      appointmentId,
+      updateQuery,
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return {
+        success: "error",
+        message: "Appointment not found.",
+        statusCode: 404,
+      };
+    }
+
+    return {
+      success: "success",
+      message: "Appointment updated successfully.",
+      data: updatedAppointment,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error. Could not update appointment.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+
 export const updateAppointmentStatus = async (data: any) => {
   try {
     const { appointmentId, status, remarks, user } = data;
