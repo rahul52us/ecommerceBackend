@@ -91,7 +91,7 @@ export const updateChairService = async (req:any, res:any) => {
 export const  getChairSummaryService = async(req : any ,res : any) => {
   try
   {
-   const {data, status, message, statusCode} =  await getTodayChairSummary({company: req.body.company})
+   const {data, status, message, statusCode} =  await getTodayChairSummary({date : req.body.date, company: req.body.company})
    return res.status(statusCode).send({
     status,
     data,

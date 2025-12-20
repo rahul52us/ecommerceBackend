@@ -160,27 +160,32 @@ export const updateChairsRepo = async (id: string, payload: any) => {
   }
 };
 
-
 export const getTodayChairSummary = async (query: any) => {
   try {
-    const { company } = query;
+    const { company, date } = query;
 
-    // 📅 Today 00:00 → 23:59:59
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    let baseDate: Date;
 
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    if (date) {
+      const [year, month, day] = date.split("-").map(Number);
+      baseDate = new Date(year, month - 1, day);
+    } else {
+      baseDate = new Date();
+    }
+
+    const dayStart = new Date(baseDate);
+    dayStart.setHours(0, 0, 0, 0);
+
+    const dayEnd = new Date(baseDate);
+    dayEnd.setHours(23, 59, 59, 999);
 
     const companyMatch = company
       ? { company: new mongoose.Types.ObjectId(company) }
       : {};
 
-    const pipeline : any = [
-      // 1️⃣ Fetch all chairs for company
+    const pipeline: any = [
       { $match: companyMatch },
 
-      // 2️⃣ Lookup today's appointments for each chair
       {
         $lookup: {
           from: "appointments",
@@ -189,11 +194,10 @@ export const getTodayChairSummary = async (query: any) => {
             {
               $match: {
                 $expr: { $eq: ["$chair", "$$chairId"] },
-                appointmentDate: { $gte: todayStart, $lte: todayEnd },
+                appointmentDate: { $gte: dayStart, $lte: dayEnd },
               },
             },
 
-            // === JOIN PRIMARY DOCTOR ===
             {
               $lookup: {
                 from: "users",
@@ -204,7 +208,6 @@ export const getTodayChairSummary = async (query: any) => {
             },
             { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
 
-            // === JOIN ADDITIONAL DOCTORS ===
             {
               $lookup: {
                 from: "users",
@@ -214,7 +217,6 @@ export const getTodayChairSummary = async (query: any) => {
               },
             },
 
-            // === JOIN PATIENT ===
             {
               $lookup: {
                 from: "users",
@@ -225,7 +227,6 @@ export const getTodayChairSummary = async (query: any) => {
             },
             { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
 
-            // Clean appointment fields
             {
               $project: {
                 _id: 1,
@@ -236,8 +237,6 @@ export const getTodayChairSummary = async (query: any) => {
                 appointmentDate: 1,
                 startTime: 1,
                 endTime: 1,
-                meetingLink: 1,
-                location: 1,
 
                 primaryDoctor: {
                   _id: "$primaryDoctor._id",
@@ -263,20 +262,12 @@ export const getTodayChairSummary = async (query: any) => {
         },
       },
 
-      // 3️⃣ EXTRACT UNIQUE DOCTORS (Primary + Additional)
       {
         $addFields: {
           doctors: {
             $setUnion: [
+              { $map: { input: "$appointments", in: "$$this.primaryDoctor" } },
               {
-                // All primary doctors
-                $map: {
-                  input: "$appointments",
-                  in: "$$this.primaryDoctor",
-                },
-              },
-              {
-                // Flatten additional doctors arrays
                 $reduce: {
                   input: "$appointments.additionalDoctors",
                   initialValue: [],
@@ -288,27 +279,20 @@ export const getTodayChairSummary = async (query: any) => {
         },
       },
 
-      // 4️⃣ EXTRACT UNIQUE PATIENTS
       {
         $addFields: {
           patients: {
-            $setUnion: [
-              {
-                $map: { input: "$appointments", in: "$$this.patient" },
-              },
-            ],
+            $setUnion: [{ $map: { input: "$appointments", in: "$$this.patient" } }],
           },
         },
       },
 
-      // 5️⃣ Add appointment count
       {
         $addFields: {
           count: { $size: "$appointments" },
         },
       },
 
-      // 6️⃣ Final output
       {
         $project: {
           _id: 1,
@@ -328,19 +312,20 @@ export const getTodayChairSummary = async (query: any) => {
     const data = await Chair.aggregate(pipeline);
 
     return {
-      status: 'success',
-      message: "Today's chair summary fetched",
+      status: "success",
+      message: "Chair summary fetched",
       data,
       statusCode: 200,
     };
   } catch (error: any) {
     console.error("getTodayChairSummary error:", error);
     return {
-      status: 'error',
+      status: "error",
       message: "Failed to get summary",
       error: error.message,
       statusCode: 500,
     };
   }
 };
+
 
