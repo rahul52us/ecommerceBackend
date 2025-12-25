@@ -1,6 +1,32 @@
 import mongoose from "mongoose";
-import { createAppointment, getAppointments, getAppointmentStatusCounts, updateAppointment, updateAppointmentStatus } from "../../repository/doctorAppointments/doctorAppointments";
+import { createAppointment, getAppointmentById, getAppointments, getAppointmentStatusCounts, updateAppointment, updateAppointmentStatus } from "../../repository/doctorAppointments/doctorAppointments";
 
+
+
+
+
+export const getAppointmentByIdService = async (req: any, res: any) => {
+  try {
+
+    const { statusCode, success, message, data, count }: any = await getAppointmentById({
+      ...req.body,
+      userType:req.bodyData?.userType,
+      userId : req.userId,
+      company: req.body?.company || req.query?.company,
+    });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data : {data , totalPages : count},
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
 
 export const getDoctorAppointmentsService = async (req: any, res: any) => {
   try {

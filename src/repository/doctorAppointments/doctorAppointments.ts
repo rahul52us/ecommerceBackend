@@ -423,6 +423,134 @@ export const getAppointments = async (query: any) => {
   }
 };
 
+
+export const getAppointmentById = async (data : any) => {
+  try {
+    console.log(data)
+
+    const pipeline: any[] = [
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(data?.appointmentId),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "primaryDoctor",
+          foreignField: "_id",
+          as: "primaryDoctor",
+        },
+      },
+      { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "additionalDoctors",
+          foreignField: "_id",
+          as: "additionalDoctors",
+        },
+      },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patient",
+        },
+      },
+      { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "chairs",
+          localField: "chair",
+          foreignField: "_id",
+          as: "chair",
+        },
+      },
+      { $unwind: { path: "$chair", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "companies",
+          localField: "company",
+          foreignField: "_id",
+          as: "company",
+        },
+      },
+      { $unwind: { path: "$company", preserveNullAndEmptyArrays: true } },
+
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          description: 1,
+          mode: 1,
+          status: 1,
+          appointmentDate: 1,
+          startTime: 1,
+          endTime: 1,
+          meetingLink: 1,
+          location: 1,
+          created_At: 1,
+          updated_At: 1,
+          chair: 1,
+          history: 1,
+          notes: 1,
+
+          "primaryDoctor._id": 1,
+          "primaryDoctor.name": 1,
+          "primaryDoctor.code": 1,
+
+          "createdBy._id": 1,
+          "createdBy.name": 1,
+          "createdBy.code": 1,
+
+          "additionalDoctors._id": 1,
+          "additionalDoctors.name": 1,
+
+          "patient._id": 1,
+          "patient.name": 1,
+          "patient.code": 1,
+
+          "company._id": 1,
+        },
+      },
+    ];
+
+    const appointments = await AppointmentSchema.aggregate(pipeline);
+
+    return {
+      success: "success",
+      message: "Appointment fetched successfully.",
+      data: appointments[0] || null, // ✅ SAME OUTPUT SHAPE
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    console.error("❌ getAppointmentById error:", error);
+    return {
+      success: "error",
+      message: "Server error while fetching appointment.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+
 export const getAppointmentStatusCounts = async (query : any) => {
   try {
     const statuses = ["rescheduled", "cancelled", "no-show"];
