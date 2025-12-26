@@ -18,6 +18,7 @@ import masterRouting from "./masters/master.routing";
 import doctorAppointmentRouting from "./doctorAppointment/doctorAppointment.routing";
 import chairsRouting from "./chairs/chairs.routing";
 import treatmentRouting from "./treatment/treatment.routing";
+import recallAppointmentRouting from "./recallAppointment/recallAppointment.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -40,6 +41,7 @@ const importRoutings = (app: any) => {
   app.use('/api/doctor/appointment',doctorAppointmentRouting)
   app.use('/api/chairs',chairsRouting);
   app.use('/api/toothTreatment',treatmentRouting)
+  app.use('/api/recall-appointment',recallAppointmentRouting)
 };
 
 export default importRoutings;

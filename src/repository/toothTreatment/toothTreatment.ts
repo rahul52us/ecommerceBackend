@@ -11,7 +11,6 @@ export const createToothTreatment = async (data: any) => {
       doctor,
       company,
       tooth,
-      treatment,
       treatmentDate,
       status,
       notes,
