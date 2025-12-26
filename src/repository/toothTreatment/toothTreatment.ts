@@ -1,0 +1,413 @@
+import mongoose from "mongoose";
+import ToothTreatmentSchema from "../../schemas/toothTreatment/toothTreatment.schema";
+
+/* =====================================================
+   1️⃣ CREATE TOOTH TREATMENT
+===================================================== */
+export const createToothTreatment = async (data: any) => {
+  try {
+    const {
+      patient,
+      doctor,
+      company,
+      tooth,
+      treatment,
+      treatmentDate,
+      status,
+      notes,
+      treatmentPlan,
+      user, // createdBy
+    } = data;
+
+    if (!patient || !doctor || !company || !tooth?.fdi || !treatmentPlan) {
+      return {
+        success: "error",
+        message: "Missing required fields.",
+        statusCode: 400,
+      };
+    }
+
+    const record = new ToothTreatmentSchema({
+      patient,
+      doctor,
+      company,
+      tooth: {
+        fdi: tooth.fdi,
+        universal: tooth.universal || null,
+        palmer: tooth.palmer || null,
+      },
+      treatmentPlan:treatmentPlan,
+      treatmentDate: treatmentDate ? new Date(treatmentDate) : null,
+      status: status || "pending",
+      notes: notes || "",
+      createdBy: user,
+      createdAt: new Date(),
+    });
+
+    const saved = await record.save();
+
+    return {
+      success: "success",
+      message: "Tooth treatment created successfully.",
+      data: saved,
+      statusCode: 201,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error?.message,
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   2️⃣ UPDATE TOOTH TREATMENT
+===================================================== */
+export const updateToothTreatment = async (data: any) => {
+  try {
+    const {
+      treatmentId,
+      treatment,
+      treatmentDate,
+      status,
+      notes,
+      user, // updatedBy
+    } = data;
+
+    if (!treatmentId) {
+      return {
+        success: "error",
+        message: "Treatment ID is required.",
+        statusCode: 400,
+      };
+    }
+
+    const updatePayload: any = {
+      updatedAt: new Date(),
+      updatedBy: user,
+    };
+
+    if (treatment?.type)
+      updatePayload["treatment.type"] = treatment.type;
+
+    if (treatmentDate)
+      updatePayload.treatmentDate = new Date(treatmentDate);
+
+    if (status) updatePayload.status = status;
+    if (notes !== undefined) updatePayload.notes = notes;
+
+    const updated = await ToothTreatmentSchema.findByIdAndUpdate(
+      treatmentId,
+      { $set: updatePayload },
+      { new: true }
+    );
+
+    if (!updated) {
+      return {
+        success: "error",
+        message: "Tooth treatment not found.",
+        statusCode: 404,
+      };
+    }
+
+    return {
+      success: "success",
+      message: "Tooth treatment updated successfully.",
+      data: updated,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error. Could not update tooth treatment.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   3️⃣ UPDATE TOOTH TREATMENT STATUS
+===================================================== */
+export const updateToothTreatmentStatus = async (data: any) => {
+  try {
+    const { treatmentId, status, remarks, user } = data;
+
+    if (!treatmentId || !status) {
+      return {
+        success: "error",
+        message: "Treatment ID and status are required.",
+        statusCode: 400,
+      };
+    }
+
+    const treatment : any = await ToothTreatmentSchema.findById(treatmentId);
+
+    if (!treatment) {
+      return {
+        success: "error",
+        message: "Tooth treatment not found.",
+        statusCode: 404,
+      };
+    }
+
+    treatment.status = status;
+    treatment.updatedAt = new Date();
+    treatment.updatedBy = user;
+
+    if (remarks) {
+      treatment.notes = `${treatment.notes || ""}\n${remarks}`;
+    }
+
+    const saved = await treatment.save();
+
+    return {
+      success: "success",
+      message: "Tooth treatment status updated.",
+      data: saved,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   4️⃣ GET TOOTH TREATMENTS (LIST + FILTERS)
+===================================================== */
+export const getToothTreatments = async (query: any) => {
+  try {
+    const {
+      patientId,
+      doctor,
+      company,
+      fdi,
+      status,
+      limit = 20,
+      skip = 0,
+    } = query;
+
+    const matchStage: any = {
+      isActive: true,
+    };
+
+    if (company) matchStage.company = new mongoose.Types.ObjectId(company);
+    if (patientId) matchStage.patient = new mongoose.Types.ObjectId(patientId);
+    if (doctor) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
+    if (status) matchStage.status = status;
+    if (fdi) matchStage["tooth.fdi"] = fdi;
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "doctor",
+          foreignField: "_id",
+          as: "doctor",
+        },
+      },
+      { $unwind: "$doctor" },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patient",
+        },
+      },
+      { $unwind: "$patient" },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+
+      { $sort: { createdAt: -1 } },
+      { $skip: parseInt(skip) },
+      { $limit: parseInt(limit) },
+
+      {
+        $project: {
+          tooth: 1,
+          treatment: 1,
+          treatmentDate: 1,
+          status: 1,
+          notes: 1,
+          createdAt: 1,
+
+          "patient._id": 1,
+          "patient.name": 1,
+          "patient.code": 1,
+
+          "doctor._id": 1,
+          "doctor.name": 1,
+          "doctor.code": 1,
+
+          "createdBy._id": 1,
+          "createdBy.name": 1,
+          "createdBy.code": 1,
+        },
+      },
+    ];
+
+    const records = await ToothTreatmentSchema.aggregate(pipeline);
+
+    return {
+      success: "success",
+      count: records.length,
+      data: records,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    console.log(error)
+    return {
+      success: "error",
+      message: "Server error while fetching tooth treatments.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   5️⃣ GET TOOTH TREATMENT BY ID
+===================================================== */
+export const getToothTreatmentById = async (data: any) => {
+  try {
+    const { treatmentId } = data;
+
+    if (!treatmentId) {
+      return {
+        success: "error",
+        message: "Treatment ID is required.",
+        statusCode: 400,
+      };
+    }
+
+    const pipeline: any[] = [
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(treatmentId),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "doctor",
+          foreignField: "_id",
+          as: "doctor",
+        },
+      },
+      { $unwind: "$doctor" },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patient",
+        },
+      },
+      { $unwind: "$patient" },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+
+      {
+        $project: {
+          tooth: 1,
+          treatment: 1,
+          treatmentDate: 1,
+          status: 1,
+          notes: 1,
+          createdAt: 1,
+          patient: 1,
+          doctor: 1,
+          createdBy: 1,
+        },
+      },
+    ];
+
+    const result = await ToothTreatmentSchema.aggregate(pipeline);
+
+    return {
+      success: "success",
+      data: result[0] || null,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   6️⃣ SOFT DELETE TOOTH TREATMENT
+===================================================== */
+export const deleteToothTreatment = async (data: any) => {
+  try {
+    const { treatmentId, user } = data;
+
+    if (!treatmentId) {
+      return {
+        success: "error",
+        message: "Treatment ID is required.",
+        statusCode: 400,
+      };
+    }
+
+    const deleted = await ToothTreatmentSchema.findByIdAndUpdate(
+      treatmentId,
+      {
+        isActive: false,
+        deletedAt: new Date(),
+        updatedBy: user,
+      },
+      { new: true }
+    );
+
+    if (!deleted) {
+      return {
+        success: "error",
+        message: "Tooth treatment not found.",
+        statusCode: 404,
+      };
+    }
+
+    return {
+      success: "success",
+      message: "Tooth treatment deleted successfully.",
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
+  }
+};
