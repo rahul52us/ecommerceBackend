@@ -25,8 +25,7 @@ const recallAppointmentSchema = new mongoose.Schema(
     },
 
     recallDate: {
-      type: Date,
-      required: true,
+      type: Date
     },
 
     // 📝 Why recall
@@ -36,17 +35,9 @@ const recallAppointmentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 🔄 Recall status (NOT appointment status)
     status: {
       type: String,
-      enum: ["pending", "scheduled", "completed", "cancelled"],
       default: "pending",
-    },
-
-    // 📆 New appointment created from recall
-    scheduledAppointment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Appointment",
     },
 
     createdBy: {
@@ -57,6 +48,9 @@ const recallAppointmentSchema = new mongoose.Schema(
     createdAt : {
         type : Date,
         default : new Date()
+    },
+    updatedAt : {
+      type : Date
     }
   },
 

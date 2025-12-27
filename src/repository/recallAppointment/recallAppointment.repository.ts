@@ -10,10 +10,11 @@ export const createRecallAppointment = async (data: any) => {
       appointment,
       recallDate,
       reason,
+      status,
       user, // createdBy
     } = data;
 
-    if (!patient || !company || !recallDate || !reason || !user) {
+    if (!patient || !company || !reason || !user) {
       return {
         success: "error",
         message: "Missing required fields.",
@@ -28,7 +29,7 @@ export const createRecallAppointment = async (data: any) => {
       appointment: appointment || null,
       recallDate: new Date(recallDate),
       reason,
-      status: "pending",
+      status,
       createdBy: user,
       createdAt: new Date(),
     });
@@ -63,6 +64,7 @@ export const updateRecallAppointment = async (data: any) => {
       reason,
       status,
       user,
+      patient,
     } = data;
 
     if (!recallId) {
@@ -79,6 +81,8 @@ export const updateRecallAppointment = async (data: any) => {
     };
 
     if (doctor) updatePayload.doctor = doctor;
+    if (patient) updatePayload.patient = patient;
+
     if (appointment) updatePayload.appointment = appointment;
     if (recallDate) updatePayload.recallDate = new Date(recallDate);
     if (reason !== undefined) updatePayload.reason = reason;
@@ -140,11 +144,6 @@ export const updateRecallStatus = async (data: any) => {
 
     recall.status = status;
     recall.updatedAt = new Date();
-    recall.updatedBy = user;
-
-    if (scheduledAppointment) {
-      recall.scheduledAppointment = scheduledAppointment;
-    }
 
     const saved = await recall.save();
 
@@ -177,10 +176,12 @@ export const getRecallAppointments = async (query: any) => {
       toDate,
       limit = 20,
       skip = 0,
+      search,
     } = query;
 
     const matchStage: any = {};
 
+    // 🎯 Base filters
     if (company) matchStage.company = new mongoose.Types.ObjectId(company);
     if (patient) matchStage.patient = new mongoose.Types.ObjectId(patient);
     if (doctor) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
@@ -195,6 +196,7 @@ export const getRecallAppointments = async (query: any) => {
     const pipeline: any[] = [
       { $match: matchStage },
 
+      // 👤 Patient
       {
         $lookup: {
           from: "users",
@@ -205,6 +207,7 @@ export const getRecallAppointments = async (query: any) => {
       },
       { $unwind: "$patient" },
 
+      // 👨‍⚕️ Doctor
       {
         $lookup: {
           from: "users",
@@ -215,6 +218,18 @@ export const getRecallAppointments = async (query: any) => {
       },
       { $unwind: { path: "$doctor", preserveNullAndEmptyArrays: true } },
 
+      // 👤 Created By
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+
+      // 📅 Appointment
       {
         $lookup: {
           from: "appointments",
@@ -224,11 +239,28 @@ export const getRecallAppointments = async (query: any) => {
         },
       },
       { $unwind: { path: "$appointment", preserveNullAndEmptyArrays: true } },
+    ];
 
-      { $sort: { recallDate: 1 } },
+    // 🔍 SEARCH (Patient / Doctor)
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "patient.name": { $regex: search, $options: "i" } },
+            { "patient.code": { $regex: search, $options: "i" } },
+            { "patient.mobileNumber": { $regex: search, $options: "i" } },
+            { "doctor.name": { $regex: search, $options: "i" } },
+            { "doctor.code": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // 📊 Pagination + Projection
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
       { $skip: parseInt(skip) },
       { $limit: parseInt(limit) },
-
       {
         $project: {
           recallDate: 1,
@@ -239,15 +271,20 @@ export const getRecallAppointments = async (query: any) => {
           "patient._id": 1,
           "patient.name": 1,
           "patient.code": 1,
+          "patient.mobileNumber": 1,
 
           "doctor._id": 1,
           "doctor.name": 1,
           "doctor.code": 1,
 
+          "createdBy._id": 1,
+          "createdBy.name": 1,
+          "createdBy.code": 1,
+
           appointment: 1,
         },
-      },
-    ];
+      }
+    );
 
     const records = await RecallAppointmentSchema.aggregate(pipeline);
 
