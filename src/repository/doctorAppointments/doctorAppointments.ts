@@ -553,7 +553,7 @@ export const getAppointmentById = async (data : any) => {
 
 export const getAppointmentStatusCounts = async (query : any) => {
   try {
-    const statuses = ["rescheduled", "cancelled", "no-show"];
+    const statuses = ["shift", "cancelled", "no-show"];
 
     if(query.patient){
       query = {patient : new mongoose.Types.ObjectId(query.patient)}
@@ -575,7 +575,7 @@ export const getAppointmentStatusCounts = async (query : any) => {
     ]);
 
     const counts : any = {
-      rescheduled: 0,
+      shift: 0,
       cancelled: 0,
       "no-show": 0
     };

@@ -327,6 +327,7 @@ const getUsersByCompany = async (
 
       if (searchValue) {
         matchConditions.$or = [
+          { name: { $regex: searchValue, $options: "i" } },
           { username: { $regex: searchValue, $options: "i" } },
           { code: { $regex: searchValue, $options: "i" } },
         ];

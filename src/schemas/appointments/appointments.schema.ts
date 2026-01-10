@@ -93,7 +93,7 @@ const appointmentSchema = new mongoose.Schema(
         "in-progress",
         "completed",
         "cancelled",
-        "rescheduled",
+        "shift",
         "no-show",
         "arrived"
       ],
