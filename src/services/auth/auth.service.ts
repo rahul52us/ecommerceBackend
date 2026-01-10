@@ -14,9 +14,7 @@ const loginUserService = async (
   next: NextFunction
 ): Promise<any> => {
   try {
-    console.log(req.body)
     const result = loginValidation.validate(req.body);
-    console.log(result)
     if (result.error) {
       throw generateError(result.error.details, 422);
     }
