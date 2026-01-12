@@ -242,6 +242,7 @@ export const getTodayChairSummary = async (query: any) => {
                   _id: "$primaryDoctor._id",
                   name: "$primaryDoctor.name",
                   code: "$primaryDoctor.code",
+                  mobileNumber:"$primaryDoctor.mobileNumber"
                 },
 
                 additionalDoctors: {
@@ -254,6 +255,7 @@ export const getTodayChairSummary = async (query: any) => {
                   _id: "$patient._id",
                   name: "$patient.name",
                   code: "$patient.code",
+                  mobileNumber:"$patient.mobileNumber"
                 },
               },
             },
