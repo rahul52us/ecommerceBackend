@@ -23,7 +23,7 @@ export const createAppointment = async ( data : any) => {
     } = data;
 
     // ✅ Basic required field validation
-    if (!primaryDoctor || !patient || !appointmentDate || !startTime || !title) {
+    if (!primaryDoctor || !patient || !appointmentDate || !startTime) {
       return {
         success: 'error',
         message: "Missing required fields.",

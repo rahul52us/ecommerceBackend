@@ -509,6 +509,8 @@ const getUsers = async (data: {
     if (data.search?.trim()) {
       const searchRegex = new RegExp(data.search.trim(), "i");
       matchConditions.$or = [
+        { name: { $regex: searchRegex } },
+        { mobileNumber: { $regex: searchRegex } },
         { username: { $regex: searchRegex } },
         { code: { $regex: searchRegex } },
       ];
