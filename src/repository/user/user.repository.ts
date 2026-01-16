@@ -470,7 +470,6 @@ const getUsers = async (data: {
 }) => {
   try {
 
-    console.log(data)
     // Validate and set default values for pagination parameters
     const page = Math.max(1, Number(data.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(data.limit) || 10));

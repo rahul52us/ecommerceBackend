@@ -31,7 +31,7 @@ export const getAppointmentByIdService = async (req: any, res: any) => {
 export const getDoctorAppointmentsService = async (req: any, res: any) => {
   try {
 
-    const { statusCode, success, message, data, count }: any = await getAppointments({
+    const { statusCode, success, message, data, totalPages }: any = await getAppointments({
       ...req.body,
       userType:req.bodyData?.userType,
       userId : req.userId,
@@ -41,7 +41,7 @@ export const getDoctorAppointmentsService = async (req: any, res: any) => {
     return res.status(statusCode).send({
       status: success,
       message,
-      data : {data , totalPages : count},
+      data : {data , totalPages : totalPages},
     });
   } catch (err: any) {
     return res.status(500).send({

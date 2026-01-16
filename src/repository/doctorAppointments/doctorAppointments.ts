@@ -277,29 +277,24 @@ export const getAppointments = async (query: any) => {
       date,
       company,
       limit = 20,
-      skip = 0,
+      page = 1,
       userId,
-      userType
+      userType,
+      search,
     } = query;
+
+    const safePage = Math.max(1, Number(page));
+    const safeLimit = Math.max(1, Math.min(100, Number(limit)));
+    const skip = (safePage - 1) * safeLimit;
 
     const matchStage: any = {};
 
-    // 🏢 Company filter
     if (company) matchStage.company = new mongoose.Types.ObjectId(company);
-
-    // 👨‍⚕️ Doctor filter
     if (doctorId) matchStage.primaryDoctor = new mongoose.Types.ObjectId(doctorId);
-
-    // 🧍 Patient filter
     if (patientId) matchStage.patient = new mongoose.Types.ObjectId(patientId);
-
-    // 📊 Status filter
     if (status) matchStage.status = status;
-
-    // 💻 Mode filter
     if (mode) matchStage.mode = mode;
 
-    // 📅 Date filter
     if (date) {
       const dayStart = new Date(date);
       const dayEnd = new Date(date);
@@ -307,109 +302,72 @@ export const getAppointments = async (query: any) => {
       matchStage.appointmentDate = { $gte: dayStart, $lte: dayEnd };
     }
 
-    if(userType === "patient"){
-      matchStage.patient = new mongoose.Types.ObjectId(userId)
+    if (userType === "patient") {
+      matchStage.patient = new mongoose.Types.ObjectId(userId);
     }
-    // 🧩 Aggregation pipeline
-    const pipeline : any = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: "users",
-          localField: "primaryDoctor",
-          foreignField: "_id",
-          as: "primaryDoctor",
-        },
-      },
-      { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "users",
-          localField: "additionalDoctors",
-          foreignField: "_id",
-          as: "additionalDoctors",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "patient",
-          foreignField: "_id",
-          as: "patient",
-        },
-      },
-      { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "users",
-          localField: "createdBy",
-          foreignField: "_id",
-          as: "createdBy",
-        },
-      },
-      {
-  $lookup: {
-    from: "chairs",
-    localField: "chair",
-    foreignField: "_id",
-    as: "chair",
-  },
-},
-{ $unwind: { path: "$chair", preserveNullAndEmptyArrays: true } },
 
+    const basePipeline: any = [
+      { $match: matchStage },
+
+      { $lookup: { from: "users", localField: "primaryDoctor", foreignField: "_id", as: "primaryDoctor" } },
+      { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
+
+      { $lookup: { from: "users", localField: "additionalDoctors", foreignField: "_id", as: "additionalDoctors" } },
+
+      { $lookup: { from: "users", localField: "patient", foreignField: "_id", as: "patient" } },
+      { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+
+      { $lookup: { from: "users", localField: "createdBy", foreignField: "_id", as: "createdBy" } },
       { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "companies",
-          localField: "company",
-          foreignField: "_id",
-          as: "company",
-        },
-      },
+
+      { $lookup: { from: "chairs", localField: "chair", foreignField: "_id", as: "chair" } },
+      { $unwind: { path: "$chair", preserveNullAndEmptyArrays: true } },
+
+      { $lookup: { from: "companies", localField: "company", foreignField: "_id", as: "company" } },
       { $unwind: { path: "$company", preserveNullAndEmptyArrays: true } },
+
+      ...(search
+        ? [{
+            $match: {
+              $or: [
+                { title: { $regex: search, $options: "i" } },
+                { status: { $regex: search, $options: "i" } },
+                { "primaryDoctor.name": { $regex: search, $options: "i" } },
+                { "primaryDoctor.mobileNumber": { $regex: search, $options: "i" } },
+                { "patient.name": { $regex: search, $options: "i" } },
+                { "patient.code": { $regex: search, $options: "i" } },
+                { "patient.mobileNumber": { $regex: search, $options: "i" } },
+              ],
+            },
+          }]
+        : []),
+
       { $sort: { appointmentDate: -1, startTime: 1 } },
-      { $skip: parseInt(skip) },
-      { $limit: parseInt(limit) },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          description: 1,
-          mode: 1,
-          status: 1,
-          appointmentDate: 1,
-          startTime: 1,
-          endTime: 1,
-          meetingLink: 1,
-          location: 1,
-          created_At: 1,
-          updated_At: 1,
-          chair:1,
-          "primaryDoctor._id": 1,
-          "primaryDoctor.name": 1,
-          "primaryDoctor.code": 1,
-          "createdBy._id": 1,
-          "createdBy.name": 1,
-          "createdBy.code": 1,
-          "additionalDoctors._id": 1,
-          "additionalDoctors.name": 1,
-          "patient._id": 1,
-          "patient.name": 1,
-          "patient.code": 1,
-          "company._id": 1,
-          history:1,
-          notes : 1
-        },
-      },
     ];
 
-    const appointments = await AppointmentSchema.aggregate(pipeline);
+    const [appointments, totalResult] = await Promise.all([
+      AppointmentSchema.aggregate([
+        ...basePipeline,
+        { $skip: skip },
+        { $limit: safeLimit },
+      ]),
+      AppointmentSchema.aggregate([
+        ...basePipeline,
+        { $count: "count" },
+      ]),
+    ]);
+
+    const totalCount = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
 
     return {
       success: "success",
       message: "Appointments fetched successfully.",
-      count: appointments.length,
       data: appointments,
+      page: safePage,
+      limit: safeLimit,
+      totalPages,
+      totalCount,
       statusCode: 200,
     };
   } catch (error: any) {
@@ -422,6 +380,10 @@ export const getAppointments = async (query: any) => {
     };
   }
 };
+
+
+
+
 
 
 export const getAppointmentById = async (data : any) => {
