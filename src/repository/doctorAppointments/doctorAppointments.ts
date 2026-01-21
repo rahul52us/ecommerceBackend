@@ -388,8 +388,6 @@ export const getAppointments = async (query: any) => {
 
 export const getAppointmentById = async (data : any) => {
   try {
-    console.log(data)
-
     const pipeline: any[] = [
       {
         $match: {
