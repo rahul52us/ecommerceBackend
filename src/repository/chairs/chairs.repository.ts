@@ -194,10 +194,10 @@ export const getTodayChairSummary = async (query: any) => {
             {
               $match: {
                 $expr: { $eq: ["$chair", "$$chairId"] },
+                status: { $ne: "cancelled" },
                 appointmentDate: { $gte: dayStart, $lte: dayEnd },
               },
             },
-
             {
               $lookup: {
                 from: "users",

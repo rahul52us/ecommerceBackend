@@ -19,7 +19,8 @@ export const createAppointment = async ( data : any) => {
       status,
       followUp,
       doctorNote,
-      chair
+      chair,
+      showCompleteData
     } = data;
 
     // ✅ Basic required field validation
@@ -59,6 +60,7 @@ export const createAppointment = async ( data : any) => {
       description,
       mode,
       chair,
+      showCompleteData,
       company:data.company,
       meetingLink: mode === "online" ? meetingLink : null,
       location: mode === "offline" ? location : null,
@@ -117,20 +119,32 @@ export const updateAppointment = async (data: any) => {
       chair,
       company,
       user,
+      showCompleteData
     } = data;
 
-    // ✅ Required validation
-    if (
-      !appointmentId ||
-      !primaryDoctor ||
-      !patient ||
-      !appointmentDate ||
-      !startTime ||
-      !title
-    ) {
+    // ✅ Required validation (WITH missing fields)
+    const requiredFields = {
+      appointmentId,
+      primaryDoctor,
+      patient,
+      appointmentDate,
+      startTime,
+      title,
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => {
+        if (value === undefined || value === null) return true;
+        if (typeof value === "string" && value.trim() === "") return true;
+        return false;
+      })
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
       return {
         success: "error",
-        message: "Missing required fields.",
+        message: JSON.stringify(missingFields),
+        missingFields,
         statusCode: 400,
       };
     }
@@ -156,6 +170,7 @@ export const updateAppointment = async (data: any) => {
       location: mode === "offline" ? location : null,
       updatedAt: new Date(),
       updatedBy: user,
+      showCompleteData
     };
 
     // ✅ Push note only if exists
@@ -470,7 +485,7 @@ export const getAppointmentById = async (data : any) => {
           chair: 1,
           history: 1,
           notes: 1,
-
+          showCompleteData: 1,
           "primaryDoctor._id": 1,
           "primaryDoctor.name": 1,
           "primaryDoctor.code": 1,

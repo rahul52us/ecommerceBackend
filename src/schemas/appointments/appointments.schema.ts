@@ -85,6 +85,11 @@ const appointmentSchema = new mongoose.Schema(
       default: null,
     },
 
+    showCompleteData:
+    {
+      type : Boolean,
+      default : true
+    },
     // 🔄 Status of appointment
     status: {
       type: String,
