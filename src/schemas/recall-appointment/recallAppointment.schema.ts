@@ -45,6 +45,9 @@ const recallAppointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    appointmentDate : {
+      type : Date
+    },
     createdAt : {
         type : Date,
         default : new Date()

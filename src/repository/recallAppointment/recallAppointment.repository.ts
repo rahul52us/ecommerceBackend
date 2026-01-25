@@ -11,6 +11,7 @@ export const createRecallAppointment = async (data: any) => {
       recallDate,
       reason,
       status,
+      appointmentDate,
       user, // createdBy
     } = data;
 
@@ -32,6 +33,8 @@ export const createRecallAppointment = async (data: any) => {
       status,
       createdBy: user,
       createdAt: new Date(),
+      appointmentDate,
+
     });
 
     const saved = await record.save();
@@ -65,6 +68,7 @@ export const updateRecallAppointment = async (data: any) => {
       status,
       user,
       patient,
+      appointmentDate
     } = data;
 
     if (!recallId) {
@@ -87,6 +91,7 @@ export const updateRecallAppointment = async (data: any) => {
     if (recallDate) updatePayload.recallDate = new Date(recallDate);
     if (reason !== undefined) updatePayload.reason = reason;
     if (status) updatePayload.status = status;
+    if(appointmentDate) updatePayload.appointmentDate = appointmentDate
 
     const updated = await RecallAppointmentSchema.findByIdAndUpdate(
       recallId,
@@ -267,7 +272,7 @@ export const getRecallAppointments = async (query: any) => {
           reason: 1,
           status: 1,
           createdAt: 1,
-
+          appointmentDate:1,
           "patient._id": 1,
           "patient.name": 1,
           "patient.code": 1,
