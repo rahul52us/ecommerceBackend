@@ -201,6 +201,15 @@ export const updateAppointment = async (data: any) => {
       };
     }
 
+    updatedAppointment.history.push({
+      action: status,
+      by: user || null,
+      remarks: description || "",
+      timestamp: new Date(),
+    });
+
+    await updatedAppointment.save()
+
     return {
       success: "success",
       message: "Appointment updated successfully.",
