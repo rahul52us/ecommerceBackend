@@ -9,6 +9,7 @@ import http from "http";
 import * as path from "path";
 import { setupSocket } from "./modules/chatSocket/chatSocket";
 import { statusCode } from "./config/helper/statusCode";
+import connectToDatabase from "./db/db";
 // // // import deploy from "./config/common/reactAppDeployment";
 
 dotenv.config();
@@ -42,7 +43,15 @@ app.use('/', (req: Request, res: Response) => {
 
 app.use(errorMiddleware);
 
-server.listen(process.env.PORT, () => {
-  console.log(`The server is running on port ${process.env.PORT}`);
-});
+const startServer = async () => {
+  await connectToDatabase(); // ⬅️ WAIT FOR DB CONNECTION FIRST
+
+  const PORT = process.env.PORT || 5000;
+
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+};
+
+startServer();
 
