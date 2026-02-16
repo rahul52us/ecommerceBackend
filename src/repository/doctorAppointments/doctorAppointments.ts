@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import AppointmentSchema from "../../schemas/appointments/appointments.schema";
 
 
-export const createAppointment = async ( data : any) => {
+export const createAppointment = async (data: any) => {
   try {
     const {
       primaryDoctor,
@@ -28,7 +28,7 @@ export const createAppointment = async ( data : any) => {
       return {
         success: 'error',
         message: "Missing required fields.",
-        statusCode : 400
+        statusCode: 400
       };
     }
 
@@ -40,7 +40,7 @@ export const createAppointment = async ( data : any) => {
         return {
           success: 'error',
           message: "Reference appointment not found.",
-          statusCode : 400
+          statusCode: 400
         };
       }
 
@@ -61,22 +61,22 @@ export const createAppointment = async ( data : any) => {
       mode,
       chair,
       showCompleteData,
-      company:data.company,
+      company: data.company,
       meetingLink: mode === "online" ? meetingLink : null,
       location: mode === "offline" ? location : null,
       status: status || "scheduled",
       followUpOf: followUp?.isFollowUp ? followUp.referenceAppointmentId : null,
       rootAppointment,
       created_At: new Date(),
-      createdBy : data.user,
+      createdBy: data.user,
       notes: String(doctorNote || "").trim()
         ? [
-            {
-              author: data.user || null, // Optional: if user info available
-              text: doctorNote,
-              createdAt: new Date(),
-            },
-          ]
+          {
+            author: data.user || null, // Optional: if user info available
+            text: doctorNote,
+            createdAt: new Date(),
+          },
+        ]
         : [],
     });
 
@@ -86,14 +86,14 @@ export const createAppointment = async ( data : any) => {
       success: 'success',
       message: "Appointment created successfully.",
       data: savedAppointment,
-      statusCode : 201
+      statusCode: 201
     };
-  } catch (error : any) {
+  } catch (error: any) {
     return {
       success: 'error',
       message: "Server error. Could not create appointment.",
       error: error.message,
-      statusCode : 500
+      statusCode: 500
     };
   }
 };
@@ -189,7 +189,7 @@ export const updateAppointment = async (data: any) => {
     // ✅ Update appointment
     const updatedAppointment = await AppointmentSchema.findByIdAndUpdate(
       appointmentId,
-      updateQuery,
+      { ...updateQuery, status: status === "shift" ? "scheduled" : status },
       { new: true }
     );
 
@@ -249,7 +249,7 @@ export const updateAppointmentStatus = async (data: any) => {
       };
     }
 
-    if(!appointment.createdBy){
+    if (!appointment.createdBy) {
       appointment.createdBy = data.user
     }
 
@@ -352,18 +352,18 @@ export const getAppointments = async (query: any) => {
 
       ...(search
         ? [{
-            $match: {
-              $or: [
-                { title: { $regex: search, $options: "i" } },
-                { status: { $regex: search, $options: "i" } },
-                { "primaryDoctor.name": { $regex: search, $options: "i" } },
-                { "primaryDoctor.mobileNumber": { $regex: search, $options: "i" } },
-                { "patient.name": { $regex: search, $options: "i" } },
-                { "patient.code": { $regex: search, $options: "i" } },
-                { "patient.mobileNumber": { $regex: search, $options: "i" } },
-              ],
-            },
-          }]
+          $match: {
+            $or: [
+              { title: { $regex: search, $options: "i" } },
+              { status: { $regex: search, $options: "i" } },
+              { "primaryDoctor.name": { $regex: search, $options: "i" } },
+              { "primaryDoctor.mobileNumber": { $regex: search, $options: "i" } },
+              { "patient.name": { $regex: search, $options: "i" } },
+              { "patient.code": { $regex: search, $options: "i" } },
+              { "patient.mobileNumber": { $regex: search, $options: "i" } },
+            ],
+          },
+        }]
         : []),
 
       { $sort: { appointmentDate: -1, startTime: 1 } },
@@ -410,7 +410,7 @@ export const getAppointments = async (query: any) => {
 
 
 
-export const getAppointmentById = async (data : any) => {
+export const getAppointmentById = async (data: any) => {
   try {
     const pipeline: any[] = [
       {
@@ -535,12 +535,12 @@ export const getAppointmentById = async (data : any) => {
 };
 
 
-export const getAppointmentStatusCounts = async (query : any) => {
+export const getAppointmentStatusCounts = async (query: any) => {
   try {
     const statuses = ["shift", "cancelled", "no-show"];
 
-    if(query.patient){
-      query = {patient : new mongoose.Types.ObjectId(query.patient)}
+    if (query.patient) {
+      query = { patient: new mongoose.Types.ObjectId(query.patient) }
     }
 
     const result = await AppointmentSchema.aggregate([
@@ -558,7 +558,7 @@ export const getAppointmentStatusCounts = async (query : any) => {
       }
     ]);
 
-    const counts : any = {
+    const counts: any = {
       shift: 0,
       cancelled: 0,
       "no-show": 0
@@ -571,7 +571,7 @@ export const getAppointmentStatusCounts = async (query : any) => {
     return {
       status: "success",
       data: counts,
-      message : 'Retrieved Patients Status',
+      message: 'Retrieved Patients Status',
       statusCode: 200
     };
   } catch (error: any) {
