@@ -1,21 +1,21 @@
 import mongoose, { Document } from "mongoose";
 
-interface addressInfo  {
-  address?:string;
-  country?:string;
-  state?:string;
-  city?:string;
-  pinCode?:string
+interface addressInfo {
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  pinCode?: string
 }
 
 interface CompanyI extends Document {
   company_name: string;
-  companyCode:string;
-  companyOrg:mongoose.Schema.Types.ObjectId,
-  companyType:string;
-  verified_email_allowed:boolean;
-  createdBy : mongoose.Schema.Types.ObjectId;
-  activeUser:mongoose.Schema.Types.ObjectId;
+  companyCode: string;
+  companyOrg: mongoose.Schema.Types.ObjectId,
+  companyType: string;
+  verified_email_allowed: boolean;
+  createdBy: mongoose.Schema.Types.ObjectId;
+  activeUser: mongoose.Schema.Types.ObjectId;
   is_active?: boolean;
   logo?: string;
   bio?: string;
@@ -38,8 +38,9 @@ interface CompanyI extends Document {
   deletedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
-  addressInfo?:addressInfo[];
-  operatingHours?:any[]
+  addressInfo?: addressInfo[];
+  operatingHours?: any[]
+  sidebarColors?: any;
 }
 
 const companySchema = new mongoose.Schema<CompanyI>({
@@ -49,16 +50,16 @@ const companySchema = new mongoose.Schema<CompanyI>({
     index: true,
     trim: true,
   },
-  companyOrg : {
-    type : mongoose.Schema.Types.ObjectId,
+  companyOrg: {
+    type: mongoose.Schema.Types.ObjectId,
   },
-  companyCode : {
-    type : String,
-    required : true
+  companyCode: {
+    type: String,
+    required: true
   },
-  companyType:{
-    type : String,
-    default : 'company'
+  companyType: {
+    type: String,
+    default: 'company'
   },
   is_active: {
     type: Boolean,
@@ -69,14 +70,14 @@ const companySchema = new mongoose.Schema<CompanyI>({
     default: false,
   },
   logo: {
-    name : {
-      type : String
+    name: {
+      type: String
     },
-    url : {
-      type : String
+    url: {
+      type: String
     },
-    type : {
-      type : String
+    type: {
+      type: String
     }
   },
   bio: {
@@ -111,21 +112,22 @@ const companySchema = new mongoose.Schema<CompanyI>({
   },
   addressInfo: {
     type: [{
-      address : String,
+      address: String,
       country: String,
-      state:String,
+      state: String,
       city: String,
       pinCode: String
     }]
   },
   operatingHours: { type: Array, default: [] },
-  activeUser : {
-      type : mongoose.Schema.Types.ObjectId,
-      ref : 'User'
+  sidebarColors: { type: mongoose.Schema.Types.Mixed, default: {} },
+  activeUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
-  createdBy : {
-    type : mongoose.Schema.Types.ObjectId,
-    ref : 'User'
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   deletedAt: {
     type: Date,

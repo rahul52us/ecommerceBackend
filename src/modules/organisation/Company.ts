@@ -17,7 +17,7 @@ import { statusCode } from "../../config/helper/statusCode";
 import mongoose from "mongoose";
 import companyDetails from "../../schemas/company/companyDetails";
 
-const createCompany = async (req: any, res: Response, next: NextFunction) : Promise<any> => {
+const createCompany = async (req: any, res: Response, next: NextFunction): Promise<any> => {
   try {
     const result = createValidation.validate(req.body);
     if (result.error) {
@@ -64,9 +64,9 @@ const createCompany = async (req: any, res: Response, next: NextFunction) : Prom
     const comp: any = new Company({
       company_name: req.body.companyDetails?.company_name?.trim(),
       companyType: "organisation",
-      companyCode : req.body.companyDetails?.companyCode,
+      companyCode: req.body.companyDetails?.companyCode,
       is_active: true,
-      activeUser:token.userId,
+      activeUser: token.userId,
       createdBy: token.userId,
       ...req.body.companyDetails,
     });
@@ -125,7 +125,7 @@ const createCompany = async (req: any, res: Response, next: NextFunction) : Prom
       {
         $set: {
           name: req.body.name,
-          code : req.body.code,
+          code: req.body.code,
           profile_details: createdProfileDetails._id,
           companyOrg: createdComp._id,
           password: req.body.password,
@@ -143,16 +143,16 @@ const createCompany = async (req: any, res: Response, next: NextFunction) : Prom
     await token.deleteOne();
 
     if (req.body.companyDetails.logo && req.body.companyDetails.logo !== "") {
-      try{
+      try {
         let url = await uploadFile(req.body.companyDetails.logo);
-      comp.logo = {
-        name: req.body.companyDetails.logo.filename,
-        url: url,
-        type: req.body.companyDetails.logo.type,
-      };
-      await comp.save();
+        comp.logo = {
+          name: req.body.companyDetails.logo.filename,
+          url: url,
+          type: req.body.companyDetails.logo.type,
+        };
+        await comp.save();
       }
-      catch{}
+      catch { }
     }
 
     const { password, ...rest } = updatedUser.toObject();
@@ -165,7 +165,7 @@ const createCompany = async (req: any, res: Response, next: NextFunction) : Prom
         workExperience: savedWorkExperience._id,
         companyPolicy: createdCompPolicy._id,
         familyDetails: savedFamilyDetails._id,
-        qualifications:savedQualifications?._id,
+        qualifications: savedQualifications?._id,
         authorization_token: generateToken({ userId: updatedUser._id }),
       },
       statusCode: 201,
@@ -187,8 +187,8 @@ const createOrganisationCompany = async (
     let user: any = null;
 
     // Check the Company
-    const checkExistsCompany = await Company.findOne({company_name : { $regex: new RegExp(req.body.companyDetails?.company_name?.trim(), 'i') }})
-    if(checkExistsCompany){
+    const checkExistsCompany = await Company.findOne({ company_name: { $regex: new RegExp(req.body.companyDetails?.company_name?.trim(), 'i') } })
+    if (checkExistsCompany) {
       return res.status(statusCode.info).send({
         status: "error",
         data: `${checkExistsCompany.company_name} Company is already exists`,
@@ -196,22 +196,22 @@ const createOrganisationCompany = async (
       });
     }
 
-    const codeCompany = await Company.findOne({companyCode : { $regex: new RegExp(req.body.companyDetails?.companyCode?.trim(), 'i') }});
-      if (codeCompany) {
-        return res.status(statusCode.info).send({
-          status: "error",
-          data: `${codeCompany.companyCode} Code is already exists with ${codeCompany.company_name}`,
-          message: `${codeCompany.companyCode} Code is already exists with ${codeCompany.company_name}`,
-        });
+    const codeCompany = await Company.findOne({ companyCode: { $regex: new RegExp(req.body.companyDetails?.companyCode?.trim(), 'i') } });
+    if (codeCompany) {
+      return res.status(statusCode.info).send({
+        status: "error",
+        data: `${codeCompany.companyCode} Code is already exists with ${codeCompany.company_name}`,
+        message: `${codeCompany.companyCode} Code is already exists with ${codeCompany.company_name}`,
+      });
     }
 
     // Check the User
     user = await User.findOne({ username: { $regex: new RegExp(req.body.username?.trim(), 'i') } });
     if (user) {
       return res.status(statusCode.info).send({
-          status: "error",
-          data: `${user.username} user is already exists`,
-          message: `${user.username} user is already exists`,
+        status: "error",
+        data: `${user.username} user is already exists`,
+        message: `${user.username} user is already exists`,
       });
     } else {
       const codeUser = await User.findOne({ code: req.body.code?.trim() });
@@ -227,7 +227,7 @@ const createOrganisationCompany = async (
           name: req.body.name,
           username: req.body.username,
           password: req.body.password,
-          code : req.body.code,
+          code: req.body.code,
           role: "admin",
         });
         user = await userData.save();
@@ -241,7 +241,7 @@ const createOrganisationCompany = async (
       is_active: true,
       ...req.body.companyDetails,
       companyOrg: companyOrg,
-      activeUser:user._id,
+      activeUser: user._id,
       createdBy: userId,
     });
 
@@ -258,8 +258,7 @@ const createOrganisationCompany = async (
     await createdComp.save();
 
     if (req.body.companyDetails.logo && req.body.companyDetails.logo !== "") {
-      try
-      {
+      try {
         let url = await uploadFile(req.body.companyDetails.logo);
         comp.logo = {
           name: req.body.companyDetails.logo.filename,
@@ -267,7 +266,7 @@ const createOrganisationCompany = async (
           type: req.body.companyDetails.logo.type,
         };
         await comp.save();
-      }catch{}
+      } catch { }
     }
 
     const profileDetail = new ProfileDetails({
@@ -302,7 +301,7 @@ const createOrganisationCompany = async (
       user: user._id,
     });
 
-     await qualifications.save()
+    await qualifications.save()
 
 
 
@@ -346,7 +345,7 @@ const updateOrganisationCompany = async (
       deletedAt: { $exists: false },
     });
     if (comp) {
-      const updatedCompany : any = await Company.findByIdAndUpdate(
+      const updatedCompany: any = await Company.findByIdAndUpdate(
         _id,
         { $set: req.body.companyDetails },
         { new: true }
@@ -357,16 +356,16 @@ const updateOrganisationCompany = async (
       }
 
       if (req.body.companyDetails.logo && req.body.companyDetails.logo !== "" && req.body.companyDetails.isLogoEdit) {
-        try{
+        try {
           let url = await uploadFile(req.body.companyDetails.logo);
           updatedCompany.logo = {
-          name: req.body.companyDetails.logo.filename,
-          url: url,
-          type: req.body.companyDetails.logo.type,
-        };
-        await updatedCompany.save();
+            name: req.body.companyDetails.logo.filename,
+            url: url,
+            type: req.body.companyDetails.logo.type,
+          };
+          await updatedCompany.save();
         }
-        catch{}
+        catch { }
       }
 
       res.status(statusCode.success).send({
@@ -418,33 +417,35 @@ export {
 
 // Update CompanyDetails
 
-export const updatedCompanyDetails = async(req : any , res : Response, next : NextFunction) => {
-  try
-  {
-     let dt = await companyDetails.findOneAndUpdate({company : req.body.company},{$set : {...req.body}})
-     res.status(200).send({
+export const updatedCompanyDetails = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    let dt = await companyDetails.findOneAndUpdate({ company: req.body.company }, { $set: { ...req.body } })
+    res.status(200).send({
       message: `Details has been updated`,
       data: `Details has been updated`,
       statusCode: 200,
       success: true
     });
   }
-  catch(err : any)
-  {
+  catch (err: any) {
     next(err)
   }
 }
 
-export const updatedOperatingHours = async (req:any, res:Response, next:NextFunction) => {
+export const updateCompanyPreferences = async (req: any, res: Response, next: NextFunction) => {
   try {
+    const updateData: any = {};
+    if (req.body.operatingHours) updateData.operatingHours = req.body.operatingHours;
+    if (req.body.sidebarColors) updateData.sidebarColors = req.body.sidebarColors;
+
     const dt = await Company.findOneAndUpdate(
-      { _id: req.body.company }, 
-      { $set: { operatingHours: req.body.operatingHours } },
+      { _id: req.body.company },
+      { $set: updateData },
       { new: true }
     );
 
     res.status(200).send({
-      message: "Details updated",
+      message: "Preferences updated",
       data: dt,
       statusCode: 200,
       success: true
@@ -457,19 +458,17 @@ export const updatedOperatingHours = async (req:any, res:Response, next:NextFunc
 
 
 
-export const getCompanyDetails = async(req : any , res : Response, next : NextFunction) => {
-  try
-  {
-     let dt = await companyDetails.findOne({company : req.params.company})
-     res.status(200).send({
+export const getCompanyDetails = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    let dt = await companyDetails.findOne({ company: req.params.company })
+    res.status(200).send({
       message: `Details has been updated`,
       data: dt,
       statusCode: 200,
       success: true
     });
   }
-  catch(err : any)
-  {
+  catch (err: any) {
     next(err)
   }
 }
