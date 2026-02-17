@@ -10,10 +10,10 @@ const appointmentSchema = new mongoose.Schema(
     },
 
     company: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Company",
-        required: true,
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
 
     // 👨‍⚕️ Additional doctors involved
     additionalDoctors: [
@@ -29,10 +29,10 @@ const appointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    chair:{
-      type : mongoose.Schema.Types.ObjectId,
-      ref : 'Chair',
-      required : true
+    chair: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Chair',
+      required: true
     },
 
     // 📅 Appointment scheduling
@@ -87,8 +87,8 @@ const appointmentSchema = new mongoose.Schema(
 
     showCompleteData:
     {
-      type : Boolean,
-      default : true
+      type: Boolean,
+      default: true
     },
     // 🔄 Status of appointment
     status: {
@@ -105,7 +105,12 @@ const appointmentSchema = new mongoose.Schema(
       default: "scheduled",
     },
 
-    createdBy : {
+    shiftOrCancelledReason: {
+      type: String,
+      trim: true,
+    },
+
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -145,11 +150,11 @@ const appointmentSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    created_At:{
-        type : Date
+    created_At: {
+      type: Date
     },
-    updated_At:{
-        type : Date
+    updated_At: {
+      type: Date
     }
   }
 );

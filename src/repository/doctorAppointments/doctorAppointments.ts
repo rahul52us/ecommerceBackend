@@ -20,7 +20,8 @@ export const createAppointment = async (data: any) => {
       followUp,
       doctorNote,
       chair,
-      showCompleteData
+      showCompleteData,
+      shiftOrCancelledReason
     } = data;
 
     // ✅ Basic required field validation
@@ -61,6 +62,7 @@ export const createAppointment = async (data: any) => {
       mode,
       chair,
       showCompleteData,
+      shiftOrCancelledReason,
       company: data.company,
       meetingLink: mode === "online" ? meetingLink : null,
       location: mode === "offline" ? location : null,
@@ -119,7 +121,8 @@ export const updateAppointment = async (data: any) => {
       chair,
       company,
       user,
-      showCompleteData
+      showCompleteData,
+      shiftOrCancelledReason
     } = data;
 
     // ✅ Required validation (WITH missing fields)
@@ -170,7 +173,8 @@ export const updateAppointment = async (data: any) => {
       location: mode === "offline" ? location : null,
       updatedAt: new Date(),
       updatedBy: user,
-      showCompleteData
+      showCompleteData,
+      shiftOrCancelledReason
     };
 
     // ✅ Push note only if exists
@@ -495,6 +499,7 @@ export const getAppointmentById = async (data: any) => {
           history: 1,
           notes: 1,
           showCompleteData: 1,
+          shiftOrCancelledReason: 1,
           "primaryDoctor._id": 1,
           "primaryDoctor.name": 1,
           "primaryDoctor.code": 1,
