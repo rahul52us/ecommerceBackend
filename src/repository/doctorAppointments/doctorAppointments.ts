@@ -131,8 +131,7 @@ export const updateAppointment = async (data: any) => {
       primaryDoctor,
       patient,
       appointmentDate,
-      startTime,
-      title,
+      startTime
     };
 
     const missingFields = Object.entries(requiredFields)
