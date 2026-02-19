@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import {createChairsRepo, deleteChair, getChairsRepo, getTodayChairSummary, updateChairsRepo} from '../../repository/chairs/chairs.repository'
+import { createChairsRepo, deleteChair, getChairsRepo, getTodayChairSummary, updateChairsRepo } from '../../repository/chairs/chairs.repository'
 import { NextFunction, Response } from "express";
 
 
@@ -71,7 +71,7 @@ export const deleteChairService = async (req: any, res: Response, next: NextFunc
   }
 };
 
-export const updateChairService = async (req:any, res:any) => {
+export const updateChairService = async (req: any, res: any) => {
   try {
     const { status, message, data } = await updateChairsRepo(req.params.id, req.body);
 
@@ -88,22 +88,20 @@ export const updateChairService = async (req:any, res:any) => {
   }
 };
 
-export const  getChairSummaryService = async(req : any ,res : any) => {
-  try
-  {
-   const {data, status, message, statusCode} =  await getTodayChairSummary({date : req.body.date, company: req.body.company})
-   return res.status(statusCode).send({
-    status,
-    data,
-    message
-   })
+export const getChairSummaryService = async (req: any, res: any) => {
+  try {
+    const { data, status, message, statusCode } = await getTodayChairSummary({ date: req.body.date, company: req.body.company, status: req.body.status })
+    return res.status(statusCode).send({
+      status,
+      data,
+      message
+    })
   }
-  catch(err : any)
-  {
+  catch (err: any) {
     return res.status(500).send({
-      status : 'error',
-      data : err?.message,
-      message : err?.message
+      status: 'error',
+      data: err?.message,
+      message: err?.message
     })
   }
 }

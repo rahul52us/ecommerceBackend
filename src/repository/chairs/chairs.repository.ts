@@ -162,7 +162,7 @@ export const updateChairsRepo = async (id: string, payload: any) => {
 
 export const getTodayChairSummary = async (query: any) => {
   try {
-    const { company, date } = query;
+    const { company, date, status } = query;
 
     let baseDate: Date;
 
@@ -183,6 +183,11 @@ export const getTodayChairSummary = async (query: any) => {
       ? { company: new mongoose.Types.ObjectId(company) }
       : {};
 
+    // Dynamic status match
+    const statusMatch = status
+      ? { status: status }
+      : { status: { $ne: "cancelled" } };
+
     const pipeline: any = [
       { $match: companyMatch },
 
@@ -194,7 +199,7 @@ export const getTodayChairSummary = async (query: any) => {
             {
               $match: {
                 $expr: { $eq: ["$chair", "$$chairId"] },
-                status: { $ne: "cancelled" },
+                ...statusMatch, // apply dynamic status filter
                 appointmentDate: { $gte: dayStart, $lte: dayEnd },
               },
             },
@@ -242,7 +247,7 @@ export const getTodayChairSummary = async (query: any) => {
                   _id: "$primaryDoctor._id",
                   name: "$primaryDoctor.name",
                   code: "$primaryDoctor.code",
-                  mobileNumber:"$primaryDoctor.mobileNumber"
+                  mobileNumber: "$primaryDoctor.mobileNumber"
                 },
 
                 additionalDoctors: {
@@ -255,7 +260,7 @@ export const getTodayChairSummary = async (query: any) => {
                   _id: "$patient._id",
                   name: "$patient.name",
                   code: "$patient.code",
-                  mobileNumber:"$patient.mobileNumber"
+                  mobileNumber: "$patient.mobileNumber"
                 },
               },
             },
