@@ -126,7 +126,7 @@ export const updateAppointment = async (data: any) => {
     } = data;
 
     // ✅ Required validation (WITH missing fields)
-    const requiredFields = {
+    const requiredFields: any = {
       appointmentId,
       primaryDoctor,
       patient,

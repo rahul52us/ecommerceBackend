@@ -260,7 +260,10 @@ export const getTodayChairSummary = async (query: any) => {
                   _id: "$patient._id",
                   name: "$patient.name",
                   code: "$patient.code",
-                  mobileNumber: "$patient.mobileNumber"
+                  mobileNumber: "$patient.mobileNumber",
+                  pic: "$patient.pic",
+                  profileDetails: "$patient.profileDetails",
+                  phones: "$patient.phones"
                 },
               },
             },
