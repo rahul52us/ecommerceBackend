@@ -225,6 +225,22 @@ export const getToothTreatments = async (query: any) => {
       },
       { $unwind: "$patient" },
 
+      // Handle keyword search across multiple fields
+      ...(query.search
+        ? [
+            {
+              $match: {
+                $or: [
+                  { "doctor.name": { $regex: query.search, $options: "i" } },
+                  { "patient.name": { $regex: query.search, $options: "i" } },
+                  { treatmentPlan: { $regex: query.search, $options: "i" } },
+                  { notes: { $regex: query.search, $options: "i" } },
+                ],
+              },
+            },
+          ]
+        : []),
+
       {
         $lookup: {
           from: "users",
@@ -242,7 +258,7 @@ export const getToothTreatments = async (query: any) => {
       {
         $project: {
           tooth: 1,
-          treatment: 1,
+          treatmentPlan: 1,
           treatmentDate: 1,
           status: 1,
           notes: 1,
@@ -264,10 +280,23 @@ export const getToothTreatments = async (query: any) => {
     ];
 
     const records = await ToothTreatmentSchema.aggregate(pipeline);
+    
+    let totalRecords = 0;
+    if (query.search) {
+      // Robustly construct count pipeline by removing pagination and projection stages
+      const countPipeline = pipeline.filter((stage: any) => 
+        !stage.$skip && !stage.$limit && !stage.$sort && !stage.$project
+      );
+      countPipeline.push({ $count: "total" });
+      const countRes = await ToothTreatmentSchema.aggregate(countPipeline);
+      totalRecords = countRes[0]?.total || 0;
+    } else {
+      totalRecords = await ToothTreatmentSchema.countDocuments(matchStage);
+    }
 
     return {
       success: "success",
-      count: records.length,
+      count: totalRecords,
       data: records,
       statusCode: 200,
     };

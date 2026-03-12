@@ -23,27 +23,27 @@ import reportRouting from "./reports/reporting.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
-  app.use('/api/contact',contactRouting)
-  app.use('/api/notification',notificationRouting)
-  app.use('/api/file',fileRouting)
-  app.use('/api/lab',labRouting)
-  app.use('/api/dashboard',dashboardRouting)
-  app.use('/api/booking',bookingRouting)
-  app.use('/api/appointments',bookAppointmentRouting)
+  app.use('/api/contact', contactRouting)
+  app.use('/api/notification', notificationRouting)
+  app.use('/api/file', fileRouting)
+  app.use('/api/lab', labRouting)
+  app.use('/api/dashboard', dashboardRouting)
+  app.use('/api/booking', bookingRouting)
+  app.use('/api/appointments', bookAppointmentRouting)
   app.use("/api/company", companyOrganisation);
   app.use("/api/User", UserRouting);
-  app.use('/api/token',tokenRouting);
+  app.use('/api/token', tokenRouting);
   app.use("/api/testimonial", testimonialRouting);
   app.use("/api/event", eventRouting);
   app.use("/api/blog", blogRouting);
   app.use("/api/student", StudentRouting);
   app.use("/api/trip", TripRouting);
-  app.use('/api/masters',masterRouting)
-  app.use('/api/doctor/appointment',doctorAppointmentRouting)
-  app.use('/api/chairs',chairsRouting);
-  app.use('/api/toothTreatment',treatmentRouting)
-  app.use('/api/recall-appointment',recallAppointmentRouting)
-  app.use('/api/report',reportRouting)
+  app.use('/api/masters', masterRouting)
+  app.use('/api/doctor/appointment', doctorAppointmentRouting)
+  app.use('/api/chairs', chairsRouting);
+  app.use('/api/toothTreatment', treatmentRouting)
+  app.use('/api/recall-appointment', recallAppointmentRouting)
+  app.use('/api/report', reportRouting)
 };
 
 export default importRoutings;
