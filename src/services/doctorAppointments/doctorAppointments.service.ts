@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { createAppointment, getAppointmentById, getAppointments, getAppointmentStatusCounts, updateAppointment, updateAppointmentStatus } from "../../repository/doctorAppointments/doctorAppointments";
+import { createAppointment, getAppointmentById, getAppointments, getAppointmentStatusCounts, getPatientHistory, updateAppointment, updateAppointmentStatus } from "../../repository/doctorAppointments/doctorAppointments";
 
 
 
@@ -134,3 +134,32 @@ export const getAppointmentStatusCountsService = async (req: any, res: any) => {
   }
 };
 
+export const getPatientHistoryService = async (req: any, res: any) => {
+  try {
+    const { patientId, page, limit } = { ...req.params, ...req.body, ...req.query };
+    const company = req.body.company || req.query.company || req.headers['company'];
+
+    console.log(`📡 API Request: POST /patients/history/${patientId}`, { page, limit });
+
+    const { status, statusCode, data, message, totalCount, totalPages, currentPage }: any = await getPatientHistory({
+      patientId,
+      company,
+      page,
+      limit,
+    });
+    return res.status(statusCode).send({
+      message,
+      data,
+      totalCount,
+      totalPages,
+      currentPage,
+      status,
+    });
+  } catch (err: any) {
+    console.error("❌ getPatientHistoryService error:", err);
+    return res.status(500).send({
+      status: "error",
+      message: err?.message,
+    });
+  }
+};

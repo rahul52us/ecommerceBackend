@@ -543,16 +543,21 @@ export const getAppointmentStatusCounts = async (query: any) => {
   try {
     const statuses = ["shift", "cancelled", "no-show"];
 
-    if (query.patient) {
-      query = { patient: new mongoose.Types.ObjectId(query.patient) }
+    const matchStage: any = {
+      status: { $in: statuses }
+    };
+
+    if (query.patient && mongoose.Types.ObjectId.isValid(query.patient)) {
+      matchStage.patient = new mongoose.Types.ObjectId(query.patient);
+    }
+
+    if (query.company && mongoose.Types.ObjectId.isValid(query.company)) {
+      matchStage.company = new mongoose.Types.ObjectId(query.company);
     }
 
     const result = await AppointmentSchema.aggregate([
       {
-        $match: {
-          ...query,
-          status: { $in: statuses }
-        }
+        $match: matchStage
       },
       {
         $group: {
@@ -583,6 +588,98 @@ export const getAppointmentStatusCounts = async (query: any) => {
       status: "error",
       message: error.message,
       statusCode: 500
+    };
+  }
+};
+
+export const getPatientHistory = async (query: any) => {
+  try {
+    const { patientId, company, page = 1, limit = 10 } = query;
+    const safePage = Math.max(1, Number(page));
+    const safeLimit = Math.max(1, Number(limit));
+    const skip = (safePage - 1) * safeLimit;
+
+    console.log("🔍 Fetching patient history for:", { patientId, company, page: safePage, limit: safeLimit });
+
+    if (!patientId || !mongoose.Types.ObjectId.isValid(patientId)) {
+      return {
+        success: "error",
+        message: "Valid Patient ID is required.",
+        statusCode: 400,
+      };
+    }
+
+    const matchStage: any = {
+      patient: new mongoose.Types.ObjectId(patientId),
+      status: { $in: ["shift", "cancelled"] },
+    };
+
+    if (company && mongoose.Types.ObjectId.isValid(company)) {
+      matchStage.company = new mongoose.Types.ObjectId(company);
+    }
+
+    const basePipeline = [
+      { $match: matchStage },
+      { $lookup: { from: "users", localField: "primaryDoctor", foreignField: "_id", as: "primaryDoctor" } },
+      { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
+    ];
+
+    const [appointments, totalResult] = await Promise.all([
+      AppointmentSchema.aggregate([
+        ...basePipeline,
+        { $sort: { appointmentDate: -1, startTime: -1 } },
+        { $skip: skip },
+        { $limit: safeLimit },
+        {
+          $project: {
+            _id: 1,
+            title: 1,
+            description: 1,
+            status: 1,
+            appointmentDate: 1,
+            startTime: 1,
+            endTime: 1,
+            shiftOrCancelledReason: 1,
+            "primaryDoctor.name": 1,
+          },
+        },
+      ]),
+      AppointmentSchema.aggregate([
+        ...basePipeline,
+        { $count: "count" },
+      ]),
+    ]);
+
+    const totalCount = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
+
+    console.log(`✅ Found ${totalCount} history records, returning ${appointments.length} for page ${safePage}`);
+
+    return {
+      success: "success",
+      message: "Patient history fetched successfully.",
+      data: appointments,
+      totalCount,
+      totalPages,
+      currentPage: safePage,
+      statusCode: 200,
+    };
+
+    console.log(`✅ Found ${appointments.length} history records`);
+
+    return {
+      success: "success",
+      message: "Patient history fetched successfully.",
+      data: appointments,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    console.error("❌ getPatientHistory error:", error);
+    return {
+      success: "error",
+      message: "Server error while fetching patient history.",
+      error: error.message,
+      statusCode: 500,
     };
   }
 };
