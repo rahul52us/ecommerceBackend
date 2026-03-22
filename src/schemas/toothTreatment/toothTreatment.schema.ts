@@ -49,6 +49,34 @@ status: {
       trim: true,
     },
 
+    estimateMin: {
+      type: Number,
+      default: 0,
+    },
+    estimateMax: {
+      type: Number,
+      default: 0,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+    },
+    totalMin: {
+      type: Number,
+      default: 0,
+    },
+    totalMax: {
+      type: Number,
+      default: 0,
+    },
+    toothNote: {
+      type: String,
+      trim: true,
+    },
+    complaintType: {
+      type: String,
+    },
+
     isActive: {
     type: Boolean,
     default: true,

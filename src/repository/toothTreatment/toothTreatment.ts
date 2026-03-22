@@ -15,6 +15,13 @@ export const createToothTreatment = async (data: any) => {
       status,
       notes,
       treatmentPlan,
+      estimateMin,
+      estimateMax,
+      discount,
+      totalMin,
+      totalMax,
+      toothNote,
+      complaintType,
       user, // createdBy
     } = data;
 
@@ -39,6 +46,13 @@ export const createToothTreatment = async (data: any) => {
       treatmentDate: treatmentDate ? new Date(treatmentDate) : null,
       status: status || "pending",
       notes: notes || "",
+      estimateMin: estimateMin || 0,
+      estimateMax: estimateMax || 0,
+      discount: discount || 0,
+      totalMin: totalMin || 0,
+      totalMax: totalMax || 0,
+      toothNote: toothNote || "",
+      complaintType: complaintType || "",
       createdBy: user,
       createdAt: new Date(),
     });
@@ -72,6 +86,13 @@ export const updateToothTreatment = async (data: any) => {
       treatmentDate,
       status,
       notes,
+      estimateMin,
+      estimateMax,
+      discount,
+      totalMin,
+      totalMax,
+      toothNote,
+      complaintType,
       user, // updatedBy
     } = data;
 
@@ -96,6 +117,13 @@ export const updateToothTreatment = async (data: any) => {
 
     if (status) updatePayload.status = status;
     if (notes !== undefined) updatePayload.notes = notes;
+    if (estimateMin !== undefined) updatePayload.estimateMin = estimateMin;
+    if (estimateMax !== undefined) updatePayload.estimateMax = estimateMax;
+    if (discount !== undefined) updatePayload.discount = discount;
+    if (totalMin !== undefined) updatePayload.totalMin = totalMin;
+    if (totalMax !== undefined) updatePayload.totalMax = totalMax;
+    if (toothNote !== undefined) updatePayload.toothNote = toothNote;
+    if (complaintType !== undefined) updatePayload.complaintType = complaintType;
 
     const updated = await ToothTreatmentSchema.findByIdAndUpdate(
       treatmentId,
@@ -262,6 +290,13 @@ export const getToothTreatments = async (query: any) => {
           treatmentDate: 1,
           status: 1,
           notes: 1,
+          estimateMin: 1,
+          estimateMax: 1,
+          discount: 1,
+          totalMin: 1,
+          totalMax: 1,
+          toothNote: 1,
+          complaintType: 1,
           createdAt: 1,
 
           "patient._id": 1,
@@ -366,9 +401,17 @@ export const getToothTreatmentById = async (data: any) => {
         $project: {
           tooth: 1,
           treatment: 1,
+          treatmentPlan: 1,
           treatmentDate: 1,
           status: 1,
           notes: 1,
+          estimateMin: 1,
+          estimateMax: 1,
+          discount: 1,
+          totalMin: 1,
+          totalMax: 1,
+          toothNote: 1,
+          complaintType: 1,
           createdAt: 1,
           patient: 1,
           doctor: 1,

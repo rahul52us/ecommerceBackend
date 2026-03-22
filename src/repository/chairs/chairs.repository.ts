@@ -233,6 +233,16 @@ export const getTodayChairSummary = async (query: any) => {
             { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
 
             {
+              $lookup: {
+                from: "profiledetails",
+                localField: "patient.profile_details",
+                foreignField: "_id",
+                as: "patient.profileDetails",
+              },
+            },
+            { $unwind: { path: "$patient.profileDetails", preserveNullAndEmptyArrays: true } },
+
+            {
               $project: {
                 _id: 1,
                 title: 1,
@@ -242,7 +252,7 @@ export const getTodayChairSummary = async (query: any) => {
                 appointmentDate: 1,
                 startTime: 1,
                 endTime: 1,
-
+                shiftOrCancelledReason: 1,
                 primaryDoctor: {
                   _id: "$primaryDoctor._id",
                   name: "$primaryDoctor.name",
@@ -256,15 +266,7 @@ export const getTodayChairSummary = async (query: any) => {
                   code: 1,
                 },
 
-                patient: {
-                  _id: "$patient._id",
-                  name: "$patient.name",
-                  code: "$patient.code",
-                  mobileNumber: "$patient.mobileNumber",
-                  pic: "$patient.pic",
-                  profileDetails: "$patient.profileDetails",
-                  phones: "$patient.phones"
-                },
+                patient: "$patient",
               },
             },
           ],

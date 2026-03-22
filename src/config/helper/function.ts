@@ -5,7 +5,7 @@ import { statusCode } from "./statusCode";
 import bcrypt from "bcryptjs"; // Lightweight bcrypt for frontend
 import CryptoJS from "crypto-js"; // AES encryption
 
-const SECRET_KEY = "myanothdasd55das45dasernewkey775sda85dadas5"; // Store in env or config
+const SECRET_KEY = "Rahulkushwah@1012$%"; // Store in env or config
 
 // AES Encrypt
 export const encryptAES = (text: string): string => {
@@ -39,16 +39,15 @@ export const createCatchError = (err: any) => {
   };
 };
 
-export const convertIdsToObjects = async (data : any) => {
-  try
-  {
-    if(!Array.isArray(data)){
+export const convertIdsToObjects = async (data: any) => {
+  try {
+    if (!Array.isArray(data)) {
       data = [data]
     }
-    data = data.map((item : string) => new mongoose.Types.ObjectId(item))
+    data = data.map((item: string) => new mongoose.Types.ObjectId(item))
     return data || []
   }
-  catch{
+  catch {
     return []
   }
 }

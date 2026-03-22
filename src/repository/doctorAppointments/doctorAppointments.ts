@@ -200,14 +200,14 @@ export const updateAppointment = async (data: any) => {
       return {
         success: "error",
         message: "Appointment not found.",
-        statusCode: 404,
+        statusCode: 404
       };
     }
 
     updatedAppointment.history.push({
       action: status,
       by: user || null,
-      remarks: description || "",
+      remarks: status === "shift" || status === "cancelled" ? shiftOrCancelledReason || description || "" : description || "",
       timestamp: new Date(),
     });
 
