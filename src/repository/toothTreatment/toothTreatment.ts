@@ -82,6 +82,7 @@ export const updateToothTreatment = async (data: any) => {
   try {
     const {
       treatmentId,
+      doctor,
       treatment,
       treatmentDate,
       status,
@@ -114,6 +115,7 @@ export const updateToothTreatment = async (data: any) => {
 
     if (treatmentDate)
       updatePayload.treatmentDate = new Date(treatmentDate);
+    if (doctor) updatePayload.doctor = doctor;
 
     if (status) updatePayload.status = status;
     if (notes !== undefined) updatePayload.notes = notes;
