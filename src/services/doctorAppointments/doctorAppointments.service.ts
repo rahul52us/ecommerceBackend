@@ -96,7 +96,7 @@ export const updateDoctorAppointmentService = async (req: any, res: any) => {
 
 export const updateDoctorAppointmentStatusService = async (req: any, res: any) => {
   try {
-    const { status, statusCode, data, message }: any = await updateAppointmentStatus({
+    const { success, statusCode, data, message }: any = await updateAppointmentStatus({
       ...req.body,
       appointmentId : new mongoose.Types.ObjectId(req.params.id),
       user: req.userId,
@@ -105,7 +105,29 @@ export const updateDoctorAppointmentStatusService = async (req: any, res: any) =
     return res.status(statusCode).send({
       message,
       data,
-      status,
+      status: success,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message,
+    });
+  }
+};
+
+export const completeDoctorAppointmentService = async (req: any, res: any) => {
+  try {
+    const { success, statusCode, data, message }: any = await updateAppointmentStatus({
+      status: "completed",
+      remarks: "Completed from Waiting Room",
+      appointmentId: new mongoose.Types.ObjectId(req.params.id),
+      user: req.userId,
+      company: req.body.company || req.query.company,
+    });
+    return res.status(statusCode).send({
+      message,
+      data,
+      status: success,
     });
   } catch (err: any) {
     return res.status(500).send({
