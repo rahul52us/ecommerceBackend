@@ -75,6 +75,7 @@ status: {
     },
     complaintType: {
       type: String,
+      trim: true,
     },
 
     isActive: {

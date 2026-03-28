@@ -214,23 +214,32 @@ export const getToothTreatments = async (query: any) => {
   try {
     const {
       patientId,
+      patient,
+      appointmentId,
       doctor,
       company,
       fdi,
       status,
+      complaintType,
       limit = 20,
       skip = 0,
     } = query;
+
+    const pId = patientId || patient;
 
     const matchStage: any = {
       isActive: true,
     };
 
-    if (company) matchStage.company = new mongoose.Types.ObjectId(company);
-    if (patientId) matchStage.patient = new mongoose.Types.ObjectId(patientId);
-    if (doctor) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
+    if (company && mongoose.Types.ObjectId.isValid(company)) matchStage.company = new mongoose.Types.ObjectId(company);
+    if (pId && mongoose.Types.ObjectId.isValid(pId)) matchStage.patient = new mongoose.Types.ObjectId(pId);
+    if (doctor && mongoose.Types.ObjectId.isValid(doctor)) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
     if (status) matchStage.status = status;
     if (fdi) matchStage["tooth.fdi"] = fdi;
+    if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
+    if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
+
+    console.log("FINAL MATCH STAGE:", matchStage);
 
     const pipeline: any[] = [
       { $match: matchStage },
