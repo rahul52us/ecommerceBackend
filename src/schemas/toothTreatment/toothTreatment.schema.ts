@@ -32,17 +32,21 @@ const ToothTreatmentSchema = new Schema(
 
     treatmentPlan: {
         type: String,
-        required: true,
+        required: false,
     },
-      treatmentDate: {
-        type: Date,
-      },
-status: {
-        type: String,
-        enum: ["pending", "in-progress", "completed", "cancelled"],
-        default: "pending",
-      },
-
+    treatmentDate: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "in-progress", "completed", "cancelled"],
+      default: "pending",
+    },
+    recordType: {
+      type: String,
+      enum: ["tooth", "note"],
+      default: "tooth",
+    },
 
     notes: {
       type: String,

@@ -22,13 +22,18 @@ export const createToothTreatment = async (data: any) => {
       totalMax,
       toothNote,
       complaintType,
+      recordType,
       user, // createdBy
     } = data;
 
-    if (!patient || !doctor || !company || !tooth?.fdi || !treatmentPlan) {
+    const finalRecordType = recordType || "tooth";
+    const finalToothFdi = tooth?.fdi || (finalRecordType === "note" ? "General" : null);
+    const finalTreatmentPlan = treatmentPlan || (finalRecordType === "note" ? (notes || "Clinical Note") : null);
+
+    if (!patient || !doctor || !company || (finalRecordType === "tooth" && (!finalToothFdi || !finalTreatmentPlan))) {
       return {
         success: "error",
-        message: "Missing required fields.",
+        message: "Missing required fields (patient, doctor, company, or tooth info/plan for tooth records).",
         statusCode: 400,
       };
     }
@@ -38,13 +43,14 @@ export const createToothTreatment = async (data: any) => {
       doctor,
       company,
       tooth: {
-        fdi: tooth.fdi,
-        universal: tooth.universal || null,
-        palmer: tooth.palmer || null,
+        fdi: finalToothFdi,
+        universal: tooth?.universal || null,
+        palmer: tooth?.palmer || null,
       },
-      treatmentPlan:treatmentPlan,
+      treatmentPlan: finalTreatmentPlan,
       treatmentDate: treatmentDate ? new Date(treatmentDate) : null,
       status: status || "pending",
+      recordType: finalRecordType,
       notes: notes || "",
       estimateMin: estimateMin || 0,
       estimateMax: estimateMax || 0,
@@ -172,7 +178,7 @@ export const updateToothTreatmentStatus = async (data: any) => {
       };
     }
 
-    const treatment : any = await ToothTreatmentSchema.findById(treatmentId);
+    const treatment: any = await ToothTreatmentSchema.findById(treatmentId);
 
     if (!treatment) {
       return {
@@ -267,17 +273,17 @@ export const getToothTreatments = async (query: any) => {
       // Handle keyword search across multiple fields
       ...(query.search
         ? [
-            {
-              $match: {
-                $or: [
-                  { "doctor.name": { $regex: query.search, $options: "i" } },
-                  { "patient.name": { $regex: query.search, $options: "i" } },
-                  { treatmentPlan: { $regex: query.search, $options: "i" } },
-                  { notes: { $regex: query.search, $options: "i" } },
-                ],
-              },
+          {
+            $match: {
+              $or: [
+                { "doctor.name": { $regex: query.search, $options: "i" } },
+                { "patient.name": { $regex: query.search, $options: "i" } },
+                { treatmentPlan: { $regex: query.search, $options: "i" } },
+                { notes: { $regex: query.search, $options: "i" } },
+              ],
             },
-          ]
+          },
+        ]
         : []),
 
       {
@@ -326,11 +332,11 @@ export const getToothTreatments = async (query: any) => {
     ];
 
     const records = await ToothTreatmentSchema.aggregate(pipeline);
-    
+
     let totalRecords = 0;
     if (query.search) {
       // Robustly construct count pipeline by removing pagination and projection stages
-      const countPipeline = pipeline.filter((stage: any) => 
+      const countPipeline = pipeline.filter((stage: any) =>
         !stage.$skip && !stage.$limit && !stage.$sort && !stage.$project
       );
       countPipeline.push({ $count: "total" });
