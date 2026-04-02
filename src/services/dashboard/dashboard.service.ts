@@ -56,7 +56,7 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       {
         $match: {
           company: companyId,
-          userType: { $in: ["doctor", "staff", "patient"] },
+          userType: { $in: ["doctor", "staff", "patient", "dealer"] },
         },
       },
       {
@@ -71,12 +71,14 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       doctor: "doctors",
       staff: "staffs",
       patient: "patients",
+      dealer: "dealers",
     };
 
     const countsMap: any = {
       doctors: 0,
       staffs: 0,
       patients: 0,
+      dealers: 0,
     };
 
     userTypeCounts.forEach((item) => {
@@ -86,10 +88,40 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       }
     });
 
+    // Get last 7 days registrations
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const registrationGrowth = await UserModel.aggregate([
+      {
+        $match: {
+          company: companyId,
+          createdAt: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Get recent users
+    const recentUsers = await UserModel.find({ company: companyId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name userType createdAt pic');
+
     return res.status(200).send({
       message: "Dashboard data fetched successfully",
       status: true,
-      data: countsMap,
+      data: {
+        ...countsMap,
+        growth: registrationGrowth,
+        recentUsers: recentUsers
+      },
     });
   } catch (err: any) {
     next(err);
