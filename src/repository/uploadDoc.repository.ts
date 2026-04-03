@@ -3,9 +3,9 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 cloudinary.config({
-  cloud_name: 'dekfm4tfh',
-  api_key: '445446396628993',
-  api_secret: '-MJadL_KwXTHQZzpppV2RN6NsVU'
+  cloud_name: 'dsckn1jjj',
+  api_key: '182628571221226',
+  api_secret: '8TlhimblWv6YpU7nMG6f3IFPB-0'
 });
 
 async function uploadFile(file: any): Promise<string> {
@@ -15,7 +15,7 @@ async function uploadFile(file: any): Promise<string> {
       resource_type: 'auto'
     });
     return result.secure_url;
-  } catch (error : any) {
+  } catch (error: any) {
     console.log(error?.message)
     throw new Error('Failed to upload file to Cloudinary');
   }
@@ -29,7 +29,7 @@ async function deleteFile(public_id: string): Promise<boolean> {
     } else {
       return false;
     }
-  } catch (error : any) {
+  } catch (error: any) {
     return false;
   }
 }

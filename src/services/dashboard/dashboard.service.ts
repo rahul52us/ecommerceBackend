@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import UserModel from "../../schemas/User/User";
 import appointmentsSchema from "../../schemas/appointments/appointments.schema";
 import LabItemModal from "../../schemas/labItems/labItems.schema";
+import DealerModal from "../../schemas/dealers/dealer.schema";
 
 export const getPatientDashboardCount = async (
   req: any,
@@ -21,14 +22,14 @@ export const getPatientDashboardCount = async (
     const appointmentsCount = await appointmentsSchema.countDocuments({
       patient: patientId,
       isActive: true,
-      company:companyId
+      company: companyId
     });
 
     // Count lab items for this patient
     const orders = await LabItemModal.countDocuments({
       patientName: patientId,
       isActive: true,
-      company:companyId
+      company: companyId
     });
 
     return res.status(200).json({
@@ -88,11 +89,25 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       }
     });
 
+    const dealerCount = await DealerModal.countDocuments({
+      company: companyId,
+      isActive: true,
+    });
+
+    countsMap.dealers = dealerCount;
+
     // Get last 7 days registrations
+    const last7Days: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last7Days.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
+    }
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const registrationGrowth = await UserModel.aggregate([
+    const aggregateGrowth = await UserModel.aggregate([
       {
         $match: {
           company: companyId,
@@ -108,11 +123,52 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       { $sort: { _id: 1 } }
     ]);
 
+    // Zero-fill missing days
+    const registrationGrowth = last7Days.map(day => {
+      const found = aggregateGrowth.find(a => a._id === day);
+      return { _id: day, count: found ? found.count : 0 };
+    });
+
     // Get recent users
     const recentUsers = await UserModel.find({ company: companyId })
       .sort({ createdAt: -1 })
       .limit(5)
       .select('name userType createdAt pic');
+
+    // Get monthly appointment trends (for Patient Retention chart)
+    const last6Months: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      last6Months.push(d.toISOString().slice(0, 7)); // YYYY-MM
+    }
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const aggregateTrends = await appointmentsSchema.aggregate([
+      {
+        $match: {
+          company: companyId,
+          appointmentDate: { $gte: sixMonthsAgo },
+          isActive: true,
+          status: { $in: ["completed", "scheduled", "in-progress", "arrived"] }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$appointmentDate" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Zero-fill missing months
+    const appointmentTrends = last6Months.map(month => {
+      const found = aggregateTrends.find(a => a._id === month);
+      return { _id: month, count: found ? found.count : 0 };
+    });
 
     return res.status(200).send({
       message: "Dashboard data fetched successfully",
@@ -120,7 +176,8 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       data: {
         ...countsMap,
         growth: registrationGrowth,
-        recentUsers: recentUsers
+        recentUsers: recentUsers,
+        appointmentTrends: appointmentTrends,
       },
     });
   } catch (err: any) {
