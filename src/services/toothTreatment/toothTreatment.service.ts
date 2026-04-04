@@ -11,10 +11,11 @@ import {
 
 export const getToothTreatmentByIdService = async (req: any, res: any) => {
   try {
+    console.log("BACKEND: Fetching Treatment with ID:", req.params.id, "Company:", req.query?.company);
     const { statusCode, success, message, data }: any =
       await getToothTreatmentById({
         treatmentId: new mongoose.Types.ObjectId(req.params.id),
-        company: req.body?.company || req.bodyData?.company,
+        company: req.body?.company || req.bodyData?.company || req.query?.company,
       });
 
     return res.status(statusCode).send({

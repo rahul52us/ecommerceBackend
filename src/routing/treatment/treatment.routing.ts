@@ -5,7 +5,7 @@ import { createToothTreatmentService, deleteToothTreatmentService, getToothTreat
 const toothTreatment = express.Router();
 toothTreatment.post("/create", authenticate, createToothTreatmentService);
 toothTreatment.get("/get",authenticate, getToothTreatmentsService);
-toothTreatment.post("/:id",authenticate, getToothTreatmentByIdService);
+toothTreatment.get("/:id",authenticate, getToothTreatmentByIdService);
 toothTreatment.put("/:id",authenticate, updateToothTreatmentService);
 toothTreatment.put("/:id/status",authenticate, updateToothTreatmentStatusService);
 toothTreatment.delete("/:id",authenticate, deleteToothTreatmentService);

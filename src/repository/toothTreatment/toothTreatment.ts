@@ -24,6 +24,7 @@ export const createToothTreatment = async (data: any) => {
       complaintType,
       recordType,
       user, // createdBy
+      examiningDoctor,
     } = data;
 
     const finalRecordType = recordType || "tooth";
@@ -60,6 +61,7 @@ export const createToothTreatment = async (data: any) => {
       toothNote: toothNote || "",
       complaintType: complaintType || "",
       createdBy: user,
+      examiningDoctor: examiningDoctor || null,
       createdAt: new Date(),
     });
 
@@ -101,6 +103,7 @@ export const updateToothTreatment = async (data: any) => {
       toothNote,
       complaintType,
       user, // updatedBy
+      examiningDoctor,
     } = data;
 
     if (!treatmentId) {
@@ -132,6 +135,7 @@ export const updateToothTreatment = async (data: any) => {
     if (totalMax !== undefined) updatePayload.totalMax = totalMax;
     if (toothNote !== undefined) updatePayload.toothNote = toothNote;
     if (complaintType !== undefined) updatePayload.complaintType = complaintType;
+    if (examiningDoctor !== undefined) updatePayload.examiningDoctor = examiningDoctor;
 
     const updated = await ToothTreatmentSchema.findByIdAndUpdate(
       treatmentId,
@@ -270,6 +274,16 @@ export const getToothTreatments = async (query: any) => {
       },
       { $unwind: "$patient" },
 
+      {
+        $lookup: {
+          from: "users",
+          localField: "examiningDoctor",
+          foreignField: "_id",
+          as: "examiningDoctor",
+        },
+      },
+      { $unwind: { path: "$examiningDoctor", preserveNullAndEmptyArrays: true } },
+
       // Handle keyword search across multiple fields
       ...(query.search
         ? [
@@ -323,6 +337,10 @@ export const getToothTreatments = async (query: any) => {
           "doctor._id": 1,
           "doctor.name": 1,
           "doctor.code": 1,
+
+          "examiningDoctor._id": 1,
+          "examiningDoctor.name": 1,
+          "examiningDoctor.code": 1,
 
           "createdBy._id": 1,
           "createdBy.name": 1,
@@ -407,6 +425,16 @@ export const getToothTreatmentById = async (data: any) => {
       {
         $lookup: {
           from: "users",
+          localField: "examiningDoctor",
+          foreignField: "_id",
+          as: "examiningDoctor",
+        },
+      },
+      { $unwind: { path: "$examiningDoctor", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
           localField: "createdBy",
           foreignField: "_id",
           as: "createdBy",
@@ -432,6 +460,7 @@ export const getToothTreatmentById = async (data: any) => {
           createdAt: 1,
           patient: 1,
           doctor: 1,
+          examiningDoctor: 1,
           createdBy: 1,
         },
       },

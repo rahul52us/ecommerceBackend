@@ -14,11 +14,16 @@ const ToothTreatmentSchema = new Schema(
       ref: "User"
     },
 
+    examiningDoctor: {
+      type: Schema.Types.ObjectId,
+      ref: "User"
+    },
+
     company: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Company",
-        required: true,
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
 
     tooth: {
       fdi: {
@@ -31,8 +36,8 @@ const ToothTreatmentSchema = new Schema(
     },
 
     treatmentPlan: {
-        type: String,
-        required: false,
+      type: String,
+      required: false,
     },
     treatmentDate: {
       type: Date,
@@ -83,22 +88,22 @@ const ToothTreatmentSchema = new Schema(
     },
 
     isActive: {
-    type: Boolean,
-    default: true,
-  },
-  deletedAt : {
-    type : Date
-  },
-  createdAt: {
-    type: Date,
-    default: new Date(),
-  },
-  createdBy: {
+      type: Boolean,
+      default: true,
+    },
+    deletedAt: {
+      type: Date
+    },
+    createdAt: {
+      type: Date,
+      default: new Date(),
+    },
+    createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
-}
+  }
 );
 
 export default mongoose.model(
