@@ -543,9 +543,7 @@ export const getAppointmentStatusCounts = async (query: any) => {
   try {
     const statuses = ["shift", "cancelled", "no-show"];
 
-    const matchStage: any = {
-      status: { $in: statuses }
-    };
+    const matchStage: any = {};
 
     if (query.patient && mongoose.Types.ObjectId.isValid(query.patient)) {
       matchStage.patient = new mongoose.Types.ObjectId(query.patient);
@@ -559,9 +557,15 @@ export const getAppointmentStatusCounts = async (query: any) => {
       {
         $match: matchStage
       },
+      { $unwind: "$history" },
+      {
+        $match: {
+          "history.action": { $in: statuses }
+        }
+      },
       {
         $group: {
-          _id: "$status",
+          _id: "$history.action",
           count: { $sum: 1 }
         }
       }
@@ -580,7 +584,7 @@ export const getAppointmentStatusCounts = async (query: any) => {
     return {
       status: "success",
       data: counts,
-      message: 'Retrieved Patients Status',
+      message: 'Retrieved Patients Status Breakdown',
       statusCode: 200
     };
   } catch (error: any) {
