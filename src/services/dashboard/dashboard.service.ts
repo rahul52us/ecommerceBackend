@@ -80,6 +80,7 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       staffs: 0,
       patients: 0,
       dealers: 0,
+      appointments: 0,
     };
 
     userTypeCounts.forEach((item) => {
@@ -94,7 +95,13 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       isActive: true,
     });
 
+    const appointmentCount = await appointmentsSchema.countDocuments({
+      company: companyId,
+      isActive: true,
+    });
+
     countsMap.dealers = dealerCount;
+    countsMap.appointments = appointmentCount;
 
     // Get last 7 days registrations
     const last7Days: string[] = [];

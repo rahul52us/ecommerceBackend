@@ -683,3 +683,137 @@ export const getPatientHistory = async (query: any) => {
     };
   }
 };
+
+export const getPatientAuditTrail = async (query: any) => {
+  try {
+    const { patientId, company, page = 1, limit = 10 } = query;
+    const safePage = Math.max(1, Number(page));
+    const safeLimit = Math.max(1, Number(limit));
+    const skip = (safePage - 1) * safeLimit;
+
+    if (!patientId || !mongoose.Types.ObjectId.isValid(patientId)) {
+      return {
+        success: "error",
+        message: "Valid Patient ID is required.",
+        statusCode: 400,
+      };
+    }
+
+    const matchStage: any = {
+      patient: new mongoose.Types.ObjectId(patientId),
+      "history.action": { $in: ["shift", "cancelled", "no-show"] }
+    };
+
+    if (company && mongoose.Types.ObjectId.isValid(company)) {
+      matchStage.company = new mongoose.Types.ObjectId(company);
+    }
+
+    const basePipeline = [
+      { $match: matchStage },
+      { $lookup: { from: "users", localField: "primaryDoctor", foreignField: "_id", as: "primaryDoctor" } },
+      { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
+      // Join users for history.by
+      {
+        $lookup: {
+          from: "users",
+          localField: "history.by",
+          foreignField: "_id",
+          as: "historyUsers"
+        }
+      },
+      {
+        $set: {
+          history: {
+            $map: {
+              input: "$history",
+              as: "h",
+              in: {
+                $mergeObjects: [
+                  "$$h",
+                  {
+                    byName: {
+                      $let: {
+                        vars: {
+                          user: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$historyUsers",
+                                  as: "u",
+                                  cond: { $eq: ["$$u._id", "$$h.by"] }
+                                }
+                              },
+                              0
+                            ]
+                          }
+                        },
+                        in: "$$user.name"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ];
+
+    const [appointments, totalResult, incidentsResult] = await Promise.all([
+      AppointmentSchema.aggregate([
+        ...basePipeline,
+        { $sort: { appointmentDate: -1, startTime: -1 } },
+        { $skip: skip },
+        { $limit: safeLimit },
+        {
+          $project: {
+            _id: 1,
+            title: 1,
+            description: 1,
+            status: 1,
+            appointmentDate: 1,
+            startTime: 1,
+            endTime: 1,
+            shiftOrCancelledReason: 1,
+            history: 1,
+            notes: 1,
+            "primaryDoctor.name": 1,
+          },
+        },
+      ]),
+      AppointmentSchema.aggregate([
+        ...basePipeline,
+        { $count: "count" },
+      ]),
+      // Calculate total incidents (count of matching history actions)
+      AppointmentSchema.aggregate([
+        { $match: { patient: new mongoose.Types.ObjectId(patientId) } },
+        { $unwind: "$history" },
+        { $match: { "history.action": { $in: ["shift", "cancelled", "no-show"] } } },
+        { $count: "count" }
+      ])
+    ]);
+
+    const totalCount = totalResult[0]?.count || 0;
+    const totalIncidents = incidentsResult[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
+
+    return {
+      success: "success",
+      message: "Patient Audit Trail fetched successfully.",
+      data: appointments,
+      totalCount,
+      totalIncidents,
+      totalPages,
+      currentPage: safePage,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error while fetching audit trail.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};

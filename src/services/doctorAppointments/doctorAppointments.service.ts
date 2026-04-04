@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { createAppointment, getAppointmentById, getAppointments, getAppointmentStatusCounts, getPatientHistory, updateAppointment, updateAppointmentStatus } from "../../repository/doctorAppointments/doctorAppointments";
+import { createAppointment, getAppointmentById, getAppointments, getAppointmentStatusCounts, getPatientHistory, updateAppointment, updateAppointmentStatus, getPatientAuditTrail } from "../../repository/doctorAppointments/doctorAppointments";
 
 
 
@@ -10,15 +10,15 @@ export const getAppointmentByIdService = async (req: any, res: any) => {
 
     const { statusCode, success, message, data, count }: any = await getAppointmentById({
       ...req.body,
-      userType:req.bodyData?.userType,
-      userId : req.userId,
+      userType: req.bodyData?.userType,
+      userId: req.userId,
       company: req.body?.company || req.query?.company,
     });
 
     return res.status(statusCode).send({
       status: success,
       message,
-      data : {data , totalPages : count},
+      data: { data, totalPages: count },
     });
   } catch (err: any) {
     return res.status(500).send({
@@ -33,15 +33,15 @@ export const getDoctorAppointmentsService = async (req: any, res: any) => {
 
     const { statusCode, success, message, data, totalPages }: any = await getAppointments({
       ...req.body,
-      userType:req.bodyData?.userType,
-      userId : req.userId,
+      userType: req.bodyData?.userType,
+      userId: req.userId,
       company: req.body?.company || req.query?.company,
     });
 
     return res.status(statusCode).send({
       status: success,
       message,
-      data : {data , totalPages : totalPages},
+      data: { data, totalPages: totalPages },
     });
   } catch (err: any) {
     return res.status(500).send({
@@ -77,7 +77,7 @@ export const updateDoctorAppointmentService = async (req: any, res: any) => {
     const { status, statusCode, data, message }: any = await updateAppointment({
       ...req.body,
       user: req.userId,
-      appointmentId : new mongoose.Types.ObjectId(req.params.id),
+      appointmentId: new mongoose.Types.ObjectId(req.params.id),
       company: req.body.company,
     });
     return res.status(statusCode).send({
@@ -98,7 +98,7 @@ export const updateDoctorAppointmentStatusService = async (req: any, res: any) =
   try {
     const { success, statusCode, data, message }: any = await updateAppointmentStatus({
       ...req.body,
-      appointmentId : new mongoose.Types.ObjectId(req.params.id),
+      appointmentId: new mongoose.Types.ObjectId(req.params.id),
       user: req.userId,
       company: req.body.company,
     });
@@ -179,6 +179,34 @@ export const getPatientHistoryService = async (req: any, res: any) => {
     });
   } catch (err: any) {
     console.error("❌ getPatientHistoryService error:", err);
+    return res.status(500).send({
+      status: "error",
+      message: err?.message,
+    });
+  }
+};
+
+export const getPatientAuditTrailService = async (req: any, res: any) => {
+  try {
+    const { patientId, page, limit } = { ...req.params, ...req.body, ...req.query };
+    const company = req.body.company || req.query.company || req.headers['company'];
+
+    const { success, statusCode, data, message, totalCount, totalIncidents, totalPages, currentPage }: any = await getPatientAuditTrail({
+      patientId,
+      company,
+      page,
+      limit,
+    });
+    return res.status(statusCode).send({
+      message,
+      data,
+      totalCount,
+      totalIncidents,
+      totalPages,
+      currentPage,
+      status: success,
+    });
+  } catch (err: any) {
     return res.status(500).send({
       status: "error",
       message: err?.message,
