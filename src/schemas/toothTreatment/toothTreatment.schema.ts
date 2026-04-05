@@ -26,13 +26,18 @@ const ToothTreatmentSchema = new Schema(
     },
 
     tooth: {
-      fdi: {
-        type: String,
-        required: true,
-        index: true,
-      },
-      universal: String,
-      palmer: String,
+      type: String,
+      required: true,
+      index: true,
+    },
+    toothNotation: {
+      type: String,
+      default: "fdi",
+    },
+    dentitionType: {
+      type: String,
+      enum: ["adult", "child"],
+      default: "adult",
     },
 
     treatmentPlan: {

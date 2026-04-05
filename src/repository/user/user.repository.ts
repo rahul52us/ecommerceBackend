@@ -58,7 +58,7 @@ const createAdminUser = async (data: any) => {
       }
     }
 
-    let savedCompany : any = null
+    let savedCompany: any = null
     // -------------------------------
     // 2️⃣ COMPANY CHECK / CREATE
     // -------------------------------
@@ -462,7 +462,7 @@ const updateUserProfileDetails = async (data: any) => {
 
 const getUsers = async (data: {
   userType: string;
-  role?:string;
+  role?: string;
   page: number;
   limit: number;
   search?: string;
@@ -483,26 +483,26 @@ const getUsers = async (data: {
     };
 
     if (data.userType === "superAdmin") {
-  matchConditions = {
-    ...matchConditions,
-    userType: "admin",
-    role: "admin"
-  };
-} else {
-  matchConditions = {
-    ...matchConditions,
-    userType: data.userType,
-    role: { $ne: "admin" }
-  };
-}
+      matchConditions = {
+        ...matchConditions,
+        userType: "admin",
+        role: "admin"
+      };
+    } else {
+      matchConditions = {
+        ...matchConditions,
+        userType: data.userType,
+        role: { $ne: "admin" }
+      };
+    }
 
 
     // Company filter
-    if(data.userType !== "superAdmin"){
-    if (data.company?.length) {
-      matchConditions.company = { $in: data.company };
+    if (data.userType !== "superAdmin") {
+      if (data.company?.length) {
+        matchConditions.company = { $in: data.company };
+      }
     }
-  }
 
     // Search filter
     if (data.search?.trim()) {
@@ -885,7 +885,7 @@ const updateWorkExperienceDetails = async (data: any) => {
               workExperience.experienceDetails[i].certificate?.name
             );
           }
-        } catch (error) {}
+        } catch (error) { }
       }
       const updatedData: any = await WorkExperience.findOneAndUpdate(
         { user: data.id },

@@ -25,13 +25,14 @@ export const createToothTreatment = async (data: any) => {
       recordType,
       user, // createdBy
       examiningDoctor,
+      toothNotation,
     } = data;
 
     const finalRecordType = recordType || "tooth";
-    const finalToothFdi = tooth?.fdi || (finalRecordType === "note" ? "General" : null);
-    const finalTreatmentPlan = treatmentPlan || (finalRecordType === "note" ? (notes || "Clinical Note") : null);
+    const finalTooth = tooth || (finalRecordType === "note" ? "General" : null);
+    const finalTreatmentPlan = treatmentPlan || (finalRecordType === "note" ? (notes || "Clinical Note") : "General Treatment");
 
-    if (!patient || !doctor || !company || (finalRecordType === "tooth" && (!finalToothFdi || !finalTreatmentPlan))) {
+    if (!patient || !doctor || !company || (finalRecordType === "tooth" && (!finalTooth || !finalTreatmentPlan))) {
       return {
         success: "error",
         message: "Missing required fields (patient, doctor, company, or tooth info/plan for tooth records).",
@@ -43,11 +44,8 @@ export const createToothTreatment = async (data: any) => {
       patient,
       doctor,
       company,
-      tooth: {
-        fdi: finalToothFdi,
-        universal: tooth?.universal || null,
-        palmer: tooth?.palmer || null,
-      },
+      tooth: finalTooth,
+      toothNotation: toothNotation || "fdi",
       treatmentPlan: finalTreatmentPlan,
       treatmentDate: treatmentDate ? new Date(treatmentDate) : null,
       status: status || "pending",
@@ -245,7 +243,7 @@ export const getToothTreatments = async (query: any) => {
     if (pId && mongoose.Types.ObjectId.isValid(pId)) matchStage.patient = new mongoose.Types.ObjectId(pId);
     if (doctor && mongoose.Types.ObjectId.isValid(doctor)) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
     if (status) matchStage.status = status;
-    if (fdi) matchStage["tooth.fdi"] = fdi;
+    if (fdi) matchStage.tooth = fdi;
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
 
@@ -317,6 +315,8 @@ export const getToothTreatments = async (query: any) => {
       {
         $project: {
           tooth: 1,
+          toothNotation: 1,
+          dentitionType: 1,
           treatmentPlan: 1,
           treatmentDate: 1,
           status: 1,

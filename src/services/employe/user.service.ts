@@ -75,8 +75,8 @@ const createAdminUserservice = async (
       ...req.body,
       company: req.bodyData?.company,
       createdBy: req.userId,
-      userType:'admin',
-      role : 'admin'
+      userType: 'admin',
+      role: 'admin'
     });
 
     if (status === "success") {
@@ -126,19 +126,19 @@ export const UpdateSalaryStructureService = async (
 ) => {
   try {
     const id = req.params.id;
-const { data, status, statusCode, message } = await updateSalaryStructure({
-  ...req.body,
-  ...(id && id?.trim() && id !== "undefined" ? { id: new mongoose.Types.ObjectId(id) } : {}),
-  user: new mongoose.Types.ObjectId(req.body.user),
-});
+    const { data, status, statusCode, message } = await updateSalaryStructure({
+      ...req.body,
+      ...(id && id?.trim() && id !== "undefined" ? { id: new mongoose.Types.ObjectId(id) } : {}),
+      user: new mongoose.Types.ObjectId(req.body.user),
+    });
 
 
 
-return res.status(statusCode).send({
-  message,
-  data,
-  status,
-});
+    return res.status(statusCode).send({
+      message,
+      data,
+      status,
+    });
 
   } catch (err: any) {
     next(err);
@@ -153,7 +153,7 @@ export const getSalaryStructureService = async (
   try {
     const { data, status, statusCode, message } = await getSalaryStructure({
       ...req.body,
-      user : new mongoose.Types.ObjectId(req.body.user)
+      user: new mongoose.Types.ObjectId(req.body.user)
     });
     return res.status(statusCode).send({
       message,
@@ -205,7 +205,7 @@ const getAllUserService = async (
     const search = req.body.search || undefined;
     const type = req.body.type || req.bodyData?.userType || req.bodyData?.role || undefined
     const { data, status, totalPages } = await getUsers({
-      userType:type,
+      userType: type,
       page: Number(page),
       limit: Number(limit),
       search: search,
