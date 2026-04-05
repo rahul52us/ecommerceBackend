@@ -229,9 +229,10 @@ export const getToothTreatments = async (query: any) => {
       fdi,
       status,
       complaintType,
-      limit = 20,
-      skip = 0,
     } = query;
+
+    const limit = Number(query.limit) || 20;
+    const skip = query.skip ? Number(query.skip) : (Number(query.page || 1) - 1) * limit;
 
     const pId = patientId || patient;
 
@@ -309,8 +310,8 @@ export const getToothTreatments = async (query: any) => {
       { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
 
       { $sort: { createdAt: -1 } },
-      { $skip: parseInt(skip) },
-      { $limit: parseInt(limit) },
+      { $skip: skip },
+      { $limit: limit },
 
       {
         $project: {
@@ -366,7 +367,8 @@ export const getToothTreatments = async (query: any) => {
 
     return {
       success: "success",
-      count: totalRecords,
+      totalItems: totalRecords,
+      count: totalRecords, // backward compatibility
       data: records,
       statusCode: 200,
     };

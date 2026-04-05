@@ -37,7 +37,7 @@ export const getToothTreatmentByIdService = async (req: any, res: any) => {
 export const getToothTreatmentsService = async (req: any, res: any) => {
   try {
     console.log("INCOMING GET TREATMENTS REQ:", { ...req.body, ...req.query });
-    const { statusCode, success, message, data, count }: any =
+    const { statusCode, success, message, data, count, totalItems }: any =
       await getToothTreatments({
         ...req.body,
         ...req.query,
@@ -49,7 +49,7 @@ export const getToothTreatmentsService = async (req: any, res: any) => {
       message,
       data: {
         data,
-        totalPages: count,
+        totalItems: totalItems || count,
       },
     });
   } catch (err: any) {
