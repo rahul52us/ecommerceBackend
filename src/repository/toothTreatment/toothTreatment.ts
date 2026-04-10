@@ -89,7 +89,7 @@ export const updateToothTreatment = async (data: any) => {
     const {
       treatmentId,
       doctor,
-      treatment,
+      treatmentPlan,
       treatmentDate,
       status,
       notes,
@@ -117,8 +117,8 @@ export const updateToothTreatment = async (data: any) => {
       updatedBy: user,
     };
 
-    if (treatment?.type)
-      updatePayload["treatment.type"] = treatment.type;
+    if (treatmentPlan !== undefined)
+      updatePayload.treatmentPlan = treatmentPlan;
 
     if (treatmentDate)
       updatePayload.treatmentDate = new Date(treatmentDate);
