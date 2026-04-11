@@ -248,6 +248,10 @@ export const getToothTreatments = async (query: any) => {
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
 
+    if (query.treatmentDate === "today") {
+      // Logic moved to specialized getTodayToothTreatments function
+    }
+
     console.log("FINAL MATCH STAGE:", matchStage);
 
     const pipeline: any[] = [
@@ -526,6 +530,105 @@ export const deleteToothTreatment = async (data: any) => {
     return {
       success: "error",
       message: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   7️⃣ GET TODAY'S TOOTH TREATMENTS (SESSION HISTORY)
+===================================================== */
+export const getTodayToothTreatments = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+
+    if (!patientId || !company) {
+      return {
+        success: "error",
+        message: "Patient ID and Company ID are required.",
+        statusCode: 400,
+      };
+    }
+
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const matchStage = {
+      isActive: true,
+      patient: new mongoose.Types.ObjectId(patientId),
+      company: new mongoose.Types.ObjectId(company),
+      // We look for records that were either documented for today OR created today
+      $or: [
+        { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
+        { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+      ]
+    };
+
+    const records = await ToothTreatmentSchema.find(matchStage)
+      .populate("doctor", "_id name code")
+      .populate("patient", "_id name code")
+      .populate("examiningDoctor", "_id name code")
+      .populate("createdBy", "_id name code")
+      .sort({ createdAt: -1 });
+
+    return {
+      success: "success",
+      totalItems: records.length,
+      data: records,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error while fetching today's treatments.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   8️⃣ GET TODAY'S TOOTH COUNT (SESSION)
+===================================================== */
+export const getTodayToothCount = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+
+    if (!patientId || !company) {
+      return {
+        success: "error",
+        message: "Patient ID and Company ID are required.",
+        statusCode: 400,
+      };
+    }
+
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const matchStage = {
+      isActive: true,
+      patient: new mongoose.Types.ObjectId(patientId),
+      company: new mongoose.Types.ObjectId(company),
+      $or: [
+        { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
+        { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+      ]
+    };
+
+    const count = await ToothTreatmentSchema.countDocuments(matchStage);
+
+    return {
+      success: "success",
+      totalItems: count,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error while fetching today's count.",
+      error: error.message,
       statusCode: 500,
     };
   }

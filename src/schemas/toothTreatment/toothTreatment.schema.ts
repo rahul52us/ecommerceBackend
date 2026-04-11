@@ -101,7 +101,7 @@ const ToothTreatmentSchema = new Schema(
     },
     createdAt: {
       type: Date,
-      default: new Date(),
+      default: Date.now,
     },
     createdBy: {
       type: Schema.Types.ObjectId,

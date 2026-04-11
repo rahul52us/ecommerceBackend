@@ -5,6 +5,8 @@ import {
   updateToothTreatment,
   updateToothTreatmentStatus,
   getToothTreatments,
+  getTodayToothTreatments,
+  getTodayToothCount,
   getToothTreatmentById,
   deleteToothTreatment,
 } from "../../repository/toothTreatment/toothTreatment";
@@ -54,6 +56,60 @@ export const getToothTreatmentsService = async (req: any, res: any) => {
     });
   } catch (err: any) {
     console.log(err)
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/* =====================================================
+   GET TODAY'S TOOTH TREATMENTS (SESSION)
+==================================================== */
+export const getTodayToothTreatmentsService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data, totalItems }: any =
+      await getTodayToothTreatments({
+        ...req.query,
+        patientId: req.query.patientId,
+        company: req.query.company,
+      });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data: {
+        data,
+        totalItems,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/* =====================================================
+   GET TODAY'S TOOTH COUNT (SESSION)
+==================================================== */
+export const getTodayCountService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, totalItems }: any =
+      await getTodayToothCount({
+        patientId: req.query.patientId,
+        company: req.query.company,
+      });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data: {
+        totalItems,
+      },
+    });
+  } catch (err: any) {
     return res.status(500).send({
       status: "error",
       message: err?.message || "Internal Server Error",
