@@ -98,6 +98,7 @@ export const getTodayCountService = async (req: any, res: any) => {
   try {
     const { statusCode, success, message, totalItems }: any =
       await getTodayToothCount({
+        ...req.query,
         patientId: req.query.patientId,
         company: req.query.company,
       });

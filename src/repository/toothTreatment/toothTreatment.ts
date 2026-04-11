@@ -540,7 +540,7 @@ export const deleteToothTreatment = async (data: any) => {
 ===================================================== */
 export const getTodayToothTreatments = async (query: any) => {
   try {
-    const { patientId, company } = query;
+    const { patientId, company, date } = query;
 
     if (!patientId || !company) {
       return {
@@ -550,15 +550,18 @@ export const getTodayToothTreatments = async (query: any) => {
       };
     }
 
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    // Use selected date or default to today
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const matchStage = {
       isActive: true,
       patient: new mongoose.Types.ObjectId(patientId),
       company: new mongoose.Types.ObjectId(company),
-      // We look for records that were either documented for today OR created today
+      // We look for records that were either documented for this date OR created on this date
       $or: [
         { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
         { createdAt: { $gte: startOfDay, $lte: endOfDay } }
@@ -593,7 +596,7 @@ export const getTodayToothTreatments = async (query: any) => {
 ===================================================== */
 export const getTodayToothCount = async (query: any) => {
   try {
-    const { patientId, company } = query;
+    const { patientId, company, date } = query;
 
     if (!patientId || !company) {
       return {
@@ -603,9 +606,12 @@ export const getTodayToothCount = async (query: any) => {
       };
     }
 
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    // Use selected date or default to today
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const matchStage = {
       isActive: true,
