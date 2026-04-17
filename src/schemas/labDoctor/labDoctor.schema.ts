@@ -13,6 +13,12 @@ export interface LabDoctorInterface extends Document {
     url?: string;
     type?: string;
   };
+  staffDetails?: {
+    name: string;
+    email: string;
+    address: string;
+    phone?: string;
+  }[];
   company: mongoose.Schema.Types.ObjectId;
   createdBy: mongoose.Schema.Types.ObjectId;
   isActive: boolean;
@@ -54,6 +60,14 @@ const LabDoctorSchema = new Schema<LabDoctorInterface>({
     url: { type: String },
     type: { type: String },
   },
+  staffDetails: [
+    {
+      name: { type: String },
+      email: { type: String },
+      address: { type: String },
+      phone: { type: String },
+    },
+  ],
   company: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Company",
