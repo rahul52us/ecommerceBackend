@@ -297,6 +297,7 @@ export const getToothTreatments = async (query: any) => {
                 { "patient.name": { $regex: query.search, $options: "i" } },
                 { treatmentPlan: { $regex: query.search, $options: "i" } },
                 { notes: { $regex: query.search, $options: "i" } },
+                { tooth: { $regex: query.search, $options: "i" } },
               ],
             },
           },
@@ -540,7 +541,7 @@ export const deleteToothTreatment = async (data: any) => {
 ===================================================== */
 export const getTodayToothTreatments = async (query: any) => {
   try {
-    const { patientId, company, date } = query;
+    const { patientId, company, date, complaintType, search } = query;
 
     if (!patientId || !company) {
       return {
@@ -556,7 +557,6 @@ export const getTodayToothTreatments = async (query: any) => {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
-
     const matchStage = {
       isActive: true,
       patient: new mongoose.Types.ObjectId(patientId),
@@ -567,6 +567,19 @@ export const getTodayToothTreatments = async (query: any) => {
         { createdAt: { $gte: startOfDay, $lte: endOfDay } }
       ]
     };
+
+    if (complaintType) (matchStage as any).complaintType = { $regex: complaintType, $options: "i" };
+    if (search) {
+      (matchStage as any).$and = [
+        {
+          $or: [
+            { treatmentPlan: { $regex: search, $options: "i" } },
+            { notes: { $regex: search, $options: "i" } },
+            { tooth: { $regex: search, $options: "i" } },
+          ]
+        }
+      ];
+    }
 
     const records = await ToothTreatmentSchema.find(matchStage)
       .populate("doctor", "_id name code")
@@ -596,7 +609,7 @@ export const getTodayToothTreatments = async (query: any) => {
 ===================================================== */
 export const getTodayToothCount = async (query: any) => {
   try {
-    const { patientId, company, date } = query;
+    const { patientId, company, date, complaintType, search } = query;
 
     if (!patientId || !company) {
       return {
@@ -622,6 +635,19 @@ export const getTodayToothCount = async (query: any) => {
         { createdAt: { $gte: startOfDay, $lte: endOfDay } }
       ]
     };
+
+    if (complaintType) (matchStage as any).complaintType = { $regex: complaintType, $options: "i" };
+    if (search) {
+      (matchStage as any).$and = [
+        {
+          $or: [
+            { treatmentPlan: { $regex: search, $options: "i" } },
+            { notes: { $regex: search, $options: "i" } },
+            { tooth: { $regex: search, $options: "i" } },
+          ]
+        }
+      ];
+    }
 
     const count = await ToothTreatmentSchema.countDocuments(matchStage);
 
