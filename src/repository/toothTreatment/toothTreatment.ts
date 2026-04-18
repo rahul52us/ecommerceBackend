@@ -248,7 +248,17 @@ export const getToothTreatments = async (query: any) => {
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
 
+    if (query.toDate) {
+      const startOfDay = new Date(query.toDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(query.toDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      matchStage.treatmentDate = { $gte: startOfDay, $lte: endOfDay };
+    }
+
+
     if (query.treatmentDate === "today") {
+
       // Logic moved to specialized getTodayToothTreatments function
     }
 
