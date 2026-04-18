@@ -9,7 +9,9 @@ import {
   getTodayToothCount,
   getToothTreatmentById,
   deleteToothTreatment,
+  getTreatmentCountByDate,
 } from "../../repository/toothTreatment/toothTreatment";
+
 
 export const getToothTreatmentByIdService = async (req: any, res: any) => {
   try {
@@ -221,3 +223,29 @@ export const deleteToothTreatmentService = async (req: any, res: any) => {
     });
   }
 };
+
+/* =====================================================
+   GET TREATMENT COUNT BY DATE (AGGREGATION)
+==================================================== */
+export const getTreatmentCountByDateService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any =
+      await getTreatmentCountByDate({
+        ...req.query,
+        patientId: req.query.patientId,
+        company: req.query.company,
+      });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+

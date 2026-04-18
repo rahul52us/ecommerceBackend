@@ -665,3 +665,75 @@ export const getTodayToothCount = async (query: any) => {
     };
   }
 };
+
+/* =====================================================
+   9️⃣ GET TREATMENT COUNT BY DATE (AGGREGATION)
+===================================================== */
+export const getTreatmentCountByDate = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+
+    if (!patientId || !company) {
+      return {
+        success: "error",
+        message: "Patient ID and Company ID are required.",
+        statusCode: 400,
+      };
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(patientId) || !mongoose.Types.ObjectId.isValid(company)) {
+      return {
+        success: "error",
+        message: "Invalid Patient ID or Company ID format.",
+        statusCode: 400,
+      };
+    }
+
+    const matchStage = {
+      isActive: true,
+      patient: new mongoose.Types.ObjectId(patientId),
+      company: new mongoose.Types.ObjectId(company),
+    };
+
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: { $ifNull: ["$treatmentDate", "$createdAt"] }
+            }
+          },
+          count: { $sum: 1 },
+          items: { $push: "$$ROOT" } // Optional: if we want to show previews later
+        }
+      },
+      { $sort: { _id: -1 } as any },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          _id: 0
+        }
+      }
+    ];
+
+    const result = await ToothTreatmentSchema.aggregate(pipeline);
+
+    return {
+      success: "success",
+      data: result,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error while aggregating treatment counts.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
