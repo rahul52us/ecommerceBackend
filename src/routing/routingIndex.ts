@@ -22,6 +22,7 @@ import recallAppointmentRouting from "./recallAppointment/recallAppointment.rout
 import reportRouting from "./reports/reporting.routing";
 import dealerRouting from "./dealer/dealer.routing";
 import labDoctorRouting from "./labDoctor/labDoctor.routing";
+import labWorkRouting from "./labWork/labWork.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -48,6 +49,7 @@ const importRoutings = (app: any) => {
   app.use('/api/report', reportRouting)
   app.use('/api/dealer', dealerRouting)
   app.use('/api/lab-doctor', labDoctorRouting)
+  app.use('/api/lab-work', labWorkRouting)
 };
 
 export default importRoutings;

@@ -1,0 +1,104 @@
+import mongoose from "mongoose";
+
+const labWorkSchema = new mongoose.Schema(
+  {
+    patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    primaryDoctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
+    workType: {
+      type: String,
+      enum: ["in-house", "outside"],
+      required: true,
+      default: "outside",
+    },
+    // Array to support selecting more than one work for one patient
+    selectedWorks: [
+      {
+        selections: [String], // Flexible array to store nested dropdown values
+        customNotes: String,  // General notes for this item
+        shadeSystem: String,
+        shadeValue: String,
+        teethNumbers: [String], // Array of strings (e.g. ["11", "12"])
+        arch: String,
+      }
+    ],
+    labInstructions: {
+      type: String,
+      trim: true,
+    },
+    lab: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lab",
+      // Required only if workType is outside
+    },
+    labNameManual: String, // Fallback if lab is in-house or just text
+    sendDate: {
+      type: Date,
+    },
+    dueDate: {
+      type: Date,
+    },
+    receivedDate: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: ["plan", "sent", "in-progress", "received", "cancelled", "completed"],
+      default: "plan",
+    },
+    statusDate: {
+      type: Date,
+      default: Date.now,
+    },
+    warrantyCardNumber: {
+      type: String,
+      trim: true,
+    },
+    warrantyYears: {
+      type: Number,
+    },
+    price: {
+      type: Number,
+      default: 0,
+    },
+    delay: {
+      type: Number, // Difference in days between dueDate and receivedDate
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Middleware to calculate delay if both dates are present
+labWorkSchema.pre("save", function (next) {
+  if (this.dueDate && this.receivedDate) {
+    const diffTime = this.receivedDate.getTime() - this.dueDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    this.delay = diffDays > 0 ? diffDays : 0;
+  }
+  next();
+});
+
+export default mongoose.model("LabWork", labWorkSchema);
