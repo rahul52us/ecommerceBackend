@@ -50,6 +50,8 @@ export const createToothTreatment = async (data: any) => {
       treatmentDate: treatmentDate ? new Date(treatmentDate) : null,
       status: status || "pending",
       recordType: finalRecordType,
+      position: data.position || null,
+      side: data.side || null,
       notes: notes || "",
       estimateMin: estimateMin || 0,
       estimateMax: estimateMax || 0,
@@ -134,6 +136,8 @@ export const updateToothTreatment = async (data: any) => {
     if (toothNote !== undefined) updatePayload.toothNote = toothNote;
     if (complaintType !== undefined) updatePayload.complaintType = complaintType;
     if (examiningDoctor !== undefined) updatePayload.examiningDoctor = examiningDoctor;
+    if (data.position) updatePayload.position = data.position;
+    if (data.side) updatePayload.side = data.side;
 
     const updated = await ToothTreatmentSchema.findByIdAndUpdate(
       treatmentId,

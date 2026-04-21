@@ -39,6 +39,12 @@ const ToothTreatmentSchema = new Schema(
       enum: ["adult", "child"],
       default: "adult",
     },
+    position: {
+      type: String, // 'upper' or 'lower'
+    },
+    side: {
+      type: String, // 'left' or 'right'
+    },
 
     treatmentPlan: {
       type: String,

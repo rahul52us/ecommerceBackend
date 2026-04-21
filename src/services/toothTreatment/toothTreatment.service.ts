@@ -125,6 +125,7 @@ export const getTodayCountService = async (req: any, res: any) => {
 ===================================================== */
 export const createToothTreatmentService = async (req: any, res: any) => {
   try {
+    console.log("CREATING TREATMENT PAYLOAD:", { ...req.body, user: req.userId });
     const { status, statusCode, data, message }: any =
       await createToothTreatment({
         ...req.body,
@@ -150,6 +151,7 @@ export const createToothTreatmentService = async (req: any, res: any) => {
 ===================================================== */
 export const updateToothTreatmentService = async (req: any, res: any) => {
   try {
+    console.log("UPDATING TREATMENT PAYLOAD:", { ...req.body, treatmentId: req.params.id });
     const { status, statusCode, data, message }: any =
       await updateToothTreatment({
         ...req.body,
