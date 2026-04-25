@@ -23,6 +23,7 @@ import reportRouting from "./reports/reporting.routing";
 import dealerRouting from "./dealer/dealer.routing";
 import labDoctorRouting from "./labDoctor/labDoctor.routing";
 import labWorkRouting from "./labWork/labWork.routing";
+import labWorkHierarchyRouting from "./labWork/labWorkHierarchy.routing";
 import procedureRouting from "./procedure/procedure.routing";
 
 
@@ -52,8 +53,10 @@ const importRoutings = (app: any) => {
   app.use('/api/dealer', dealerRouting)
   app.use('/api/lab-doctor', labDoctorRouting)
   app.use('/api/lab-work', labWorkRouting)
-  app.use('/api/procedure', procedureRouting)
+  app.use('/api/lab-work-hierarchy', labWorkHierarchyRouting)
 
+  app.use('/api/procedure', procedureRouting)
 };
+
 
 export default importRoutings;
