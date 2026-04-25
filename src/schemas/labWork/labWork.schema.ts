@@ -5,13 +5,15 @@ const labWorkSchema = new mongoose.Schema(
     patient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
+    patientNameManual: String,
     primaryDoctor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
+    doctorNameManual: String,
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
@@ -19,10 +21,11 @@ const labWorkSchema = new mongoose.Schema(
     },
     workType: {
       type: String,
-      enum: ["in-house", "outside"],
+      enum: ["in-house", "outside", "external"],
       required: true,
       default: "outside",
     },
+
     // Array to support selecting more than one work for one patient
     selectedWorks: [
       {

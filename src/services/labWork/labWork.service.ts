@@ -1,14 +1,27 @@
 import labWorkRepository from "../../repository/labWork/labWork.repository";
 
 class LabWorkService {
+  private cleanData(data: any) {
+    const cleaned = { ...data };
+    const fieldsToClean = ["patient", "primaryDoctor", "lab"];
+    fieldsToClean.forEach(field => {
+      if (cleaned[field] === "" || cleaned[field] === undefined) {
+        delete cleaned[field];
+      }
+    });
+    return cleaned;
+  }
+
   async createLabWork(data: any) {
     try {
-      const result = await labWorkRepository.create(data);
+      const cleanedData = this.cleanData(data);
+      const result = await labWorkRepository.create(cleanedData);
       return { status: "success", data: result };
     } catch (error: any) {
       return { status: "error", message: error.message };
     }
   }
+
 
   async getAllLabWorks(query: any = {}, options: any = {}) {
     try {
@@ -33,7 +46,8 @@ class LabWorkService {
 
   async updateLabWork(id: string, data: any) {
     try {
-      const result = await labWorkRepository.update(id, data);
+      const cleanedData = this.cleanData(data);
+      const result = await labWorkRepository.update(id, cleanedData);
       if (!result) {
         return { status: "error", message: "Lab work not found or could not be updated" };
       }
@@ -42,6 +56,7 @@ class LabWorkService {
       return { status: "error", message: error.message };
     }
   }
+
 
   async deleteLabWork(id: string) {
     try {
