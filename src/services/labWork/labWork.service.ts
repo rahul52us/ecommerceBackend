@@ -48,9 +48,6 @@ class LabWorkService {
     try {
       const cleanedData = this.cleanData(data);
       const result = await labWorkRepository.update(id, cleanedData);
-      if (!result) {
-        return { status: "error", message: "Lab work not found or could not be updated" };
-      }
       return { status: "success", data: result };
     } catch (error: any) {
       return { status: "error", message: error.message };

@@ -58,9 +58,22 @@ const labWorkSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["plan", "sent", "in-progress", "received", "cancelled", "completed"],
       default: "plan",
     },
+    statusHistory: [
+      {
+        status: String,
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        note: String,
+        updatedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      }
+    ],
     statusDate: {
       type: Date,
       default: Date.now,
