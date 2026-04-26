@@ -77,7 +77,7 @@ const createUser = async (
         password: req.body.password,
         company: selectedCompany._id,
         role: req.body.role,
-        refrenceBy:req.body.refrenceBy || undefined,
+        refrenceBy: req.body.refrenceBy || undefined,
         is_active: selectedCompany.verified_email_allowed ? false : true,
       });
       const savedUser = await user.save();
@@ -320,7 +320,7 @@ const getUsersByCompany = async (
   next: NextFunction
 ) => {
   try {
-    const { searchValue, type } = req.query;
+    const { searchValue, type, isActive = true } = req.query;
 
     try {
       const matchConditions: any = {};
@@ -336,6 +336,8 @@ const getUsersByCompany = async (
       if (type) {
         matchConditions.userType = type;
       }
+
+      matchConditions.is_active = isActive === "false" ? false : true;
 
       matchConditions.company = new mongoose.Types.ObjectId(req.bodyData.company)
 

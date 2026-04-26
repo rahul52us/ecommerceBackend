@@ -209,6 +209,7 @@ const getAllUserService = async (
       page: Number(page),
       limit: Number(limit),
       search: search,
+      isActive: req.body.isActive,
       company: await convertIdsToObjects(req.body.company),
     });
     if (status === "success") {

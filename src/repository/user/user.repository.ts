@@ -427,6 +427,8 @@ const updateUserProfileDetails = async (data: any) => {
       };
     }
 
+
+
     if (pic.isDeleted && users.pic?.url && users.pic?.name) {
       await deleteFile(users.pic.name);
       users.pic = {
@@ -467,6 +469,7 @@ const getUsers = async (data: {
   limit: number;
   search?: string;
   company?: string[];
+  isActive?: any;
 }) => {
   try {
 
@@ -477,7 +480,7 @@ const getUsers = async (data: {
 
     // Base match conditions
     let matchConditions: any = {
-      is_active: true,
+      is_active: data.isActive !== undefined ? (data.isActive === "all" ? { $in: [true, false] } : data.isActive) : true,
       deletedAt: { $exists: false },
       role: { $ne: "admin" },
     };
