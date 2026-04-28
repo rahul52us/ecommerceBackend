@@ -26,6 +26,7 @@ import labWorkRouting from "./labWork/labWork.routing";
 import labWorkHierarchyRouting from "./labWork/labWorkHierarchy.routing";
 import procedureRouting from "./procedure/procedure.routing";
 import labWorkStatusRouting from "./labWork/labWorkStatus.routing";
+import workDoneRouting from "./workDone/workDone.routing";
 
 
 const importRoutings = (app: any) => {
@@ -58,6 +59,7 @@ const importRoutings = (app: any) => {
 
   app.use('/api/lab-work-status', labWorkStatusRouting)
   app.use('/api/procedure', procedureRouting)
+  app.use('/api/workDone', workDoneRouting)
 };
 
 
