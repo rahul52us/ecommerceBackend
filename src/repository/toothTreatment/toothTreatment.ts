@@ -328,6 +328,26 @@ export const getToothTreatments = async (query: any) => {
       },
       { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
 
+      {
+        $lookup: {
+          from: "workdones",
+          localField: "_id",
+          foreignField: "treatment",
+          as: "workHistory"
+        }
+      },
+      {
+        $addFields: {
+          receivedAmount: {
+            $reduce: {
+              input: "$workHistory",
+              initialValue: 0,
+              in: { $add: ["$$value", { $subtract: ["$$this.amount", "$$this.discount"] }] }
+            }
+          }
+        }
+      },
+
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
@@ -348,6 +368,7 @@ export const getToothTreatments = async (query: any) => {
           totalMax: 1,
           toothNote: 1,
           complaintType: 1,
+          receivedAmount: 1,
           createdAt: 1,
 
           "patient._id": 1,
