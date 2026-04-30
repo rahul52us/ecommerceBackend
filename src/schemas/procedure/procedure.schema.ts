@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
+console.log("🛠️ Procedure Schema Loading...");
 const ProcedureSchema = new Schema(
   {
     category: {
@@ -16,6 +17,12 @@ const ProcedureSchema = new Schema(
       type: String,
       required: true,
       index: true,
+    },
+    name2: {
+      type: String,
+    },
+    name3: {
+      type: String,
     },
     company: {
       type: mongoose.Schema.Types.ObjectId,
@@ -45,4 +52,4 @@ const ProcedureSchema = new Schema(
   }
 );
 
-export default mongoose.model("Procedure", ProcedureSchema);
+export default mongoose.models.Procedure || mongoose.model("Procedure", ProcedureSchema);

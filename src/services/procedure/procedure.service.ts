@@ -8,18 +8,18 @@ export const createProcedureService = async (
   next: NextFunction
 ) => {
   try {
-    const { category, subcategory, name, company } = req.body;
+    console.log("Creating procedure with body:", req.body);
+    const { company, ...rest } = req.body;
     const createdBy = req.userId;
 
     const newProcedure = new Procedure({
-      category,
-      subcategory,
-      name,
+      ...rest,
       company: new mongoose.Types.ObjectId(company),
       createdBy: new mongoose.Types.ObjectId(createdBy),
     });
 
     const savedProcedure = await newProcedure.save();
+    console.log("SUCCESS: Saved procedure in DB:", savedProcedure);
     return res.status(200).send({
       status: "success",
       message: "Procedure created successfully",
@@ -68,12 +68,15 @@ export const updateProcedureService = async (
   try {
     const { id } = req.params;
     const updateData = req.body;
+    console.log("Updating procedure", id, "with data:", updateData);
 
     const updatedProcedure = await Procedure.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true }
     );
+
+    console.log("SUCCESS: Updated procedure in DB:", updatedProcedure);
 
     if (!updatedProcedure) {
       return res.status(404).send({
