@@ -11,17 +11,49 @@ const WorkDoneSchema = new Schema(
     doctor: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true
     },
     treatment: {
       type: Schema.Types.ObjectId,
       ref: "ToothTreatment",
       required: false,
     },
+    examiningDoctor: {
+      type: Schema.Types.ObjectId,
+      ref: "User"
+    },
     company: {
       type: Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+    },
+    tooth: {
+      type: String,
+      index: true,
+    },
+    toothNotation: {
+      type: String,
+      default: "fdi",
+    },
+    dentitionType: {
+      type: String,
+      enum: ["adult", "child"],
+      default: "adult",
+    },
+    position: {
+      type: String, // 'upper' or 'lower'
+    },
+    side: {
+      type: String, // 'left' or 'right'
+    },
+    toothNote: {
+      type: String,
+      trim: true,
+    },
+    recordType: {
+      type: String,
+      enum: ["tooth", "note"],
+      default: "tooth",
     },
     complaintType: {
       type: String,

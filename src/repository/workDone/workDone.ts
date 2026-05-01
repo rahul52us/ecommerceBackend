@@ -13,6 +13,14 @@ export const createWorkDone = async (data: any) => {
       amount,
       discount,
       treatmentCode,
+      tooth,
+      toothNotation,
+      dentitionType,
+      position,
+      side,
+      toothNote,
+      recordType,
+      examiningDoctor,
       user,
     } = data;
 
@@ -35,6 +43,14 @@ export const createWorkDone = async (data: any) => {
       discount: discount || 0,
       treatmentCode: treatmentCode || "",
       status: data.status || "COMPLETE",
+      tooth: tooth || null,
+      toothNotation: toothNotation || "fdi",
+      dentitionType: dentitionType || "adult",
+      position: position || "",
+      side: side || "",
+      toothNote: toothNote || "",
+      recordType: recordType || "tooth",
+      examiningDoctor: examiningDoctor || null,
       createdBy: user,
     });
 
@@ -75,6 +91,7 @@ export const getWorkDone = async (query: any) => {
 
     const records = await WorkDoneSchema.find(matchStage)
       .populate("doctor", "_id name code")
+      .populate("examiningDoctor", "_id name code")
       .populate("patient", "_id name code")
       .populate({
         path: "treatment",
@@ -108,7 +125,11 @@ export const getWorkDone = async (query: any) => {
 
 export const updateWorkDone = async (data: any) => {
   try {
-    const { id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, user } = data;
+    const { 
+      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
+      tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
+      user 
+    } = data;
 
     const updated = await WorkDoneSchema.findByIdAndUpdate(
       id,
@@ -120,6 +141,14 @@ export const updateWorkDone = async (data: any) => {
         doctor,
         treatmentCode,
         complaintType,
+        tooth,
+        toothNotation,
+        dentitionType,
+        position,
+        side,
+        toothNote,
+        recordType,
+        examiningDoctor,
         updatedBy: user,
       },
       { new: true }
