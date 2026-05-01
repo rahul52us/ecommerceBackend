@@ -1,6 +1,5 @@
 import mongoose, { Schema } from "mongoose";
 
-console.log("🛠️ Procedure Schema Loading...");
 const ProcedureSchema = new Schema(
   {
     category: {
