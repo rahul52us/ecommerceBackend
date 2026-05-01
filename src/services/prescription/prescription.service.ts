@@ -59,3 +59,55 @@ export const deletePrescription = async (id: string) => {
     throw new Error(err.message);
   }
 };
+
+import ExcelJS from "exceljs";
+
+export const bulkImportPrescriptions = async (base64Data: string, companyId: string, userId: string) => {
+  try {
+    // Remove base64 prefix if exists
+    const base64Content = base64Data.includes("base64,")
+      ? base64Data.split("base64,")[1]
+      : base64Data;
+
+    const buffer = Buffer.from(base64Content, "base64");
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as any);
+    const worksheet = workbook.getWorksheet(1);
+
+    if (!worksheet) {
+      throw new Error("Excel sheet not found");
+    }
+
+    const prescriptions: any[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+
+      const data = {
+        type: row.getCell(2).text?.trim(),
+        category: row.getCell(3).text?.trim(),
+        form: row.getCell(4).text?.trim(),
+        basicSalt: row.getCell(5).text?.trim(),
+        brandName: row.getCell(6).text?.trim(),
+        companyName: row.getCell(7).text?.trim(),
+        dosage: row.getCell(8).text?.trim(),
+        details: row.getCell(9).text?.trim(),
+        doseNo: parseInt(row.getCell(10).text) || 0,
+        description: row.getCell(11).text?.trim(),
+        company: companyId,
+        createdBy: userId
+      };
+
+      if (data.brandName && data.type) {
+        prescriptions.push(data);
+      }
+    });
+
+    if (prescriptions.length === 0) {
+      throw new Error("No valid records found in Excel");
+    }
+
+    return await Prescription.insertMany(prescriptions);
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};

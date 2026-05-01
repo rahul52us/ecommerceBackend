@@ -39,4 +39,20 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
+router.post("/bulk-import", async (req, res) => {
+  try {
+    const { base64Data, companyId, userId } = req.body;
+    if (!base64Data) {
+      return res.status(400).json({ message: "No data provided" });
+    }
+    const result = await PrescriptionService.bulkImportPrescriptions(base64Data, companyId, userId);
+    res.status(200).json({ 
+      message: `Successfully imported ${result.length} prescriptions`,
+      count: result.length 
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
