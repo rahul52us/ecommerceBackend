@@ -24,7 +24,7 @@ class LabWorkRepository {
 
     const data = await LabWork.find(mongoQuery)
       .populate("patient", "name code mobileNumber pic")
-      .populate("primaryDoctor", "name code pic")
+      .populate("primaryDoctor", "name labDoctorName code pic")
       .populate("lab", "name")
       .sort(sort)
       .skip(skip)
@@ -38,7 +38,7 @@ class LabWorkRepository {
   async getById(id: string) {
     return await LabWork.findOne({ _id: id, isActive: true })
       .populate("patient", "name code mobileNumber pic")
-      .populate("primaryDoctor", "name code pic")
+      .populate("primaryDoctor", "name labDoctorName code pic")
       .populate("lab", "name");
   }
 

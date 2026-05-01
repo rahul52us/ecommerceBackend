@@ -10,8 +10,14 @@ const labWorkSchema = new mongoose.Schema(
     patientNameManual: String,
     primaryDoctor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "primaryDoctorModel",
       required: false,
+    },
+    primaryDoctorModel: {
+      type: String,
+      required: true,
+      enum: ["User", "LabDoctor"],
+      default: "User",
     },
     doctorNameManual: String,
     company: {
