@@ -3,7 +3,28 @@ import {
   getWorkDone,
   deleteWorkDone,
   updateWorkDone,
+  getPatientFinancialStats,
 } from "../../repository/workDone/workDone";
+
+export const getPatientFinancialStatsService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getPatientFinancialStats({
+      ...req.query,
+      doctorId: req.query.doctorId,
+    });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
 
 export const createWorkDoneService = async (req: any, res: any) => {
   try {

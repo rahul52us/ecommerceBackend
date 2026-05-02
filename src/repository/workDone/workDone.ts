@@ -21,6 +21,7 @@ export const createWorkDone = async (data: any) => {
       toothNote,
       recordType,
       examiningDoctor,
+      receivedAmount,
       user,
     } = data;
 
@@ -41,6 +42,7 @@ export const createWorkDone = async (data: any) => {
       workDoneNote: workDoneNote || "",
       amount: amount || 0,
       discount: discount || 0,
+      receivedAmount: receivedAmount || 0,
       treatmentCode: treatmentCode || "",
       status: data.status || "COMPLETE",
       tooth: tooth || null,
@@ -95,7 +97,7 @@ export const getWorkDone = async (query: any) => {
       .populate("patient", "_id name code")
       .populate({
         path: "treatment",
-        select: "_id treatmentPlan tooth estimateMin estimateMax doctor examiningDoctor complaintType",
+        select: "_id treatmentPlan tooth estimateMin estimateMax receivedAmount discount doctor examiningDoctor complaintType",
         populate: {
           path: "doctor examiningDoctor",
           select: "_id name code"
@@ -125,15 +127,16 @@ export const getWorkDone = async (query: any) => {
 
 export const updateWorkDone = async (data: any) => {
   try {
-    const { 
-      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
+    const {
+      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
       tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
-      user 
+      receivedAmount,
+      paymentAmount,
+      user
     } = data;
 
-    const updated = await WorkDoneSchema.findByIdAndUpdate(
-      id,
-      {
+    const updateQuery: any = {
+      $set: {
         status,
         workDoneNote,
         amount,
@@ -150,9 +153,17 @@ export const updateWorkDone = async (data: any) => {
         recordType,
         examiningDoctor,
         updatedBy: user,
-      },
-      { new: true }
-    );
+      }
+    };
+
+    if (receivedAmount !== undefined) updateQuery.$set.receivedAmount = receivedAmount;
+
+    if (paymentAmount) {
+      updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date() } };
+      updateQuery.$inc = { receivedAmount: paymentAmount };
+    }
+
+    const updated = await WorkDoneSchema.findByIdAndUpdate(id, updateQuery, { new: true });
 
     if (!updated) {
       return {
@@ -218,5 +229,55 @@ export const deleteWorkDone = async (data: any) => {
       message: error.message,
       statusCode: 500,
     };
+  }
+};
+export const getPatientFinancialStats = async (query: any) => {
+  try {
+    const { patientId, company, doctorId } = query;
+    if (!patientId || !company) {
+      return { success: "error", message: "Patient and Company ID required", statusCode: 400 };
+    }
+
+    const matchStage: any = {
+      patient: new mongoose.Types.ObjectId(patientId),
+      company: new mongoose.Types.ObjectId(company),
+      isActive: true,
+    };
+
+    if (doctorId && doctorId !== 'all') {
+      matchStage.doctor = new mongoose.Types.ObjectId(doctorId);
+    }
+
+    const stats = await WorkDoneSchema.aggregate([
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "toothtreatments",
+          localField: "treatment",
+          foreignField: "_id",
+          as: "treatmentDetails",
+        },
+      },
+      { $unwind: { path: "$treatmentDetails", preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: null,
+          totalBill: { $sum: { $subtract: ["$amount", { $ifNull: ["$discount", 0] }] } },
+          totalReceived: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+        },
+      },
+    ]);
+
+    const result = stats[0] || { totalBill: 0, totalReceived: 0 };
+    return {
+      success: "success",
+      data: {
+        totalBill: result.totalBill,
+        patientPending: Math.max(0, result.totalBill - result.totalReceived),
+      },
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };

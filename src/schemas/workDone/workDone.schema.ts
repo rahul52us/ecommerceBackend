@@ -71,6 +71,17 @@ const WorkDoneSchema = new Schema(
       type: Number,
       default: 0,
     },
+    receivedAmount: {
+      type: Number,
+      default: 0,
+    },
+    paymentHistory: [
+      {
+        amount: Number,
+        date: { type: Date, default: Date.now },
+        note: String,
+      }
+    ],
     treatmentCode: {
       type: String,
       trim: true,
