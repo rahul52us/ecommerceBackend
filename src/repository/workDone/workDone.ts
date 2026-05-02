@@ -1,158 +1,122 @@
 import mongoose from "mongoose";
 import WorkDoneSchema from "../../schemas/workDone/workDone.schema";
 
+const toObjectId = (id: any) => {
+  if (!id) return null;
+  if (mongoose.Types.ObjectId.isValid(id)) return new mongoose.Types.ObjectId(String(id));
+  return null;
+};
+
 export const createWorkDone = async (data: any) => {
   try {
     const {
-      patient,
-      doctor,
-      treatment,
-      company,
-      complaintType,
-      workDoneNote,
-      amount,
-      discount,
-      treatmentCode,
-      tooth,
-      toothNotation,
-      dentitionType,
-      position,
-      side,
-      toothNote,
-      recordType,
-      examiningDoctor,
-      receivedAmount,
-      user,
+      patient, treatment, status, workDoneNote, amount, discount, doctor, 
+      treatmentCode, complaintType, tooth, toothNotation, dentitionType, 
+      position, side, toothNote, recordType, examiningDoctor, user, company,
     } = data;
 
-    if (!patient || !doctor || !company) {
-      return {
-        success: "error",
-        message: "Missing required fields (patient, doctor, company).",
-        statusCode: 400,
-      };
-    }
-
-    const record = new WorkDoneSchema({
-      patient,
-      doctor,
-      treatment: treatment || null,
-      company,
-      complaintType: complaintType || "",
-      workDoneNote: workDoneNote || "",
-      amount: amount || 0,
-      discount: discount || 0,
-      receivedAmount: receivedAmount || 0,
-      treatmentCode: treatmentCode || "",
-      status: data.status || "COMPLETE",
-      tooth: tooth || null,
-      toothNotation: toothNotation || "fdi",
-      dentitionType: dentitionType || "adult",
-      position: position || "",
-      side: side || "",
-      toothNote: toothNote || "",
-      recordType: recordType || "tooth",
-      examiningDoctor: examiningDoctor || null,
-      createdBy: user,
+    const newWorkDone = new WorkDoneSchema({
+      patient, treatment, status, workDoneNote, amount, discount, doctor,
+      treatmentCode, complaintType, tooth, toothNotation, dentitionType,
+      position, side, toothNote, recordType, examiningDoctor, company,
+      createdBy: user, updatedBy: user,
     });
 
-    const saved = await record.save();
-
-    return {
-      success: "success",
-      message: "Work done created successfully.",
-      data: saved,
-      statusCode: 201,
-    };
+    const saved = await newWorkDone.save();
+    return { success: "success", message: "Work done created successfully.", data: saved, statusCode: 201 };
   } catch (error: any) {
-    return {
-      success: "error",
-      message: error?.message,
-      error: error.message,
-      statusCode: 500,
-    };
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };
 
 export const getWorkDone = async (query: any) => {
   try {
-    const { patientId, patient, company, doctor, treatmentId } = query;
-    const limit = Number(query.limit) || 20;
-    const skip = query.skip ? Number(query.skip) : (Number(query.page || 1) - 1) * limit;
+    const pageNum = Number(query.page) || 1;
+    const limitNum = Number(query.limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
+    const { patientId, treatmentId, company, doctorId } = query;
 
-    const pId = patientId || patient;
+    const companyId = toObjectId(company);
+    const patId = toObjectId(patientId);
+    const docId = toObjectId(doctorId);
 
+    // Build Match Stage
     const matchStage: any = {
-      isActive: true,
+      isActive: { $ne: false }
     };
 
-    if (company && mongoose.Types.ObjectId.isValid(company)) matchStage.company = new mongoose.Types.ObjectId(company);
-    if (pId && mongoose.Types.ObjectId.isValid(pId)) matchStage.patient = new mongoose.Types.ObjectId(pId);
-    if (doctor && mongoose.Types.ObjectId.isValid(doctor)) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
-    if (treatmentId && mongoose.Types.ObjectId.isValid(treatmentId)) matchStage.treatment = new mongoose.Types.ObjectId(treatmentId);
+    if (companyId) {
+      matchStage.company = companyId;
+    }
+    if (patId) {
+      matchStage.patient = patId;
+    }
+    if (docId && doctorId !== 'all') {
+      matchStage.doctor = docId;
+    }
+    if (treatmentId && mongoose.Types.ObjectId.isValid(treatmentId)) {
+      matchStage.treatment = new mongoose.Types.ObjectId(String(treatmentId));
+    }
 
-    const records = await WorkDoneSchema.find(matchStage)
-      .populate("doctor", "_id name code")
-      .populate("examiningDoctor", "_id name code")
-      .populate("patient", "_id name code")
-      .populate({
-        path: "treatment",
-        select: "_id treatmentPlan tooth estimateMin estimateMax receivedAmount discount doctor examiningDoctor complaintType",
-        populate: {
-          path: "doctor examiningDoctor",
-          select: "_id name code"
+    const pipeline: any[] = [
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limitNum },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patientDetails",
+        },
+      },
+      { $unwind: { path: "$patientDetails", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "doctor",
+          foreignField: "_id",
+          as: "doctorDetails",
+        },
+      },
+      { $unwind: { path: "$doctorDetails", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          patient: "$patientDetails",
+          doctor: "$doctorDetails"
         }
-      })
-      .populate("createdBy", "_id name code")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      }
+    ];
 
-    const totalRecords = await WorkDoneSchema.countDocuments(matchStage);
+    const data = await WorkDoneSchema.aggregate(pipeline);
+    const totalItems = await WorkDoneSchema.countDocuments(matchStage);
 
     return {
       success: "success",
-      totalItems: totalRecords,
-      data: records,
+      message: `Found ${data.length} records for Company: ${company}`,
+      data,
+      totalItems,
       statusCode: 200,
     };
   } catch (error: any) {
-    return {
-      success: "error",
-      message: error.message,
-      statusCode: 500,
-    };
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };
 
 export const updateWorkDone = async (data: any) => {
   try {
     const {
-      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
+      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
       tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
-      receivedAmount,
-      paymentAmount,
-      user
+      receivedAmount, paymentAmount, user 
     } = data;
 
     const updateQuery: any = {
       $set: {
-        status,
-        workDoneNote,
-        amount,
-        discount,
-        doctor,
-        treatmentCode,
-        complaintType,
-        tooth,
-        toothNotation,
-        dentitionType,
-        position,
-        side,
-        toothNote,
-        recordType,
-        examiningDoctor,
-        updatedBy: user,
+        status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
+        tooth, toothNotation, dentitionType, position, side, toothNote, recordType, 
+        examiningDoctor, updatedBy: user,
       }
     };
 
@@ -164,101 +128,39 @@ export const updateWorkDone = async (data: any) => {
     }
 
     const updated = await WorkDoneSchema.findByIdAndUpdate(id, updateQuery, { new: true });
-
-    if (!updated) {
-      return {
-        success: "error",
-        message: "Work done not found.",
-        statusCode: 404,
-      };
-    }
-
-    return {
-      success: "success",
-      message: "Work done updated successfully.",
-      data: updated,
-      statusCode: 200,
-    };
+    return { success: "success", message: "Work done updated successfully.", data: updated, statusCode: 200 };
   } catch (error: any) {
-    return {
-      success: "error",
-      message: error.message,
-      statusCode: 500,
-    };
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };
 
 export const deleteWorkDone = async (data: any) => {
   try {
     const { workDoneId, user } = data;
-
-    if (!workDoneId) {
-      return {
-        success: "error",
-        message: "Work Done ID is required.",
-        statusCode: 400,
-      };
-    }
-
-    const deleted = await WorkDoneSchema.findByIdAndUpdate(
-      workDoneId,
-      {
-        isActive: false,
-        deletedAt: new Date(),
-        updatedBy: user,
-      },
-      { new: true }
-    );
-
-    if (!deleted) {
-      return {
-        success: "error",
-        message: "Work done not found.",
-        statusCode: 404,
-      };
-    }
-
-    return {
-      success: "success",
-      message: "Work done deleted successfully.",
-      statusCode: 200,
-    };
+    await WorkDoneSchema.findByIdAndUpdate(workDoneId, { isActive: false, updatedBy: user });
+    return { success: "success", message: "Work done deleted successfully.", statusCode: 200 };
   } catch (error: any) {
-    return {
-      success: "error",
-      message: error.message,
-      statusCode: 500,
-    };
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
 export const getPatientFinancialStats = async (query: any) => {
   try {
     const { patientId, company, doctorId } = query;
-    if (!patientId || !company) {
-      return { success: "error", message: "Patient and Company ID required", statusCode: 400 };
-    }
+    const companyId = toObjectId(company);
+    const patId = toObjectId(patientId);
+    const docId = toObjectId(doctorId);
 
     const matchStage: any = {
-      patient: new mongoose.Types.ObjectId(patientId),
-      company: new mongoose.Types.ObjectId(company),
-      isActive: true,
+      isActive: { $ne: false },
     };
 
-    if (doctorId && doctorId !== 'all') {
-      matchStage.doctor = new mongoose.Types.ObjectId(doctorId);
-    }
+    if (patId) matchStage.patient = patId;
+    if (companyId) matchStage.company = companyId;
+    if (docId && doctorId !== 'all') matchStage.doctor = docId;
 
     const stats = await WorkDoneSchema.aggregate([
       { $match: matchStage },
-      {
-        $lookup: {
-          from: "toothtreatments",
-          localField: "treatment",
-          foreignField: "_id",
-          as: "treatmentDetails",
-        },
-      },
-      { $unwind: { path: "$treatmentDetails", preserveNullAndEmptyArrays: true } },
       {
         $group: {
           _id: null,
@@ -274,6 +176,70 @@ export const getPatientFinancialStats = async (query: any) => {
       data: {
         totalBill: result.totalBill,
         patientPending: Math.max(0, result.totalBill - result.totalReceived),
+      },
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
+export const getPatientDoctors = async (patientId: string) => {
+  try {
+    const patId = toObjectId(patientId);
+    if (!patId) return { success: "success", data: [], statusCode: 200 };
+
+    const doctors = await WorkDoneSchema.aggregate([
+      { $match: { patient: patId, isActive: { $ne: false } } },
+      { $group: { _id: "$doctor" } },
+      {
+        $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "doctorDetails" }
+      },
+      { $unwind: "$doctorDetails" },
+      {
+        $project: { _id: "$doctorDetails._id", name: "$doctorDetails.name" }
+      }
+    ]);
+    return { success: "success", data: doctors, statusCode: 200 };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
+export const getDoctorFinancialStats = async (query: any) => {
+  try {
+    const { doctorId, company } = query;
+    const docId = toObjectId(doctorId);
+    const compId = toObjectId(company);
+
+    if (!docId || !compId) {
+      return { success: "error", message: "Doctor and Company ID required", statusCode: 400 };
+    }
+
+    const matchStage: any = {
+      doctor: docId,
+      company: compId,
+      isActive: { $ne: false },
+    };
+
+    const stats = await WorkDoneSchema.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalBill: { $sum: { $subtract: ["$amount", { $ifNull: ["$discount", 0] }] } },
+          totalReceived: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+        },
+      },
+    ]);
+
+    const result = stats[0] || { totalBill: 0, totalReceived: 0 };
+    return {
+      success: "success",
+      data: {
+        totalBill: result.totalBill,
+        collected: result.totalReceived,
+        pending: Math.max(0, result.totalBill - result.totalReceived),
       },
       statusCode: 200,
     };
