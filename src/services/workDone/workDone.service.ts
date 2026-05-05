@@ -5,7 +5,27 @@ import {
   updateWorkDone,
   getPatientFinancialStats,
   getDoctorFinancialStats,
+  getOverallPatientStats,
 } from "../../repository/workDone/workDone";
+
+export const getOverallPatientStatsService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getOverallPatientStats({
+      ...req.query,
+    });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
 
 export const getPatientFinancialStatsService = async (req: any, res: any) => {
   try {

@@ -60,7 +60,8 @@ const AccountabilitySchema = new Schema(
     payoutHistory: [
       {
         amount: Number,
-        date: { type: Date, default: Date.now }
+        date: { type: Date, default: Date.now },
+        paymentMethod: String
       }
     ],
     createdBy: {

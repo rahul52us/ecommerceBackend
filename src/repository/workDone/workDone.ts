@@ -109,7 +109,7 @@ export const updateWorkDone = async (data: any) => {
     const {
       id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
       tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
-      receivedAmount, paymentAmount, user 
+      receivedAmount, paymentAmount, paymentMethod, user 
     } = data;
 
     const updateQuery: any = {
@@ -120,11 +120,11 @@ export const updateWorkDone = async (data: any) => {
       }
     };
 
-    if (receivedAmount !== undefined) updateQuery.$set.receivedAmount = receivedAmount;
-
     if (paymentAmount) {
-      updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date() } };
+      updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date(), paymentMethod } };
       updateQuery.$inc = { receivedAmount: paymentAmount };
+    } else if (receivedAmount !== undefined) {
+      updateQuery.$set.receivedAmount = receivedAmount;
     }
 
     const updated = await WorkDoneSchema.findByIdAndUpdate(id, updateQuery, { new: true });
@@ -240,6 +240,42 @@ export const getDoctorFinancialStats = async (query: any) => {
         totalBill: result.totalBill,
         collected: result.totalReceived,
         pending: Math.max(0, result.totalBill - result.totalReceived),
+      },
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+export const getOverallPatientStats = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+    const companyId = toObjectId(company);
+    const patId = toObjectId(patientId);
+
+    const matchStage: any = {
+      isActive: { $ne: false },
+      patient: patId,
+      company: companyId,
+    };
+
+    const stats = await WorkDoneSchema.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalBill: { $sum: { $subtract: ["$amount", { $ifNull: ["$discount", 0] }] } },
+          totalReceived: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+        },
+      },
+    ]);
+
+    const result = stats[0] || { totalBill: 0, totalReceived: 0 };
+    return {
+      success: "success",
+      data: {
+        totalBill: result.totalBill,
+        patientPending: Math.max(0, result.totalBill - result.totalReceived),
       },
       statusCode: 200,
     };

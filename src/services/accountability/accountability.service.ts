@@ -48,7 +48,7 @@ export const getAccountabilityList = async (query: any) => {
   }
 };
 
-export const updatePayoutStatus = async (id: string, status: string, note?: string, doctorShareAmount?: number, payoutAmount?: number) => {
+export const updatePayoutStatus = async (id: string, status: string, note?: string, doctorShareAmount?: number, payoutAmount?: number, paymentMethod?: string) => {
   try {
     const updateData: any = {};
     if (status) updateData.payoutStatus = status;
@@ -64,7 +64,7 @@ export const updatePayoutStatus = async (id: string, status: string, note?: stri
     const query: any = { $set: updateData };
     
     if (payoutAmount) {
-      query.$push = { payoutHistory: { amount: payoutAmount, date: new Date() } };
+      query.$push = { payoutHistory: { amount: payoutAmount, date: new Date(), paymentMethod } };
       query.$inc = { doctorShareAmount: payoutAmount };
     }
 

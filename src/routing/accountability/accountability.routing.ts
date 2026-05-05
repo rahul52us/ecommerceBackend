@@ -23,8 +23,8 @@ router.get("/list", async (req, res) => {
 
 router.put("/update-payout/:id", async (req, res) => {
   try {
-    const { status, note, doctorShareAmount, payoutAmount } = req.body;
-    const result = await accountabilityService.updatePayoutStatus(req.params.id, status, note, doctorShareAmount, payoutAmount);
+    const { status, note, doctorShareAmount, payoutAmount, paymentMethod } = req.body;
+    const result = await accountabilityService.updatePayoutStatus(req.params.id, status, note, doctorShareAmount, payoutAmount, paymentMethod);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ status: "error", message: err.message });

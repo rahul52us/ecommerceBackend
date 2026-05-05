@@ -80,6 +80,7 @@ const WorkDoneSchema = new Schema(
         amount: Number,
         date: { type: Date, default: Date.now },
         note: String,
+        paymentMethod: String,
       }
     ],
     treatmentCode: {
