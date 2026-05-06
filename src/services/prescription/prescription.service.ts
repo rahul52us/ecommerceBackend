@@ -111,3 +111,24 @@ export const bulkImportPrescriptions = async (base64Data: string, companyId: str
     throw new Error(err.message);
   }
 };
+
+export const getPrescriptionSuggestions = async (companyId: string) => {
+  try {
+    const filter = companyId ? { company: companyId } : {};
+    const types = await Prescription.distinct("type", filter);
+    const categories = await Prescription.distinct("category", filter);
+    const brandNames = await Prescription.distinct("brandName", filter);
+    const forms = await Prescription.distinct("form", filter);
+    const companyNames = await Prescription.distinct("companyName", filter);
+
+    return {
+      types: types.filter(Boolean),
+      categories: categories.filter(Boolean),
+      brandNames: brandNames.filter(Boolean),
+      forms: forms.filter(Boolean),
+      companyNames: companyNames.filter(Boolean),
+    };
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};

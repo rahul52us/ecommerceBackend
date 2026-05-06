@@ -55,4 +55,14 @@ router.post("/bulk-import", async (req, res) => {
   }
 });
 
+router.get("/suggestions", async (req, res) => {
+  try {
+    const { companyId } = req.query;
+    const result = await PrescriptionService.getPrescriptionSuggestions(companyId as string);
+    res.status(200).json(result);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
