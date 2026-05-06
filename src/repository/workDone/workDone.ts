@@ -172,7 +172,7 @@ export const getPatientStatementData = async (query: any) => {
     if (startDate && endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999); // Set to end of day
-      
+
       findQuery.createdAt = {
         $gte: new Date(startDate),
         $lte: end
@@ -198,6 +198,44 @@ export const getPatientStatementData = async (query: any) => {
         patient,
         clinic,
         records: filteredRecords
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
+/**
+ * FETCH DATA FOR A SINGLE WORKDONE RECORD RECEIPT
+ * Separated from main statement logic to avoid disturbance.
+ */
+export const getSingleWorkDoneStatementData = async (query: any) => {
+  try {
+    const { workDoneId, company } = query;
+    const wId = toObjectId(workDoneId);
+    const cId = toObjectId(company);
+
+    if (!wId || !cId) {
+      return { success: "error", message: "WorkDone and Company ID required", statusCode: 400 };
+    }
+
+    const clinic = await CompanyModel.findById(cId);
+    const record = await WorkDoneSchema.findOne({ _id: wId, company: cId, isActive: { $ne: false } })
+      .populate("patient", "name mobileNumber code profile_details")
+      .populate("doctor", "name")
+      .populate("treatment", "treatmentName"); // Populate treatment to get the name
+
+    if (!record) {
+      return { success: "error", message: "Record not found", statusCode: 404 };
+    }
+
+    return {
+      success: "success",
+      data: {
+        patient: record.patient,
+        clinic,
+        records: [record]
       },
       statusCode: 200
     };

@@ -7,8 +7,9 @@ import {
   getDoctorFinancialStats,
   getOverallPatientStats,
   getPatientStatementData,
+  getSingleWorkDoneStatementData,
 } from "../../repository/workDone/workDone";
-import { generateStatementPDF } from "../../modules/config/pdfGenerator";
+import { generateStatementPDF, generateSingleRecordPDF } from "../../modules/config/pdfGenerator";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -161,7 +162,7 @@ export const generatePatientStatementService = async (req: any, res: any) => {
 
     const chunks: any[] = [];
     const stream = new (require("stream").PassThrough)();
-    
+
     stream.on("data", (chunk: any) => chunks.push(chunk));
     stream.on("end", () => {
       const pdfBuffer = Buffer.concat(chunks);
@@ -174,6 +175,43 @@ export const generatePatientStatementService = async (req: any, res: any) => {
     });
 
     generateStatementPDF(data, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * SEPARATE SERVICE FOR INDIVIDUAL RECORD RECEIPT
+ */
+export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getSingleWorkDoneStatementData({
+      workDoneId: req.params.id,
+      company: req.query.company
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Single Record PDF generated successfully",
+        data: base64
+      });
+    });
+
+    generateSingleRecordPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",
