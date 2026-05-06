@@ -257,7 +257,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   y += 15;
 
   doc.fillColor(COLORS.textMain).fontSize(12).font("Helvetica-Bold").text("Procedure:", MARGIN, y);
-  doc.font("Helvetica").text(record.treatment?.treatmentName || record.treatmentCode || "General Procedure", MARGIN + 80, y);
+  doc.font("Helvetica").text(record.treatment?.treatmentPlan || record.workDoneNote || "General Procedure", MARGIN + 80, y);
   y += 20;
 
   doc.font("Helvetica-Bold").text("Doctor:", MARGIN, y);
@@ -404,7 +404,7 @@ export const generateDoctorWorkDonePDF = (data: any, stream: any) => {
 
     const date = new Date(record.createdAt).toLocaleDateString('en-IN');
     const patName = record.patient?.name || "Unknown";
-    const treatment = record.treatment?.treatmentName || record.workDoneNote || "General";
+    const treatment = record.treatment?.treatmentPlan || record.workDoneNote || "General";
     const bill = record.amount - (record.discount || 0);
     const paid = record.receivedAmount || 0;
     const isPaid = paid >= bill;

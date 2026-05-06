@@ -224,7 +224,7 @@ export const getSingleWorkDoneStatementData = async (query: any) => {
     const record = await WorkDoneSchema.findOne({ _id: wId, company: cId, isActive: { $ne: false } })
       .populate("patient", "name mobileNumber code profile_details")
       .populate("doctor", "name")
-      .populate("treatment", "treatmentName"); // Populate treatment to get the name
+      .populate("treatment", "treatmentPlan");
 
     if (!record) {
       return { success: "error", message: "Record not found", statusCode: 404 };
@@ -390,7 +390,7 @@ export const getOverallPatientStats = async (query: any) => {
  */
 export const getDoctorWorkDoneReportData = async (query: any) => {
   try {
-    const { doctorId, patientId, company, fromDate, toDate } = query;
+    const { doctorId, patientId, company, fromDate, toDate, status } = query;
     const docId = toObjectId(doctorId);
     const patId = toObjectId(patientId);
     const compId = toObjectId(company);
@@ -415,13 +415,74 @@ export const getDoctorWorkDoneReportData = async (query: any) => {
       if (toDate) matchStage.createdAt.$lte = new Date(toDate);
     }
 
+    // Use Aggregation to handle the 'status' (Settled/Pending) filter
+    const pipeline: any[] = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          isSettled: {
+            $gte: [{ $ifNull: ["$receivedAmount", 0] }, { $subtract: ["$amount", { $ifNull: ["$discount", 0] }] }]
+          }
+        }
+      }
+    ];
+
+    if (status === "SETTLED") {
+      pipeline.push({ $match: { isSettled: true } });
+    } else if (status === "PENDING") {
+      pipeline.push({ $match: { isSettled: false } });
+    }
+
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patientData",
+        },
+      },
+      { $unwind: { path: "$patientData", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "toothtreatments",
+          localField: "treatment",
+          foreignField: "_id",
+          as: "treatmentData",
+        },
+      },
+      { $unwind: { path: "$treatmentData", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          amount: 1,
+          discount: 1,
+          receivedAmount: 1,
+          createdAt: 1,
+          workDoneNote: 1,
+          tooth: 1,
+          patient: {
+            name: "$patientData.name",
+            mobileNumber: "$patientData.mobileNumber",
+            code: "$patientData.code"
+          },
+          treatment: {
+            treatmentPlan: "$treatmentData.treatmentPlan",
+            notes: "$treatmentData.notes"
+          }
+        }
+      }
+    );
+
+    const records = await WorkDoneSchema.aggregate(pipeline);
+
+    if (!records || records.length === 0) {
+      return { success: "error", message: "No records found for the selected filters", statusCode: 404 };
+    }
+
     const doctor = await UserModel.findById(docId).select("name");
     const clinic = await CompanyModel.findById(compId);
-    
-    const records = await WorkDoneSchema.find(matchStage)
-      .populate("patient", "name mobileNumber code")
-      .populate("treatment", "treatmentName")
-      .sort({ createdAt: -1 });
 
     return {
       success: "success",
