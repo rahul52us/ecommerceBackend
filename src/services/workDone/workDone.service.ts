@@ -8,6 +8,7 @@ import {
   getOverallPatientStats,
   getPatientStatementData,
   getSingleWorkDoneStatementData,
+  getDoctorWorkDoneReportData,
 } from "../../repository/workDone/workDone";
 import { generateStatementPDF, generateSingleRecordPDF } from "../../modules/config/pdfGenerator";
 
@@ -212,6 +213,43 @@ export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
     });
 
     generateSingleRecordPDF(data, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * SEPARATE SERVICE FOR DOCTOR-SPECIFIC WORK DONE REPORT
+ */
+export const generateDoctorWorkDoneReportService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getDoctorWorkDoneReportData({
+      ...req.query
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Doctor Report generated successfully",
+        data: base64
+      });
+    });
+
+    const { generateDoctorWorkDonePDF } = require("../../modules/config/pdfGenerator");
+    generateDoctorWorkDonePDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",

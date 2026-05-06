@@ -384,3 +384,55 @@ export const getOverallPatientStats = async (query: any) => {
     return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
+/**
+ * FETCH DATA FOR DOCTOR-SPECIFIC WORK DONE REPORT
+ */
+export const getDoctorWorkDoneReportData = async (query: any) => {
+  try {
+    const { doctorId, patientId, company, fromDate, toDate } = query;
+    const docId = toObjectId(doctorId);
+    const patId = toObjectId(patientId);
+    const compId = toObjectId(company);
+
+    if (!docId || !compId) {
+      return { success: "error", message: "Doctor and Company ID required", statusCode: 400 };
+    }
+
+    const matchStage: any = {
+      doctor: docId,
+      company: compId,
+      isActive: { $ne: false }
+    };
+
+    if (patId) {
+      matchStage.patient = patId;
+    }
+
+    if (fromDate || toDate) {
+      matchStage.createdAt = {};
+      if (fromDate) matchStage.createdAt.$gte = new Date(fromDate);
+      if (toDate) matchStage.createdAt.$lte = new Date(toDate);
+    }
+
+    const doctor = await UserModel.findById(docId).select("name");
+    const clinic = await CompanyModel.findById(compId);
+    
+    const records = await WorkDoneSchema.find(matchStage)
+      .populate("patient", "name mobileNumber code")
+      .populate("treatment", "treatmentName")
+      .sort({ createdAt: -1 });
+
+    return {
+      success: "success",
+      data: {
+        doctor,
+        clinic,
+        records
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};

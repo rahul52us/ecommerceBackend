@@ -40,4 +40,13 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
+router.get("/generate-payout-report", async (req, res) => {
+  try {
+    const result = await accountabilityService.generateAccountabilityReportService(req.query);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 export default router;

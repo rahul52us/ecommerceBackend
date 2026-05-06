@@ -83,3 +83,56 @@ export const deleteAccountability = async (id: string) => {
     throw new Error(err.message);
   }
 };
+
+/**
+ * GENERATE PAYOUT REPORT SERVICE
+ */
+export const generateAccountabilityReportService = async (query: any) => {
+  try {
+    const { companyId, doctorId, payoutStatus, startDate, endDate } = query;
+    const filter: any = { company: companyId };
+    if (doctorId) filter.doctor = doctorId;
+    if (payoutStatus) filter.payoutStatus = payoutStatus;
+    
+    if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    const records = await Accountability.find(filter)
+      .populate("doctor", "name")
+      .populate("patient", "name")
+      .sort({ createdAt: -1 });
+
+    const CompanyModel = require("../../schemas/company/Company.ts").default;
+    const UserModel = require("../../schemas/User/User").default;
+    const clinic = await CompanyModel.findById(companyId);
+    const doctor = doctorId ? await UserModel.findById(doctorId).select("name") : null;
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    const resultPromise = new Promise((resolve, reject) => {
+      stream.on("data", (chunk: any) => chunks.push(chunk));
+      stream.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(pdfBuffer.toString("base64"));
+      });
+      stream.on("error", reject);
+    });
+
+    const { generateAccountabilityPDF } = require("../../modules/config/pdfGenerator");
+    generateAccountabilityPDF({ records, clinic, doctor }, stream);
+
+    const base64 = await resultPromise;
+    return {
+      status: "success",
+      message: "Payout Report generated successfully",
+      data: base64
+    };
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};
