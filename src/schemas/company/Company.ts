@@ -8,7 +8,7 @@ interface addressInfo {
   pinCode?: string
 }
 
-interface CompanyI extends Document {
+export interface CompanyI extends Document {
   company_name: string;
   companyCode: string;
   companyOrg: mongoose.Schema.Types.ObjectId,

@@ -6,7 +6,9 @@ import {
   getPatientFinancialStats,
   getDoctorFinancialStats,
   getOverallPatientStats,
+  getPatientStatementData,
 } from "../../repository/workDone/workDone";
+import { generateStatementPDF } from "../../modules/config/pdfGenerator";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -139,6 +141,39 @@ export const getDoctorFinancialStatsService = async (req: any, res: any) => {
       message,
       data,
     });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+export const generatePatientStatementService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getPatientStatementData({
+      ...req.query,
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+    
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "PDF generated successfully",
+        data: base64
+      });
+    });
+
+    generateStatementPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",

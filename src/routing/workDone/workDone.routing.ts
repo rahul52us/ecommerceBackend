@@ -8,6 +8,7 @@ import {
   getPatientFinancialStatsService,
   getDoctorFinancialStatsService,
   getOverallPatientStatsService,
+  generatePatientStatementService,
 } from "../../services/workDone/workDone.service";
 
 const workDone = express.Router();
@@ -17,6 +18,7 @@ workDone.get("/get", authenticate, getWorkDoneService);
 workDone.get("/stats", authenticate, getPatientFinancialStatsService);
 workDone.get("/overall-stats", authenticate, getOverallPatientStatsService);
 workDone.get("/doctor-stats", authenticate, getDoctorFinancialStatsService);
+workDone.get("/generate-pdf", authenticate, generatePatientStatementService);
 workDone.put("/:id", authenticate, updateWorkDoneService);
 workDone.delete("/:id", authenticate, deleteWorkDoneService);
 

@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import WorkDoneSchema from "../../schemas/workDone/workDone.schema";
+import UserModel from "../../schemas/User/User";
+import CompanyModel from "../../schemas/company/Company";
 
 const toObjectId = (id: any) => {
   if (!id) return null;
@@ -10,8 +12,8 @@ const toObjectId = (id: any) => {
 export const createWorkDone = async (data: any) => {
   try {
     const {
-      patient, treatment, status, workDoneNote, amount, discount, doctor, 
-      treatmentCode, complaintType, tooth, toothNotation, dentitionType, 
+      patient, treatment, status, workDoneNote, amount, discount, doctor,
+      treatmentCode, complaintType, tooth, toothNotation, dentitionType,
       position, side, toothNote, recordType, examiningDoctor, user, company,
     } = data;
 
@@ -107,15 +109,15 @@ export const getWorkDone = async (query: any) => {
 export const updateWorkDone = async (data: any) => {
   try {
     const {
-      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
+      id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
       tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
-      receivedAmount, paymentAmount, paymentMethod, user 
+      receivedAmount, paymentAmount, paymentMethod, user
     } = data;
 
     const updateQuery: any = {
       $set: {
-        status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType, 
-        tooth, toothNotation, dentitionType, position, side, toothNote, recordType, 
+        status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
+        tooth, toothNotation, dentitionType, position, side, toothNote, recordType,
         examiningDoctor, updatedBy: user,
       }
     };
@@ -139,6 +141,66 @@ export const deleteWorkDone = async (data: any) => {
     const { workDoneId, user } = data;
     await WorkDoneSchema.findByIdAndUpdate(workDoneId, { isActive: false, updatedBy: user });
     return { success: "success", message: "Work done deleted successfully.", statusCode: 200 };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
+export const getPatientStatementData = async (query: any) => {
+  try {
+    const { patientId, company, doctorId, status, startDate, endDate } = query;
+    const pId = toObjectId(patientId);
+    const cId = toObjectId(company);
+
+    if (!pId || !cId) {
+      return { success: "error", message: "Patient and Company ID required", statusCode: 400 };
+    }
+
+    const patient = await UserModel.findById(pId).select("name mobileNumber code profile_details");
+    const clinic = await CompanyModel.findById(cId);
+
+    const findQuery: any = {
+      patient: pId,
+      company: cId,
+      isActive: { $ne: false }
+    };
+
+    if (doctorId && doctorId !== "all") {
+      findQuery.doctor = toObjectId(doctorId);
+    }
+
+    if (startDate && endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Set to end of day
+      
+      findQuery.createdAt = {
+        $gte: new Date(startDate),
+        $lte: end
+      };
+    }
+
+    const records = await WorkDoneSchema.find(findQuery)
+      .sort({ createdAt: 1 })
+      .populate("doctor", "name");
+
+    let filteredRecords = records;
+    if (status && status !== "all") {
+      if (status === "SETTLED") {
+        filteredRecords = records.filter(r => (r.receivedAmount || 0) >= (r.amount - (r.discount || 0)));
+      } else if (status === "PENDING") {
+        filteredRecords = records.filter(r => (r.receivedAmount || 0) < (r.amount - (r.discount || 0)));
+      }
+    }
+
+    return {
+      success: "success",
+      data: {
+        patient,
+        clinic,
+        records: filteredRecords
+      },
+      statusCode: 200
+    };
   } catch (error: any) {
     return { success: "error", message: error.message, statusCode: 500 };
   }
@@ -247,6 +309,7 @@ export const getDoctorFinancialStats = async (query: any) => {
     return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
 export const getOverallPatientStats = async (query: any) => {
   try {
     const { patientId, company } = query;
