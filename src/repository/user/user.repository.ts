@@ -111,6 +111,7 @@ const createAdminUser = async (data: any) => {
       is_active: true,
       role: data.role,
       title: data.title,
+      permissions: data.permissions || {},
     });
 
     const savedUser = await createdUser.save();
@@ -203,6 +204,7 @@ const createUser = async (data: any) => {
       bio: data.bio,
       is_active: true,
       title: data.title,
+      permissions: data.permissions || {},
     });
 
     const savedUser = await createdUser.save();
@@ -1873,6 +1875,32 @@ const getCompanyDetailsById = async (data: any) => {
   }
 };
 
+const updateStaffPermissions = async (data: any) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      data.userId,
+      { $set: { permissions: data.permissions } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      throw generateError("Staff member not found", 404);
+    }
+
+    return {
+      status: "success",
+      message: "Permissions updated successfully",
+      data: updatedUser,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      message: err.message,
+      data: err,
+    };
+  }
+};
+
 export {
   createUser,
   updateUserProfileDetails,
@@ -1889,6 +1917,7 @@ export {
   updateDocumentDetails,
   updateCompanyDetails,
   updatePermissions,
+  updateStaffPermissions,
   getManagerUsersCounts,
   getManagersOfUser,
   deleteUser,

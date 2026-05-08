@@ -16,6 +16,7 @@ import {
   getUserInfoWithManagerService,
   getUserInfoWithManagerActionService,
   updatePermissionsService,
+  updateStaffPermissionsService,
   getManagersOfUserService,
   getRoleCountOfCompanyService,
   getCompanyDetailsByIdService,
@@ -51,6 +52,7 @@ router.put('/salaryStructure/:id',authenticate,UpdateSalaryStructureService)
 router.put('/updateDocuments/:id',authenticate,updateDocumentService)
 router.put('/qualifications/:id',authenticate,updateQualifcationService)
 router.put('/permissions/:id',authenticate,updatePermissionsService)
+router.put('/update-permissions/:id',authenticate,updateStaffPermissionsService)
 router.get('/users/roles',authenticate,getUserRoleUser)
 router.post('/managers/Users/count',authenticate,getManagerUsersCountsService)
 router.post('/info/Subordinate',getUserInfoWithManagerService)

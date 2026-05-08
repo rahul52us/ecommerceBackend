@@ -16,6 +16,7 @@ import {
   getUserInfoWithManagers,
   getUserInfoWithManagersAction,
   updatePermissions,
+  updateStaffPermissions,
   getManagersOfUser,
   createUser,
   getRoleCountOfCompany,
@@ -500,6 +501,33 @@ const updatePermissionsService = async (
     next(err);
   }
 };
+const updateStaffPermissionsService = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { status, data, message } = await updateStaffPermissions({
+      userId: new mongoose.Types.ObjectId(req.params.id),
+      permissions: req.body.permissions,
+    });
+    if (status === "success") {
+      res.status(200).send({
+        status: "success",
+        message: message,
+        data: data,
+      });
+    } else {
+      res.status(400).send({
+        status: "error",
+        message: message,
+        data: data,
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getUserRoleUser = async (
   req: any,
@@ -720,6 +748,7 @@ export {
   updateWorkExperienceService,
   updateDocumentService,
   updatePermissionsService,
+  updateStaffPermissionsService,
   updateCompanyDetailsService,
   updateQualifcationService,
   getManagersEmploysService,
