@@ -13,26 +13,72 @@ class LabWorkRepository {
 
     let mongoQuery: any = { ...filters, isActive: true };
 
+    // Use aggregation to support searching by populated fields
+    const pipeline: any[] = [
+      { $match: mongoQuery },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patientData",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "primaryDoctor",
+          foreignField: "_id",
+          as: "doctorData",
+        },
+      },
+      {
+        $lookup: {
+          from: "labs",
+          localField: "lab",
+          foreignField: "_id",
+          as: "labData",
+        },
+      },
+    ];
+
     if (search) {
-      mongoQuery.$or = [
-        { labInstructions: { $regex: search, $options: "i" } },
-        { labNameManual: { $regex: search, $options: "i" } },
-        { warrantyCardNumber: { $regex: search, $options: "i" } },
-        { "selectedWorks.customNotes": { $regex: search, $options: "i" } },
-      ];
+      const searchRegex = new RegExp(search, "i");
+      pipeline.push({
+        $match: {
+          $or: [
+            { labInstructions: searchRegex },
+            { labNameManual: searchRegex },
+            { patientNameManual: searchRegex },
+            { doctorNameManual: searchRegex },
+            { warrantyCardNumber: searchRegex },
+            { "selectedWorks.customNotes": searchRegex },
+            { "patientData.name": searchRegex },
+            { "doctorData.name": searchRegex },
+            { "labData.name": searchRegex },
+          ],
+        },
+      });
     }
 
-    const data = await LabWork.find(mongoQuery)
-      .populate("patient", "name code mobileNumber pic")
-      .populate("primaryDoctor", "name labDoctorName code pic")
-      .populate("lab", "name")
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await LabWork.aggregate(countPipeline);
+    const totalCount = countResult.length > 0 ? countResult[0].total : 0;
 
-    const count = await LabWork.countDocuments(mongoQuery);
+    pipeline.push({ $sort: sort });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
 
-    return { data, count, page, limit };
+    const data = await LabWork.aggregate(pipeline);
+
+    // Populate the results to match the expected format (for model instances)
+    const populatedData = await LabWork.populate(data, [
+      { path: "patient", select: "name code mobileNumber pic" },
+      { path: "primaryDoctor", select: "name labDoctorName code pic" },
+      { path: "lab", select: "name" },
+    ]);
+
+    return { data: populatedData, count: totalCount, page, limit };
   }
 
   async getById(id: string) {

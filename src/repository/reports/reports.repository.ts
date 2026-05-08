@@ -4,6 +4,8 @@ import ExcelJS from "exceljs";
 import UserModel from "../../schemas/User/User";
 import appointmentsSchema from "../../schemas/appointments/appointments.schema";
 import recallAppointmentSchema from "../../schemas/recall-appointment/recallAppointment.schema";
+import LabWork from "../../schemas/labWork/labWork.schema";
+import LabWorkHierarchy from "../../schemas/labWork/labWorkHierarchy.schema";
 import mongoose from "mongoose";
 
 
@@ -11,7 +13,7 @@ export async function downloadReport(data: any) {
   try {
     const { reportType, filters = {} } = data;
 
-    const validTypes = ["patient", "doctor", "appointment", "recall", "staff"];
+    const validTypes = ["patient", "doctor", "appointment", "recall", "staff", "labWork"];
     if (!reportType || !validTypes.includes(reportType)) {
       return {
         status: "error",
@@ -453,6 +455,152 @@ export async function downloadReport(data: any) {
           designation: user.designation?.join(", ") || "-",
           is_active: user.is_active ? "Yes" : "No",
           joinedOn: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-",
+        }));
+        break;
+      }
+
+      // =====================================
+      // LAB WORK REPORT
+      // =====================================
+      case "labWork": {
+        let matchStage: any = { isActive: true };
+
+        if (filters.workType && filters.workType !== "all") {
+          matchStage.workType = filters.workType;
+        }
+
+        if (filters.status && filters.status !== "all") {
+          matchStage.status = filters.status;
+        }
+
+        if (filters.patientId) {
+          matchStage.patient = new mongoose.Types.ObjectId(filters.patientId);
+        }
+
+        if (filters.doctorId) {
+          matchStage.primaryDoctor = new mongoose.Types.ObjectId(filters.doctorId);
+        }
+
+        // Handle specific date filters
+        ["sendDate", "dueDate", "receivedDate"].forEach(field => {
+          const from = filters[`${field}From`];
+          const to = filters[`${field}To`];
+          if (from || to) {
+            const range: any = {};
+            if (from) range.$gte = new Date(from);
+            if (to) {
+              const toDate = new Date(to);
+              toDate.setHours(23, 59, 59, 999);
+              range.$lte = toDate;
+            }
+            matchStage[field] = range;
+          }
+        });
+
+        const dateType = filters.dateType || "sendDate";
+        if (Object.keys(dateFilter).length > 0 && !matchStage[dateType]) {
+          matchStage[dateType] = dateFilter;
+        }
+
+        columns = [
+          { header: "Patient", key: "patientName", width: 25 },
+          { header: "Doctor", key: "doctorName", width: 25 },
+          { header: "Work Type", key: "workType", width: 15 },
+          { header: "Lab", key: "labName", width: 20 },
+          { header: "Send Date", key: "sendDate", width: 15 },
+          { header: "Due Date", key: "dueDate", width: 15 },
+          { header: "Received Date", key: "receivedDate", width: 15 },
+          { header: "Status", key: "status", width: 15 },
+          { header: "Price", key: "price", width: 12 },
+          { header: "Selected Works", key: "works", width: 50 },
+          { header: "Warranty Card", key: "warrantyCardNumber", width: 20 },
+        ];
+
+        const labWorks = await LabWork.aggregate([
+          { $match: matchStage },
+          {
+            $lookup: {
+              from: "users",
+              localField: "patient",
+              foreignField: "_id",
+              as: "patientData",
+            },
+          },
+          { $unwind: { path: "$patientData", preserveNullAndEmptyArrays: true } },
+          {
+            $lookup: {
+              from: "users",
+              localField: "primaryDoctor",
+              foreignField: "_id",
+              as: "doctorUserData",
+            },
+          },
+          { $unwind: { path: "$doctorUserData", preserveNullAndEmptyArrays: true } },
+          {
+            $lookup: {
+              from: "labdoctors",
+              localField: "primaryDoctor",
+              foreignField: "_id",
+              as: "doctorLabData",
+            },
+          },
+          { $unwind: { path: "$doctorLabData", preserveNullAndEmptyArrays: true } },
+          {
+            $lookup: {
+              from: "labs",
+              localField: "lab",
+              foreignField: "_id",
+              as: "labData",
+            },
+          },
+          { $unwind: { path: "$labData", preserveNullAndEmptyArrays: true } },
+          { $sort: { [dateType]: -1 } },
+          {
+            $project: {
+              patientName: { $ifNull: ["$patientData.name", "$patientNameManual"] },
+              doctorName: {
+                $ifNull: [
+                  "$doctorUserData.name",
+                  { $ifNull: ["$doctorLabData.labDoctorName", "$doctorNameManual"] }
+                ]
+              },
+              workType: 1,
+              labName: { $ifNull: ["$labData.name", "$labNameManual"] },
+              sendDate: 1,
+              dueDate: 1,
+              receivedDate: 1,
+              status: 1,
+              price: 1,
+              selectedWorks: 1,
+              warrantyCardNumber: 1,
+            },
+          },
+        ]);
+
+        // Fetch all hierarchy names to resolve IDs in the report
+        const hierarchies = await LabWorkHierarchy.find({ isActive: true });
+        const hierarchyMap: any = {};
+        hierarchies.forEach(h => {
+          hierarchyMap[h._id.toString()] = h.name;
+        });
+
+        rows = labWorks.map((lw: any) => ({
+          patientName: lw.patientName || "N/A",
+          doctorName: lw.doctorName || "N/A",
+          workType: lw.workType || "N/A",
+          labName: lw.labName || "In-house",
+          sendDate: lw.sendDate ? new Date(lw.sendDate).toLocaleDateString() : "-",
+          dueDate: lw.dueDate ? new Date(lw.dueDate).toLocaleDateString() : "-",
+          receivedDate: lw.receivedDate ? new Date(lw.receivedDate).toLocaleDateString() : "-",
+          status: lw.status ? lw.status.toUpperCase() : "N/A",
+          price: lw.price || 0,
+          works: lw.selectedWorks?.map((w: any) => {
+            return w.selections?.map((sel: string) => {
+              if (sel && sel.startsWith("TXT:")) return sel.replace("TXT:", "");
+              return hierarchyMap[sel] || sel;
+            }).join(" > ");
+          }).join(" | ") || "-",
+          warrantyCardNumber: lw.warrantyCardNumber || "-",
         }));
         break;
       }
