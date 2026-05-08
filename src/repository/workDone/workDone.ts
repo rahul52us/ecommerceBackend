@@ -497,3 +497,52 @@ export const getDoctorWorkDoneReportData = async (query: any) => {
     return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
+/**
+ * FETCH DATA FOR AN INDIVIDUAL PAYMENT RECEIPT
+ */
+export const getPaymentReceiptData = async (query: any) => {
+  try {
+    const { workDoneId, paymentIndex, company } = query;
+    const wId = toObjectId(workDoneId);
+    const cId = toObjectId(company);
+    const index = Number(paymentIndex);
+
+    if (!wId || !cId) {
+      return { success: "error", message: "IDs required", statusCode: 400 };
+    }
+
+    const clinic = await CompanyModel.findById(cId);
+    const record = await WorkDoneSchema.findOne({ _id: wId, company: cId, isActive: { $ne: false } })
+      .populate("patient", "name mobileNumber code profile_details")
+      .populate("doctor", "name")
+      .populate("treatment", "treatmentPlan");
+
+    if (!record) {
+      return { success: "error", message: "Record not found", statusCode: 404 };
+    }
+
+    const paymentEntry = record.paymentHistory[index];
+    if (!paymentEntry) {
+      return { success: "error", message: "Payment entry not found", statusCode: 404 };
+    }
+
+    return {
+      success: "success",
+      data: {
+        patient: record.patient,
+        clinic,
+        record: {
+          treatmentName: (record.treatment as any)?.treatmentPlan || record.workDoneNote || "General Procedure",
+          tooth: record.tooth || "N/A",
+          doctorName: (record.doctor as any)?.name || "N/A",
+          _id: record._id
+        },
+        payment: paymentEntry
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};

@@ -9,8 +9,9 @@ import {
   getPatientStatementData,
   getSingleWorkDoneStatementData,
   getDoctorWorkDoneReportData,
+  getPaymentReceiptData,
 } from "../../repository/workDone/workDone";
-import { generateStatementPDF, generateSingleRecordPDF } from "../../modules/config/pdfGenerator";
+import { generateStatementPDF, generateSingleRecordPDF, generatePaymentReceiptPDF } from "../../modules/config/pdfGenerator";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -250,6 +251,56 @@ export const generateDoctorWorkDoneReportService = async (req: any, res: any) =>
 
     const { generateDoctorWorkDonePDF } = require("../../modules/config/pdfGenerator");
     generateDoctorWorkDonePDF(data, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * SEPARATE SERVICE FOR INDIVIDUAL PAYMENT RECEIPT
+ */
+export const generateIndividualPaymentPDFService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getPaymentReceiptData({
+      workDoneId: req.params.workDoneId,
+      paymentIndex: req.params.paymentIndex,
+      company: req.query.company
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("error", (err: any) => {
+      console.error("PDF Stream Error:", err);
+      if (!res.headersSent) {
+        return res.status(500).send({ status: "error", message: "PDF Stream Error" });
+      }
+    });
+    stream.on("end", () => {
+      try {
+        const pdfBuffer = Buffer.concat(chunks);
+        const base64 = pdfBuffer.toString("base64");
+        return res.status(200).send({
+          status: "success",
+          message: "Payment Receipt PDF generated successfully",
+          data: base64
+        });
+      } catch (err: any) {
+        if (!res.headersSent) {
+          return res.status(500).send({ status: "error", message: "Failed to finalize PDF" });
+        }
+      }
+    });
+
+    generatePaymentReceiptPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",
