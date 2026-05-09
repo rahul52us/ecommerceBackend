@@ -148,7 +148,9 @@ export const getDealerServices = async (req: any, res: Response, next: any) => {
       search,
       page,
       limit,
-      req.bodyData.company
+      req.bodyData.company,
+      req.userId,
+      req.bodyData.userType
     );
 
     return res.status(statusCode).send({
@@ -182,8 +184,8 @@ export const getDealerItems = async (
       deletedAt: { $exists: false },
     };
 
-    if(dealer){
-      match = {...match, dealer : dealer}
+    if (dealer) {
+      match = { ...match, dealer: dealer }
     }
 
     if (search) {

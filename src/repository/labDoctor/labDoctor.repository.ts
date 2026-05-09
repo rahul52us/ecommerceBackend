@@ -63,7 +63,9 @@ export const getLabDoctors = async (
   search: string | undefined,
   page: number,
   limit: number,
-  company: any
+  company: any,
+  userId: any,
+  userType: any
 ) => {
   try {
     const skip = (page - 1) * limit;
@@ -74,6 +76,11 @@ export const getLabDoctors = async (
         { labDoctorName: { $regex: search, $options: "i" } }
       ];
     }
+
+    if (userId && userType === "staff") {
+      query.createdBy = userId;
+    }
+
 
     const labDoctors = await LabDoctorModel.find(query)
       .skip(skip)

@@ -2,7 +2,7 @@ import DealerModal from "../../schemas/dealers/dealer.schema";
 
 export const createDealer = async (data: any) => {
   try {
-    const dealerDetails = new DealerModal({...data, createdAt : new Date()});
+    const dealerDetails = new DealerModal({ ...data, createdAt: new Date() });
     const savedDealerDetails = await dealerDetails.save();
 
     return {
@@ -23,7 +23,7 @@ export const createDealer = async (data: any) => {
 
 export const updateDealer = async (data: any) => {
   try {
-    const dealerDetails = await DealerModal.findByIdAndUpdate(data?.id, {$set : {...data}});
+    const dealerDetails = await DealerModal.findByIdAndUpdate(data?.id, { $set: { ...data } });
     return {
       status: "success",
       data: dealerDetails,
@@ -42,7 +42,7 @@ export const updateDealer = async (data: any) => {
 
 export const deleteDealer = async (data: any) => {
   try {
-    const dealerDetails = await DealerModal.findByIdAndUpdate(data?.id, {$set : {isActive : false, deletedAt : new Date()}},{new : true});
+    const dealerDetails = await DealerModal.findByIdAndUpdate(data?.id, { $set: { isActive: false, deletedAt: new Date() } }, { new: true });
     return {
       status: "success",
       data: dealerDetails,
@@ -63,16 +63,22 @@ export const getDealers = async (
   search: string,
   page: number,
   limit: number,
-  company: any
+  company: any,
+  userId: any,
+  userType: any
 ) => {
   try {
     const skip = (page - 1) * limit;
-    const query: any = {deletedAt : {$exists : false}, isActive : true , company : company};
+    const query: any = { deletedAt: { $exists: false }, isActive: true, company: company };
 
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } }
       ];
+    }
+
+    if (userId && userType === "staff") {
+      query.createdBy = userId;
     }
 
     const contacts = await DealerModal.find(query)

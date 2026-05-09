@@ -53,11 +53,19 @@ export const getPatientDashboardCount = async (
 export const getDashboardData = async (req: any, res: Response, next: any) => {
   try {
     const companyId = new mongoose.Types.ObjectId(req.bodyData.company);
+
+    let query: any = {}
+
+    if (req.bodyData.userType === "staff") {
+      query.createdBy = new mongoose.Types.ObjectId(req.userId);
+    }
+
     const userTypeCounts = await UserModel.aggregate([
       {
         $match: {
           company: companyId,
           userType: { $in: ["doctor", "staff", "patient", "dealer"] },
+          ...query
         },
       },
       {
@@ -93,11 +101,13 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
     const dealerCount = await DealerModal.countDocuments({
       company: companyId,
       isActive: true,
+      ...query
     });
 
     const appointmentCount = await appointmentsSchema.countDocuments({
       company: companyId,
       isActive: true,
+      ...query
     });
 
     countsMap.dealers = dealerCount;
@@ -118,7 +128,8 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       {
         $match: {
           company: companyId,
-          createdAt: { $gte: sevenDaysAgo }
+          createdAt: { $gte: sevenDaysAgo },
+          ...query
         }
       },
       {
@@ -137,7 +148,7 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
     });
 
     // Get recent users
-    const recentUsers = await UserModel.find({ company: companyId })
+    const recentUsers = await UserModel.find({ company: companyId, ...query })
       .sort({ createdAt: -1 })
       .limit(5)
       .select('name userType createdAt pic');
@@ -159,7 +170,8 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
           company: companyId,
           appointmentDate: { $gte: sixMonthsAgo },
           isActive: true,
-          status: { $in: ["completed", "scheduled", "in-progress", "arrived"] }
+          status: { $in: ["completed", "scheduled", "in-progress", "arrived"] },
+          ...query
         }
       },
       {

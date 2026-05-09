@@ -65,7 +65,9 @@ export const getLabDoctorsService = async (req: any, res: Response, next: any) =
       search,
       page,
       limit,
-      req.bodyData.company
+      req.bodyData.company,
+      req.userId,
+      req.bodyData.userType
     );
 
     return res.status(statusCode).send({
