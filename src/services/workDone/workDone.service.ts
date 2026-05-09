@@ -11,7 +11,7 @@ import {
   getDoctorWorkDoneReportData,
   getPaymentReceiptData,
 } from "../../repository/workDone/workDone";
-import { generateStatementPDF, generateSingleRecordPDF, generatePaymentReceiptPDF } from "../../modules/config/pdfGenerator";
+import { generateStatementPDF, generateSingleRecordPDF, generatePaymentReceiptPDF, generateWorkDoneReportPDF } from "../../modules/config/pdfGenerator";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -301,6 +301,47 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
     });
 
     generatePaymentReceiptPDF(data, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+/**
+ * NEW SERVICE FOR WORK DONE REPORT WITH PRESCRIPTIONS
+ */
+export const generateWorkDoneReportService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getSingleWorkDoneStatementData({
+      workDoneId: req.params.id,
+      company: req.query.company
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Work Done Report PDF generated successfully",
+        data: base64
+      });
+    });
+
+    generateWorkDoneReportPDF({ 
+      ...data, 
+      prescriptions: req.body.prescriptions, 
+      topPadding: req.body.topPadding, 
+      bottomPadding: req.body.bottomPadding 
+    }, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",

@@ -641,3 +641,126 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
 
   doc.end();
 };
+
+/**
+ * GENERATE SPECIALIZED WORK DONE CLINICAL REPORT WITH PRESCRIPTIONS
+ */
+export const generateWorkDoneReportPDF = (data: any, stream: any) => {
+  const { patient, clinic, records, prescriptions: customPrescriptions, topPadding = 0, bottomPadding = 0 } = data;
+  const record = records[0] || {};
+  const doc = new PDFDocument({
+    margin: 0,
+    size: "A4",
+    bufferPages: true
+  });
+
+  doc.pipe(stream);
+
+  const COLORS = {
+    brand: "#1e3a8a",
+    textMain: "#000000",
+    textMuted: "#4b5563",
+    border: "#000000",
+    white: "#ffffff"
+  };
+
+  const PAGE_WIDTH = 595.28;
+  const MARGIN = 40;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  let y = Number(topPadding) > 0 ? Number(topPadding) : 40;
+
+  // --- REPORT TITLE BAR ---
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+  y += 10;
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
+  doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For    ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
+  y += 20;
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+
+  y += 25;
+
+  // --- DOCTOR & PATIENT NOTES ---
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr.${(record.doctor as any)?.name || "N/A"}`, MARGIN, y);
+  y += 18;
+  
+  if (record.workDoneNote) {
+    doc.font("Helvetica-Oblique").fontSize(10).text(record.workDoneNote, MARGIN, y, { width: CONTENT_WIDTH });
+    y += doc.heightOfString(record.workDoneNote, { width: CONTENT_WIDTH }) + 10;
+  }
+
+  // --- TOOTH DETAILS ---
+  if (record.tooth) {
+    const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""} - ${record.treatmentCode || "Procedure"}`;
+    doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y);
+    y += 15;
+    if (record.toothNote) {
+      doc.font("Helvetica").fontSize(9).text(record.toothNote, MARGIN, y);
+      y += 15;
+    }
+  }
+
+  y += 10;
+
+  // --- PRESCRIPTION SECTION ---
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription:", MARGIN, y);
+  y += 20;
+
+  const prescriptionsToUse = customPrescriptions || [];
+  prescriptionsToUse.forEach((p: any, index: number) => {
+    // PRE-CALCULATE HEIGHT of the next item
+    let itemHeight = 18 + 15 + 14 + 16 + 15; // Base height (Brand + Meta + Salt + Dose + Border/Gap)
+    if (p.description) {
+      itemHeight += 12 + doc.heightOfString(p.description, { width: CONTENT_WIDTH - 25 }) + 10;
+    } else {
+      itemHeight += 5;
+    }
+
+    const pageBottomLimit = 780 - Number(bottomPadding);
+    
+    // If this item will exceed the bottom limit, start a new page BEFORE printing it
+    if (y + itemHeight > pageBottomLimit) {
+      doc.addPage({ margin: 0 });
+      y = 50; 
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription (cont.):", MARGIN, y);
+      y += 25;
+    }
+
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
+    
+    // Brand Name and Type (Pushed right to avoid number overlap)
+    doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { width: 280 });
+    
+    // Dosage Summary (Pushed much further right to avoid Brand overlap)
+    doc.fillColor(COLORS.textMain).text(`*__* ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )`, MARGIN + 310, y, { align: "right", width: CONTENT_WIDTH - 310 });
+    y += 18;
+
+    doc.font("Helvetica-Oblique").fontSize(9).fillColor(COLORS.textMuted);
+    doc.text(`( ${p.category || "General"} )  -  ( ${p.companyName || "N/A"} )`, MARGIN + 25, y);
+    y += 15;
+
+    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMain);
+    doc.text(`BASIC SALT: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.basicSalt || "N/A");
+    y += 14;
+    
+    doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.dosage || "N/A");
+    y += 16;
+
+    if (p.description) {
+      doc.font("Helvetica-Bold").fontSize(9).text(`Instructions:`, MARGIN + 25, y);
+      y += 12;
+      doc.font("Helvetica").fontSize(9).text(p.description, MARGIN + 25, y, { width: CONTENT_WIDTH - 25 });
+      y += doc.heightOfString(p.description, { width: CONTENT_WIDTH - 25 }) + 10;
+    } else {
+      y += 5;
+    }
+
+    doc.lineWidth(0.2).strokeColor("#dddddd").moveTo(MARGIN + 25, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    y += 15;
+  });
+
+  // Remove manual empty space as requested
+  y += 10;
+  
+  doc.end();
+};

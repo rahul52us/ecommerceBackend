@@ -120,6 +120,7 @@ export const getPrescriptionSuggestions = async (companyId: string) => {
     const brandNames = await Prescription.distinct("brandName", filter);
     const forms = await Prescription.distinct("form", filter);
     const companyNames = await Prescription.distinct("companyName", filter);
+    const basicSalts = await Prescription.distinct("basicSalt", filter);
 
     return {
       types: types.filter(Boolean),
@@ -127,6 +128,7 @@ export const getPrescriptionSuggestions = async (companyId: string) => {
       brandNames: brandNames.filter(Boolean),
       forms: forms.filter(Boolean),
       companyNames: companyNames.filter(Boolean),
+      basicSalts: basicSalts.filter(Boolean),
     };
   } catch (err: any) {
     throw new Error(err.message);
