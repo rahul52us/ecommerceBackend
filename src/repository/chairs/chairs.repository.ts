@@ -82,6 +82,10 @@ export const getChairsRepo = async (query: any) => {
     if (chairNo)
       findQuery.chairNo = parseInt(chairNo);
 
+    if (query.userType === "staff" && query.userId) {
+      findQuery.createdBy = new mongoose.Types.ObjectId(query.userId)
+    }
+
     // Fetch data
     const data = await Chair.find(findQuery)
       .sort({ createdAt: -1 })
@@ -162,7 +166,7 @@ export const updateChairsRepo = async (id: string, payload: any) => {
 
 export const getTodayChairSummary = async (query: any) => {
   try {
-    const { company, date, status } = query;
+    const { company, date, status, userId, userType } = query;
 
     let baseDate: Date;
 
@@ -183,6 +187,8 @@ export const getTodayChairSummary = async (query: any) => {
       ? { company: new mongoose.Types.ObjectId(company) }
       : {};
 
+    console.log('the data areq', query)
+
     // Dynamic status match
     const statusMatch = status
       ? { status: status }
@@ -201,6 +207,9 @@ export const getTodayChairSummary = async (query: any) => {
                 $expr: { $eq: ["$chair", "$$chairId"] },
                 ...statusMatch, // apply dynamic status filter
                 appointmentDate: { $gte: dayStart, $lte: dayEnd },
+                ...(userType === "staff" && userId
+                  ? { createdBy: new mongoose.Types.ObjectId(userId) }
+                  : {}),
               },
             },
             {

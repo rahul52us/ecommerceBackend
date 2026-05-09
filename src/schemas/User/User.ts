@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface UserInterface extends Document {
   title: String;
   name: string;
-  mobileNumber:string;
+  mobileNumber: string;
   username: string;
   code: string;
   pic: any;
@@ -13,26 +13,27 @@ export interface UserInterface extends Document {
   profile_details: Schema.Types.ObjectId;
   is_active: boolean;
   role: string;
-  userType:string;
+  userType: string;
+  createdBy: Schema.Types.ObjectId;
   password: string;
   deletedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
-  permissions?:any
-  refrenceBy?:any;
+  permissions?: any
+  refrenceBy?: any;
   refrenceNote?: string;
 }
 
 const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
-  title : {
-    type : String
+  title: {
+    type: String
   },
   name: { type: String, trim: true },
   username: { type: String },
-  mobileNumber:{type : String, index : true},
-  code : {type : String, index : true, unique : true, required:true},
-  company : {type : Schema.Types.ObjectId, ref:'Company'},
-  userType:{type: String, required: true, index: true, trim: true},
+  mobileNumber: { type: String, index: true },
+  code: { type: String, index: true, unique: true, required: true },
+  company: { type: Schema.Types.ObjectId, ref: 'Company' },
+  userType: { type: String, required: true, index: true, trim: true },
   pic: {
     name: {
       type: String
@@ -52,13 +53,13 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
     enum: ["user", "admin", "superadmin"],
     default: "user"
   },
-  permissions : {
-    type : mongoose.Schema.Types.Mixed,
-    default : {}
+  permissions: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
   password: { type: String, trim: true },
-  refrenceBy:{
-    type : mongoose.Schema.Types.ObjectId,
+  refrenceBy: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
   refrenceNote: {
@@ -67,6 +68,10 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   },
   deletedAt: {
     type: Date,
+  },
+  createdBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
   },
   createdAt: {
     type: Date,

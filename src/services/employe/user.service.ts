@@ -204,9 +204,12 @@ const getAllUserService = async (
     const page = req.body.page || 1;
     const limit = req.body.limit || 10;
     const search = req.body.search || undefined;
-    const type = req.body.type || req.bodyData?.userType || req.bodyData?.role || undefined
+    const id = req.userId || undefined;
+    const type = req.body.type;
     const { data, status, totalPages } = await getUsers({
+      id: id,
       userType: type,
+      role: req.bodyData.userType,
       page: Number(page),
       limit: Number(limit),
       search: search,

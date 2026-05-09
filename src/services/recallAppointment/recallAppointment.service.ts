@@ -41,6 +41,8 @@ export const getRecallAppointmentsService = async (req: any, res: any) => {
         ...req.body,
         ...req.query,
         company: req.body?.company || req.query?.company,
+        id: req.userId,
+        userType: req.bodyData?.userType
       });
 
     return res.status(statusCode).send({

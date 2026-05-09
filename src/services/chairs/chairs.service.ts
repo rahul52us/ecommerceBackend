@@ -34,6 +34,8 @@ export const getChairsService = async (req: any, res: any) => {
       totalPages
     } = await getChairsRepo({
       ...req.query,
+      userId: req.userId,
+      userType: req.bodyData?.userType,
       company: req.query?.company || req.body?.company,
     });
 
@@ -90,7 +92,7 @@ export const updateChairService = async (req: any, res: any) => {
 
 export const getChairSummaryService = async (req: any, res: any) => {
   try {
-    const { data, status, message, statusCode } = await getTodayChairSummary({ date: req.body.date, company: req.body.company, status: req.body.status })
+    const { data, status, message, statusCode } = await getTodayChairSummary({ date: req.body.date, company: req.body.company, status: req.body.status, userId: req.userId, userType: req.bodyData?.userType })
     return res.status(statusCode).send({
       status,
       data,

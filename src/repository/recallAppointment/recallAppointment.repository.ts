@@ -91,7 +91,7 @@ export const updateRecallAppointment = async (data: any) => {
     if (recallDate) updatePayload.recallDate = new Date(recallDate);
     if (reason !== undefined) updatePayload.reason = reason;
     if (status) updatePayload.status = status;
-    if(appointmentDate) updatePayload.appointmentDate = appointmentDate
+    if (appointmentDate) updatePayload.appointmentDate = appointmentDate
 
     const updated = await RecallAppointmentSchema.findByIdAndUpdate(
       recallId,
@@ -182,6 +182,8 @@ export const getRecallAppointments = async (query: any) => {
       limit = 20,
       skip = 0,
       search,
+      userType,
+      id
     } = query;
 
     const matchStage: any = {};
@@ -196,6 +198,10 @@ export const getRecallAppointments = async (query: any) => {
       matchStage.recallDate = {};
       if (fromDate) matchStage.recallDate.$gte = new Date(fromDate);
       if (toDate) matchStage.recallDate.$lte = new Date(toDate);
+    }
+
+    if (id && userType == "staff") {
+      matchStage.createdBy = new mongoose.Types.ObjectId(id);
     }
 
     const pipeline: any[] = [
@@ -272,7 +278,7 @@ export const getRecallAppointments = async (query: any) => {
           reason: 1,
           status: 1,
           createdAt: 1,
-          appointmentDate:1,
+          appointmentDate: 1,
           "patient._id": 1,
           "patient.name": 1,
           "patient.code": 1,

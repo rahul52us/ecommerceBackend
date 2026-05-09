@@ -192,7 +192,8 @@ const createUser = async (data: any) => {
 
     const { pic, ...rest } = data;
 
-    const hashedPassword = await hashBcrypt(`${finalCode}@123`);
+    console.log(data);
+    const hashedPassword = await hashBcrypt(data?.password || `${finalCode}@123`);
     const createdUser = new User({
       username: data.username,
       company: data.company,
@@ -205,6 +206,7 @@ const createUser = async (data: any) => {
       is_active: true,
       title: data.title,
       permissions: data.permissions || {},
+      createdBy: data.createdBy,
     });
 
     const savedUser = await createdUser.save();
@@ -465,8 +467,9 @@ const updateUserProfileDetails = async (data: any) => {
 };
 
 const getUsers = async (data: {
+  id: any;
   userType: string;
-  role?: string;
+  role: string;
   page: number;
   limit: number;
   search?: string;
@@ -486,6 +489,10 @@ const getUsers = async (data: {
       deletedAt: { $exists: false },
       role: { $ne: "admin" },
     };
+
+    if (data?.id && data.role == "staff") {
+      matchConditions.createdBy = new mongoose.Types.ObjectId(data.id);
+    }
 
     if (data.userType === "superAdmin") {
       matchConditions = {

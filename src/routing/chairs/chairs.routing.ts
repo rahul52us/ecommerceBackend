@@ -5,8 +5,8 @@ import { createChairsService, deleteChairService, getChairsService, getChairSumm
 const chairsRouting = express.Router();
 chairsRouting.post("/create", authenticate, createChairsService);
 chairsRouting.get("/get", authenticate, getChairsService);
-chairsRouting.delete("/delete/:id", authenticate,deleteChairService);
-chairsRouting.put("/update/:id", authenticate,updateChairService);
-chairsRouting.post('/getChairSummary',getChairSummaryService)
+chairsRouting.delete("/delete/:id", authenticate, deleteChairService);
+chairsRouting.put("/update/:id", authenticate, updateChairService);
+chairsRouting.post('/getChairSummary', authenticate, getChairSummaryService)
 
 export default chairsRouting;
