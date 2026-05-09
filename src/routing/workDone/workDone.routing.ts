@@ -13,6 +13,7 @@ import {
   generateDoctorWorkDoneReportService,
   generateIndividualPaymentPDFService,
   generateWorkDoneReportService,
+  generateDailyWorkDoneReportService,
 } from "../../services/workDone/workDone.service";
 
 const workDone = express.Router();
@@ -27,6 +28,7 @@ workDone.get("/generate-receipt/:id", authenticate, generateSingleWorkDonePDFSer
 workDone.get("/generate-payment-receipt/:workDoneId/:paymentIndex", authenticate, generateIndividualPaymentPDFService);
 workDone.get("/generate-doctor-report", authenticate, generateDoctorWorkDoneReportService);
 workDone.post("/generate-workdone-report/:id", authenticate, generateWorkDoneReportService);
+workDone.post("/generate-daily-report/:patientId", authenticate, generateDailyWorkDoneReportService);
 workDone.put("/:id", authenticate, updateWorkDoneService);
 workDone.delete("/:id", authenticate, deleteWorkDoneService);
 

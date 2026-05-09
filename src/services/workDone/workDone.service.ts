@@ -10,8 +10,15 @@ import {
   getSingleWorkDoneStatementData,
   getDoctorWorkDoneReportData,
   getPaymentReceiptData,
+  getDailyWorkDoneData,
 } from "../../repository/workDone/workDone";
-import { generateStatementPDF, generateSingleRecordPDF, generatePaymentReceiptPDF, generateWorkDoneReportPDF } from "../../modules/config/pdfGenerator";
+import { 
+  generateStatementPDF, 
+  generateSingleRecordPDF, 
+  generatePaymentReceiptPDF, 
+  generateWorkDoneReportPDF,
+  generateDailyWorkDoneReportPDF
+} from "../../modules/config/pdfGenerator";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -341,6 +348,49 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
       prescriptions: req.body.prescriptions, 
       topPadding: req.body.topPadding, 
       bottomPadding: req.body.bottomPadding 
+    }, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+export const generateDailyWorkDoneReportService = async (req: any, res: any) => {
+  try {
+    const { patientId } = req.params;
+    const { date, company } = req.query;
+    const { prescriptions, topPadding, bottomPadding } = req.body;
+
+    const { statusCode, success, message, data }: any = await getDailyWorkDoneData({
+      patientId,
+      date: date as string,
+      company: company as string
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Daily Report generated successfully",
+        data: base64
+      });
+    });
+
+    generateDailyWorkDoneReportPDF({ 
+      records: data, 
+      prescriptions, 
+      topPadding, 
+      bottomPadding 
     }, stream);
   } catch (err: any) {
     return res.status(500).send({

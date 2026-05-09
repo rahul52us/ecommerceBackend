@@ -546,3 +546,56 @@ export const getPaymentReceiptData = async (query: any) => {
     return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
+/**
+ * FETCH ALL WORK DONE RECORDS FOR A SPECIFIC PATIENT ON A SPECIFIC DATE
+ */
+export const getDailyWorkDoneData = async (params: { patientId: string, date: string, company: string }) => {
+  try {
+    const { patientId, date, company } = params;
+    
+    // Calculate Start and End of the selected date
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const records = await WorkDoneSchema.find({
+      patient: patientId,
+      company: company,
+      createdAt: { $gte: startDate, $lte: endDate },
+      isActive: { $ne: false }
+    })
+    .populate("doctor", "name")
+    .populate({
+      path: "patient",
+      select: "name mobileNumber code profile_details",
+      populate: {
+        path: "profile_details",
+        model: "ProfileDetails"
+      }
+    })
+    .sort({ createdAt: 1 });
+
+    if (!records || records.length === 0) {
+      return {
+        statusCode: 404,
+        success: "error",
+        message: "No records found for the selected date.",
+      };
+    }
+
+    return {
+      statusCode: 200,
+      success: "success",
+      message: "Records fetched successfully",
+      data: records,
+    };
+  } catch (err: any) {
+    return {
+      statusCode: 500,
+      success: "error",
+      message: err?.message,
+    };
+  }
+};

@@ -1,5 +1,18 @@
 import PDFDocument from "pdfkit";
 
+const calculateAge = (dob: any) => {
+  if (!dob) return "";
+  const birthDate = new Date(dob);
+  if (isNaN(birthDate.getTime())) return "";
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 /**
  * GENERATE FULL PATIENT ACCOUNT STATEMENT PDF
  * Preserved your original logic completely.
@@ -562,7 +575,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   doc.pipe(stream);
 
   const COLORS = {
-    brand: "#059669", 
+    brand: "#059669",
     textMain: "#1f2937",
     textMuted: "#6b7280",
     border: "#e5e7eb",
@@ -571,7 +584,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
 
   // --- WHITE RECEIPT BODY ---
   doc.rect(0, 0, WIDTH, HEIGHT).fill(COLORS.white);
-  
+
   // Vibrant Header
   doc.fillColor(COLORS.brand).rect(0, 0, WIDTH, 120).fill();
 
@@ -593,7 +606,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   doc.fontSize(9).font("Helvetica").fillColor(COLORS.textMuted).text(clinic?.addressInfo?.[0]?.address || "Clinic Address", 30, y, { align: "center", width: WIDTH - 60 });
 
   y += 40;
-  doc.lineWidth(1).dash(2, {space: 2}).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
+  doc.lineWidth(1).dash(2, { space: 2 }).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
   doc.undash();
 
   // --- RECEIPT CONTENT ---
@@ -619,7 +632,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
 
   doc.fillColor(COLORS.textMain).fontSize(11).font("Helvetica-Bold").text(record.treatmentName, 40, y, { width: 180 });
   doc.fillColor(COLORS.brand).fontSize(12).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 120, y, { width: 80, align: "right" });
-  
+
   y += 35;
   doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica").text(`Dr. ${record.doctorName}  |  Tooth: ${record.tooth}`, 40, y);
 
@@ -683,7 +696,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   // --- DOCTOR & PATIENT NOTES ---
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr.${(record.doctor as any)?.name || "N/A"}`, MARGIN, y);
   y += 18;
-  
+
   if (record.workDoneNote) {
     doc.font("Helvetica-Oblique").fontSize(10).text(record.workDoneNote, MARGIN, y, { width: CONTENT_WIDTH });
     y += doc.heightOfString(record.workDoneNote, { width: CONTENT_WIDTH }) + 10;
@@ -717,20 +730,20 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     }
 
     const pageBottomLimit = 780 - Number(bottomPadding);
-    
+
     // If this item will exceed the bottom limit, start a new page BEFORE printing it
     if (y + itemHeight > pageBottomLimit) {
       doc.addPage({ margin: 0 });
-      y = 50; 
+      y = 50;
       doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription (cont.):", MARGIN, y);
       y += 25;
     }
 
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
-    
+
     // Brand Name and Type (Pushed right to avoid number overlap)
     doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { width: 280 });
-    
+
     // Dosage Summary (Pushed much further right to avoid Brand overlap)
     doc.fillColor(COLORS.textMain).text(`*__* ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )`, MARGIN + 310, y, { align: "right", width: CONTENT_WIDTH - 310 });
     y += 18;
@@ -742,7 +755,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMain);
     doc.text(`BASIC SALT: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.basicSalt || "N/A");
     y += 14;
-    
+
     doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.dosage || "N/A");
     y += 16;
 
@@ -761,6 +774,154 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
 
   // Remove manual empty space as requested
   y += 10;
-  
+
   doc.end();
 };
+
+/**
+ * GENERATE DAILY WORK DONE REPORT (BULK)
+ * Lists all procedures for a specific day and adds a single prescription list.
+ */
+export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
+  const { records, prescriptions: customPrescriptions, topPadding = 150, bottomPadding = 50 } = data;
+
+  console.log(records)
+  const doc = new PDFDocument({ margin: 0, size: "A4", bufferPages: true });
+  doc.pipe(stream);
+
+  const COLORS = {
+    brand: "#1e3a8a",
+    textMain: "#111827",
+    textMuted: "#6b7280",
+    border: "#e5e7eb",
+  };
+
+  const PAGE_WIDTH = 595.28;
+  const MARGIN = 40;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  let y = Number(topPadding);
+
+  // --- Header & Patient Details ---
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(14).text("Daily Treatment Summary", MARGIN, y);
+  y += 22;
+
+  if (records.length > 0) {
+    const patient = records[0].patient;
+    const reportDate = new Date(records[0].createdAt).toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+
+    // Patient Info Row
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text("Patient:", MARGIN, y, { continued: true });
+    doc.font("Helvetica").text(` ${patient?.name || "N/A"}`, { continued: true });
+    doc.font("Helvetica-Bold").text("    Age/Sex:", { continued: true });
+    doc.font("Helvetica").text(` ${calculateAge(patient?.profile_details?.personalInfo?.dob) || "N/A"} / ${patient?.profile_details?.personalInfo?.gender ? patient?.profile_details?.personalInfo?.gender === 1 ? "Male" : "Female" : "N/A"}`, { continued: true });
+    doc.font("Helvetica-Bold").text("    Date:", { continued: true });
+    doc.font("Helvetica").text(` ${reportDate}`);
+    y += 15;
+
+    // Address Row
+    if (patient?.profile_details?.personalInfo?.address) {
+      doc.font("Helvetica-Bold").fontSize(10).text("Address: ", MARGIN, y, { continued: true });
+      doc.font("Helvetica").text(patient.profile_details?.personalInfo?.address, { width: CONTENT_WIDTH - 50 });
+      y += doc.heightOfString(patient.profile_details.personalInfo?.address, { width: CONTENT_WIDTH - 50 }) + 10;
+    } else {
+      y += 10;
+    }
+
+    doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    y += 15;
+  }
+
+  // --- Procedures List ---
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Procedures Performed:", MARGIN, y);
+  y += 20;
+
+  records.forEach((record: any, index: number) => {
+    // Check height for procedure entry
+    let procHeight = 50;
+    if (record.workDoneNote) procHeight += 20;
+
+    if (y + procHeight > (780 - Number(bottomPadding))) {
+      doc.addPage({ margin: 0 });
+      y = 50;
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Procedures Performed (cont.):", MARGIN, y);
+      y += 25;
+    }
+
+    // Procedure Title
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}. ${record.treatment?.treatmentPlan || record.workDoneNote || "General Procedure"}`, MARGIN + 10, y);
+    y += 15;
+
+    // Doctor & Tooth Info
+    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMuted);
+    doc.text(`Doctor: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(record.doctor?.name || "N/A", { continued: true });
+    doc.font("Helvetica-Bold").text(`    Tooth: `, { continued: true }).font("Helvetica").text(record.tooth || "N/A");
+    y += 15;
+
+    if (record.workDoneNote) {
+      doc.font("Helvetica-Oblique").fontSize(9).fillColor(COLORS.textMuted).text(`Note: ${record.workDoneNote}`, MARGIN + 25, y, { width: CONTENT_WIDTH - 25 });
+      y += doc.heightOfString(record.workDoneNote, { width: CONTENT_WIDTH - 25 }) + 10;
+    } else {
+      y += 5;
+    }
+
+    doc.lineWidth(0.2).strokeColor("#dddddd").moveTo(MARGIN + 10, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    y += 15;
+  });
+
+  y += 15;
+
+  // --- Prescription Section ---
+  if (customPrescriptions && customPrescriptions.length > 0) {
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Combined Prescription:", MARGIN, y);
+    y += 20;
+
+    customPrescriptions.forEach((p: any, index: number) => {
+      let itemHeight = 18 + 15 + 14 + 16 + 15;
+      if (p.description) itemHeight += 12 + doc.heightOfString(p.description, { width: CONTENT_WIDTH - 25 }) + 10;
+      else itemHeight += 5;
+
+      if (y + itemHeight > (780 - Number(bottomPadding))) {
+        doc.addPage({ margin: 0 });
+        y = 50;
+        doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Combined Prescription (cont.):", MARGIN, y);
+        y += 25;
+      }
+
+      doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
+      doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { width: 280 });
+
+      const qtyText = `*__* ( ${p.doseNo || 0} ${p.form || "Tablet"} Total ${p.noOfDays ? `for ${p.noOfDays} Days` : ""} )`;
+      doc.fillColor(COLORS.textMain).text(qtyText, MARGIN + 310, y, { align: "right", width: CONTENT_WIDTH - 310 });
+      y += 18;
+
+      doc.font("Helvetica-Oblique").fontSize(9).fillColor(COLORS.textMuted);
+      doc.text(`( ${p.category || "General"} )  -  ( ${p.companyName || "N/A"} )`, MARGIN + 25, y);
+      y += 15;
+
+      doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMain);
+      doc.text(`BASIC SALT: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.basicSalt || "N/A");
+      y += 14;
+
+      doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(`${p.dosage || "N/A"} ${p.noOfDays ? `[for ${p.noOfDays} Days]` : ""}`);
+      y += 16;
+
+      if (p.description) {
+        doc.font("Helvetica-Bold").fontSize(9).text(`Instructions:`, MARGIN + 25, y);
+        y += 12;
+        doc.font("Helvetica").fontSize(9).text(p.description, MARGIN + 25, y, { width: CONTENT_WIDTH - 25 });
+        y += doc.heightOfString(p.description, { width: CONTENT_WIDTH - 25 }) + 10;
+      } else {
+        y += 5;
+      }
+
+      doc.lineWidth(0.2).strokeColor("#dddddd").moveTo(MARGIN + 25, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+      y += 15;
+    });
+  }
+
+  doc.end();
+};
+
