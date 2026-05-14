@@ -19,6 +19,12 @@ const UserValidation = Joi.object({
       "string.min": "mobile Number must have a minimum length of {#limit}",
       "string.max": "mobile Number should not exceed a maximum length of {#limit}"
   }),
+  references: Joi.array().items(
+    Joi.object({
+      refrenceBy: Joi.any(),
+      refrenceNote: Joi.string().allow("").optional(),
+    })
+  ).optional(),
   refrenceBy:Joi.any(),
   refrenceNote: Joi.string().allow("").optional(),
   pic: Joi.string().allow("").optional(),

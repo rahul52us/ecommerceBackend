@@ -109,9 +109,12 @@ const createAdminUser = async (data: any) => {
       password: hashedPassword,
       bio: data.bio,
       is_active: true,
-      role: data.role,
       title: data.title,
       permissions: data.permissions || {},
+      references: (data.references || []).map((ref: any) => ({
+        ...ref,
+        refrenceBy: ref.refrenceBy?._id || ref.refrenceBy?.value || ref.refrenceBy || undefined
+      })),
     });
 
     const savedUser = await createdUser.save();
@@ -207,6 +210,10 @@ const createUser = async (data: any) => {
       title: data.title,
       permissions: data.permissions || {},
       createdBy: data.createdBy,
+      references: (data.references || []).map((ref: any) => ({
+        ...ref,
+        refrenceBy: ref.refrenceBy?._id || ref.refrenceBy?.value || ref.refrenceBy || undefined
+      })),
     });
 
     const savedUser = await createdUser.save();
@@ -414,6 +421,13 @@ const updateUserProfileDetails = async (data: any) => {
       };
     }
 
+    if (rest.references) {
+      rest.references = rest.references.map((ref: any) => ({
+        ...ref,
+        refrenceBy: ref.refrenceBy?._id || ref.refrenceBy?.value || ref.refrenceBy || undefined
+      }));
+    }
+
     const users: any = await User.findByIdAndUpdate(data.userId, {
       $set: { ...rest, updatedAt: new Date() },
     });
@@ -483,7 +497,7 @@ const getUsers = async (data: {
     const limit = Math.max(1, Math.min(100, Number(data.limit) || 10));
     const skip = (page - 1) * limit;
 
-    // Base match conditions
+    // Base match conditioon view ns
     let matchConditions: any = {
       is_active: data.isActive !== undefined ? (data.isActive === "all" ? { $in: [true, false] } : data.isActive) : true,
       deletedAt: { $exists: false },
@@ -532,7 +546,74 @@ const getUsers = async (data: {
       { $match: matchConditions },
       {
         $lookup: {
-          from: "users", // ensure correct collection name
+          from: "users",
+          localField: "references.refrenceBy",
+          foreignField: "_id",
+          as: "referenceByDetails"
+        }
+      },
+      {
+        $addFields: {
+          references: {
+            $map: {
+              input: "$references",
+              as: "ref",
+              in: {
+                refrenceNote: "$$ref.refrenceNote",
+                refrenceBy: {
+                  $let: {
+                    vars: {
+                      detail: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$referenceByDetails",
+                              as: "detail",
+                              cond: { $eq: [{ $toString: "$$detail._id" }, { $toString: "$$ref.refrenceBy" }] }
+                            }
+                          },
+                          0
+                        ]
+                      }
+                    },
+                    in: {
+                      $cond: {
+                        if: "$$detail",
+                        then: {
+                          _id: "$$detail._id",
+                          name: "$$detail.name",
+                          username: "$$detail.username",
+                          code: "$$detail.code",
+                          label: {
+                            $concat: [
+                              { $ifNull: ["$$detail.name", { $ifNull: ["$$detail.username", "Unknown"] }] },
+                              " (",
+                              { $ifNull: ["$$detail.code", "N/A"] },
+                              ")"
+                            ]
+                          },
+                          value: "$$detail._id"
+                        },
+                        else: {
+                          $cond: {
+                            if: { $eq: ["$$ref.refrenceBy", null] },
+                            then: null,
+                            else: { label: { $toString: "$$ref.refrenceBy" }, value: "$$ref.refrenceBy" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      // Keep old lookup for backward compatibility if needed, or remove if not
+      {
+        $lookup: {
+          from: "users",
           let: { refId: "$refrenceBy" },
           pipeline: [
             { $match: { $expr: { $eq: ["$_id", "$$refId"] } } },

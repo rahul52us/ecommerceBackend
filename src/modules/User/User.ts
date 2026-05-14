@@ -78,6 +78,10 @@ const createUser = async (
         company: selectedCompany._id,
         role: req.body.role,
         refrenceBy: req.body.refrenceBy || undefined,
+        references: (req.body.references || []).map((ref: any) => ({
+          ...ref,
+          refrenceBy: ref.refrenceBy?._id || ref.refrenceBy?.value || ref.refrenceBy || undefined
+        })),
         is_active: selectedCompany.verified_email_allowed ? false : true,
       });
       const savedUser = await user.save();
