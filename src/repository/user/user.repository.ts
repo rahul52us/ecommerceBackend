@@ -584,14 +584,7 @@ const getUsers = async (data: {
                           name: "$$detail.name",
                           username: "$$detail.username",
                           code: "$$detail.code",
-                          label: {
-                            $concat: [
-                              { $ifNull: ["$$detail.name", { $ifNull: ["$$detail.username", "Unknown"] }] },
-                              " (",
-                              { $ifNull: ["$$detail.code", "N/A"] },
-                              ")"
-                            ]
-                          },
+                          label: { $ifNull: ["$$detail.name", { $ifNull: ["$$detail.username", "Unknown"] }] },
                           value: "$$detail._id"
                         },
                         else: {
