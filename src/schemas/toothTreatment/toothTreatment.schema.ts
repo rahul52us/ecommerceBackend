@@ -55,8 +55,8 @@ const ToothTreatmentSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in-progress", "completed", "cancelled"],
-      default: "pending",
+      enum: ["PENDING", "IN-PROGRESS", "COMPLETE", "INCOMPLETE", "CANCELLED"],
+      default: "PENDING",
     },
     recordType: {
       type: String,

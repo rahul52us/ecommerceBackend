@@ -247,7 +247,7 @@ export const getToothTreatments = async (query: any) => {
     if (company && mongoose.Types.ObjectId.isValid(company)) matchStage.company = new mongoose.Types.ObjectId(company);
     if (pId && mongoose.Types.ObjectId.isValid(pId)) matchStage.patient = new mongoose.Types.ObjectId(pId);
     if (doctor && mongoose.Types.ObjectId.isValid(doctor)) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
-    if (status) matchStage.status = status;
+    if (status) matchStage.status = { $regex: `^${status}$`, $options: "i" };
     if (fdi) matchStage.tooth = fdi;
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
@@ -576,7 +576,7 @@ export const deleteToothTreatment = async (data: any) => {
 ===================================================== */
 export const getTodayToothTreatments = async (query: any) => {
   try {
-    const { patientId, company, date, complaintType, search } = query;
+    const { patientId, company, date, complaintType, search, status } = query;
 
     if (!patientId || !company) {
       return {
@@ -603,6 +603,10 @@ export const getTodayToothTreatments = async (query: any) => {
       ]
     };
 
+    if (status && status !== 'all') {
+      (matchStage as any).status = status;
+    }
+
     if (complaintType) (matchStage as any).complaintType = { $regex: complaintType, $options: "i" };
     if (search) {
       (matchStage as any).$and = [
@@ -615,6 +619,8 @@ export const getTodayToothTreatments = async (query: any) => {
         }
       ];
     }
+
+    console.log("FINAL matchStage (getTodayToothTreatments):", JSON.stringify(matchStage, null, 2));
 
     const records = await ToothTreatmentSchema.find(matchStage)
       .populate("doctor", "_id name code")
@@ -644,7 +650,7 @@ export const getTodayToothTreatments = async (query: any) => {
 ===================================================== */
 export const getTodayToothCount = async (query: any) => {
   try {
-    const { patientId, company, date, complaintType, search } = query;
+    const { patientId, company, date, complaintType, search, status } = query;
 
     if (!patientId || !company) {
       return {
@@ -671,6 +677,10 @@ export const getTodayToothCount = async (query: any) => {
       ]
     };
 
+    if (status && status !== 'all') {
+      (matchStage as any).status = status;
+    }
+
     if (complaintType) (matchStage as any).complaintType = { $regex: complaintType, $options: "i" };
     if (search) {
       (matchStage as any).$and = [
@@ -683,6 +693,8 @@ export const getTodayToothCount = async (query: any) => {
         }
       ];
     }
+
+    console.log("FINAL matchStage (getTodayToothCount):", JSON.stringify(matchStage, null, 2));
 
     const count = await ToothTreatmentSchema.countDocuments(matchStage);
 

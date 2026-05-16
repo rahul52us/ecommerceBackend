@@ -84,9 +84,19 @@ export const getWorkDone = async (query: any) => {
       },
       { $unwind: { path: "$doctorDetails", preserveNullAndEmptyArrays: true } },
       {
+        $lookup: {
+          from: "users",
+          localField: "examiningDoctor",
+          foreignField: "_id",
+          as: "examiningDoctorDetails",
+        },
+      },
+      { $unwind: { path: "$examiningDoctorDetails", preserveNullAndEmptyArrays: true } },
+      {
         $addFields: {
           patient: "$patientDetails",
-          doctor: "$doctorDetails"
+          doctor: "$doctorDetails",
+          examiningDoctor: "$examiningDoctorDetails"
         }
       }
     ];
@@ -181,7 +191,8 @@ export const getPatientStatementData = async (query: any) => {
 
     const records = await WorkDoneSchema.find(findQuery)
       .sort({ createdAt: 1 })
-      .populate("doctor", "name");
+      .populate("doctor", "name")
+      .populate("examiningDoctor", "name");
 
     let filteredRecords = records;
     if (status && status !== "all") {
@@ -224,6 +235,7 @@ export const getSingleWorkDoneStatementData = async (query: any) => {
     const record = await WorkDoneSchema.findOne({ _id: wId, company: cId, isActive: { $ne: false } })
       .populate("patient", "name mobileNumber code profile_details")
       .populate("doctor", "name")
+      .populate("examiningDoctor", "name")
       .populate("treatment", "treatmentPlan");
 
     if (!record) {
@@ -553,7 +565,7 @@ export const getPaymentReceiptData = async (query: any) => {
 export const getDailyWorkDoneData = async (params: { patientId: string, date: string, company: string }) => {
   try {
     const { patientId, date, company } = params;
-    
+
     // Calculate Start and End of the selected date
     const startDate = new Date(date);
     startDate.setHours(0, 0, 0, 0);
@@ -566,16 +578,17 @@ export const getDailyWorkDoneData = async (params: { patientId: string, date: st
       createdAt: { $gte: startDate, $lte: endDate },
       isActive: { $ne: false }
     })
-    .populate("doctor", "name")
-    .populate({
-      path: "patient",
-      select: "name mobileNumber code profile_details",
-      populate: {
-        path: "profile_details",
-        model: "ProfileDetails"
-      }
-    })
-    .sort({ createdAt: 1 });
+      .populate("doctor", "name")
+      .populate("examiningDoctor", "name")
+      .populate({
+        path: "patient",
+        select: "name mobileNumber code profile_details",
+        populate: {
+          path: "profile_details",
+          model: "ProfileDetails"
+        }
+      })
+      .sort({ createdAt: 1 });
 
     if (!records || records.length === 0) {
       return {
