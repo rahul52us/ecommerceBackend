@@ -247,7 +247,7 @@ export const getToothTreatments = async (query: any) => {
     if (company && mongoose.Types.ObjectId.isValid(company)) matchStage.company = new mongoose.Types.ObjectId(company);
     if (pId && mongoose.Types.ObjectId.isValid(pId)) matchStage.patient = new mongoose.Types.ObjectId(pId);
     if (doctor && mongoose.Types.ObjectId.isValid(doctor)) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
-    if (status) matchStage.status = { $regex: `^${status}$`, $options: "i" };
+    if (status) matchStage.status = status.toLowerCase();
     if (fdi) matchStage.tooth = fdi;
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
@@ -604,7 +604,7 @@ export const getTodayToothTreatments = async (query: any) => {
     };
 
     if (status && status !== 'all') {
-      (matchStage as any).status = status;
+      (matchStage as any).status = status.toLowerCase();
     }
 
     if (complaintType) (matchStage as any).complaintType = { $regex: complaintType, $options: "i" };
@@ -678,7 +678,7 @@ export const getTodayToothCount = async (query: any) => {
     };
 
     if (status && status !== 'all') {
-      (matchStage as any).status = status;
+      (matchStage as any).status = status.toLowerCase();
     }
 
     if (complaintType) (matchStage as any).complaintType = { $regex: complaintType, $options: "i" };

@@ -89,8 +89,9 @@ const WorkDoneSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["COMPLETE", "PENDING", "INCOMPLETE"],
-      default: "COMPLETE",
+      enum: ["complete", "completed", "pending", "incomplete"],
+      default: "complete",
+      lowercase: true,
     },
     isActive: {
       type: Boolean,
