@@ -14,12 +14,14 @@ import {
   generateIndividualPaymentPDFService,
   generateWorkDoneReportService,
   generateDailyWorkDoneReportService,
+  getWorkDoneCountByDateService,
 } from "../../services/workDone/workDone.service";
 
 const workDone = express.Router();
 
 workDone.post("/create", authenticate, createWorkDoneService);
 workDone.get("/get", authenticate, getWorkDoneService);
+workDone.get("/count-by-date", authenticate, getWorkDoneCountByDateService);
 workDone.get("/stats", authenticate, getPatientFinancialStatsService);
 workDone.get("/overall-stats", authenticate, getOverallPatientStatsService);
 workDone.get("/doctor-stats", authenticate, getDoctorFinancialStatsService);

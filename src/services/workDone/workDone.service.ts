@@ -11,6 +11,7 @@ import {
   getDoctorWorkDoneReportData,
   getPaymentReceiptData,
   getDailyWorkDoneData,
+  getWorkDoneCountByDate,
 } from "../../repository/workDone/workDone";
 import { 
   generateStatementPDF, 
@@ -399,3 +400,24 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
     });
   }
 };
+
+export const getWorkDoneCountByDateService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getWorkDoneCountByDate({
+      patientId: req.query.patientId,
+      company: req.query.company,
+    });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+

@@ -60,6 +60,12 @@ export const getWorkDone = async (query: any) => {
       matchStage.treatment = new mongoose.Types.ObjectId(String(treatmentId));
     }
 
+    if (query.fromDate || query.toDate) {
+      matchStage.createdAt = {};
+      if (query.fromDate) matchStage.createdAt.$gte = new Date(query.fromDate);
+      if (query.toDate) matchStage.createdAt.$lte = new Date(query.toDate);
+    }
+
     const pipeline: any[] = [
       { $match: matchStage },
       { $sort: { createdAt: -1 } },
@@ -612,3 +618,73 @@ export const getDailyWorkDoneData = async (params: { patientId: string, date: st
     };
   }
 };
+
+/**
+ * GROUP AND COUNT WORK DONE RECORDS BY DATE
+ */
+export const getWorkDoneCountByDate = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+
+    if (!patientId || !company) {
+      return {
+        success: "error",
+        message: "Patient ID and Company ID are required.",
+        statusCode: 400,
+      };
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(patientId) || !mongoose.Types.ObjectId.isValid(company)) {
+      return {
+        success: "error",
+        message: "Invalid Patient ID or Company ID format.",
+        statusCode: 400,
+      };
+    }
+
+    const matchStage = {
+      isActive: { $ne: false },
+      patient: new mongoose.Types.ObjectId(patientId),
+      company: new mongoose.Types.ObjectId(company),
+    };
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt"
+            }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: -1 } as any },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          _id: 0
+        }
+      }
+    ];
+
+    const result = await WorkDoneSchema.aggregate(pipeline);
+
+    return {
+      success: "success",
+      data: result,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error while aggregating work done counts.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
