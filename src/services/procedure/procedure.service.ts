@@ -45,10 +45,22 @@ export const getProceduresService = async (
       });
     }
 
+    const sortBy = req.query.sortBy as string;
+    const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+
+    // Default sort by name2 (ADA codes), then by category, subcategory, and name
+    let sortOptions: any = { name2: 1, category: 1, subcategory: 1, name: 1 };
+    if (sortBy) {
+      sortOptions = { [sortBy]: sortOrder };
+      if (sortBy !== "name") {
+        sortOptions["name"] = 1;
+      }
+    }
+
     const procedures = await Procedure.find({
       company: new mongoose.Types.ObjectId(companyId as string),
       isActive: true,
-    }).sort({ category: 1, subcategory: 1, name: 1 });
+    }).sort(sortOptions);
 
     return res.status(200).send({
       status: "success",
