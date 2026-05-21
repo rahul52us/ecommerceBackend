@@ -13,10 +13,10 @@ import {
   getDailyWorkDoneData,
   getWorkDoneCountByDate,
 } from "../../repository/workDone/workDone";
-import { 
-  generateStatementPDF, 
-  generateSingleRecordPDF, 
-  generatePaymentReceiptPDF, 
+import {
+  generateStatementPDF,
+  generateSingleRecordPDF,
+  generatePaymentReceiptPDF,
   generateWorkDoneReportPDF,
   generateDailyWorkDoneReportPDF
 } from "../../modules/config/pdfGenerator";
@@ -344,11 +344,11 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
       });
     });
 
-    generateWorkDoneReportPDF({ 
-      ...data, 
-      prescriptions: req.body.prescriptions, 
-      topPadding: req.body.topPadding, 
-      bottomPadding: req.body.bottomPadding 
+    generateWorkDoneReportPDF({
+      ...data,
+      prescriptions: req.body.prescriptions,
+      topPadding: req.body.topPadding,
+      bottomPadding: req.body.bottomPadding
     }, stream);
   } catch (err: any) {
     return res.status(500).send({
@@ -387,11 +387,11 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
       });
     });
 
-    generateDailyWorkDoneReportPDF({ 
-      records: data, 
-      prescriptions, 
-      topPadding, 
-      bottomPadding 
+    generateDailyWorkDoneReportPDF({
+      records: data,
+      prescriptions,
+      topPadding,
+      bottomPadding
     }, stream);
   } catch (err: any) {
     return res.status(500).send({

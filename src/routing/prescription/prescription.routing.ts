@@ -1,5 +1,7 @@
 import express from "express";
 import * as PrescriptionService from "../../services/prescription/prescription.service";
+import authenticate from "../../modules/config/authenticate";
+
 
 const router = express.Router();
 
@@ -65,4 +67,34 @@ router.get("/suggestions", async (req, res) => {
   }
 });
 
+router.post("/patient-daily", authenticate, async (req, res) => {
+  try {
+    const { patientId, date, prescriptions } = req.body;
+    const company = req.body.company || req.query.company || (req as any).companyId;
+    const result = await PrescriptionService.savePatientDailyPrescription({
+      patient: patientId,
+      date,
+      prescriptions,
+      company
+    });
+    res.status(200).json({ status: "success", data: result });
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+router.get("/patient-daily", authenticate, async (req, res) => {
+  try {
+    const { patientId, date } = req.query;
+    const result = await PrescriptionService.getPatientDailyPrescription({
+      patientId,
+      date
+    });
+    res.status(200).json({ status: "success", data: result });
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 export default router;
+

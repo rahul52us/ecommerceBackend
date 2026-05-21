@@ -742,10 +742,11 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
     // Brand Name and Type (Pushed right to avoid number overlap)
-    doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { width: 280 });
+    doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
-    // Dosage Summary (Pushed much further right to avoid Brand overlap)
-    doc.fillColor(COLORS.textMain).text(`*__* ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )`, MARGIN + 310, y, { align: "right", width: CONTENT_WIDTH - 310 });
+    // Dosage Summary (printed immediately after the Brand Name)
+    const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
+    doc.fillColor(COLORS.textMain).text(qtyText);
     y += 18;
 
     doc.font("Helvetica-Oblique").fontSize(9).fillColor(COLORS.textMuted);
@@ -756,7 +757,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.text(`BASIC SALT: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.basicSalt || "N/A");
     y += 14;
 
-    doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.dosage || "N/A");
+    doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(`${p.dosage || "N/A"}${p.noOfDays ? ` (for ${p.noOfDays} Days)` : ""}`);
     y += 16;
 
     if (p.description) {
@@ -891,10 +892,10 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
       }
 
       doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
-      doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { width: 280 });
+      doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
-      const qtyText = `*__* ( ${p.doseNo || 0} ${p.form || "Tablet"} Total ${p.noOfDays ? `for ${p.noOfDays} Days` : ""} )`;
-      doc.fillColor(COLORS.textMain).text(qtyText, MARGIN + 310, y, { align: "right", width: CONTENT_WIDTH - 310 });
+      const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
+      doc.fillColor(COLORS.textMain).text(qtyText);
       y += 18;
 
       doc.font("Helvetica-Oblique").fontSize(9).fillColor(COLORS.textMuted);
@@ -905,7 +906,7 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
       doc.text(`BASIC SALT: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(p.basicSalt || "N/A");
       y += 14;
 
-      doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(`${p.dosage || "N/A"} ${p.noOfDays ? `[for ${p.noOfDays} Days]` : ""}`);
+      doc.font("Helvetica-Bold").text(`DOSE: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(`${p.dosage || "N/A"}${p.noOfDays ? ` (for ${p.noOfDays} Days)` : ""}`);
       y += 16;
 
       if (p.description) {

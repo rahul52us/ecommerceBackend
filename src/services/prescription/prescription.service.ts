@@ -1,4 +1,6 @@
 import Prescription from "../../schemas/prescription/prescription.schema";
+import PatientPrescription from "../../schemas/prescription/patientPrescription.schema";
+
 
 export const createPrescription = async (data: any) => {
   try {
@@ -134,3 +136,32 @@ export const getPrescriptionSuggestions = async (companyId: string) => {
     throw new Error(err.message);
   }
 };
+
+export const savePatientDailyPrescription = async (data: any) => {
+  try {
+    const { patient, date, prescriptions, company } = data;
+    if (!patient || !date) {
+      throw new Error("Patient and date are required");
+    }
+    return await PatientPrescription.findOneAndUpdate(
+      { patient, date },
+      { patient, date, prescriptions, company },
+      { new: true, upsert: true }
+    );
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};
+
+export const getPatientDailyPrescription = async (query: any) => {
+  try {
+    const { patientId, date } = query;
+    if (!patientId || !date) {
+      throw new Error("Patient ID and date are required");
+    }
+    return await PatientPrescription.findOne({ patient: patientId, date });
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};
+
