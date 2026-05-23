@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import WorkDoneSchema from "../../schemas/workDone/workDone.schema";
 import UserModel from "../../schemas/User/User";
 import CompanyModel from "../../schemas/company/Company";
+import AccountabilityModel from "../../schemas/accountability/accountability.schema";
 
 const toObjectId = (id: any) => {
   if (!id) return null;
@@ -156,6 +157,10 @@ export const deleteWorkDone = async (data: any) => {
   try {
     const { workDoneId, user } = data;
     await WorkDoneSchema.findByIdAndUpdate(workDoneId, { isActive: false, updatedBy: user });
+    
+    // Cascade delete any corresponding accountability record linked to this work done entry
+    await AccountabilityModel.deleteMany({ workDone: workDoneId });
+
     return { success: "success", message: "Work done deleted successfully.", statusCode: 200 };
   } catch (error: any) {
     return { success: "error", message: error.message, statusCode: 500 };

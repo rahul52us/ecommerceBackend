@@ -204,12 +204,14 @@ export const updateAppointment = async (data: any) => {
       };
     }
 
-    updatedAppointment.history.push({
-      action: status,
-      by: user || null,
-      remarks: status === "shift" || status === "cancelled" ? shiftOrCancelledReason || description || "" : description || "",
-      timestamp: new Date(),
-    });
+    if (status !== "shift") {
+      updatedAppointment.history.push({
+        action: status,
+        by: user || null,
+        remarks: status === "cancelled" ? shiftOrCancelledReason || description || "" : description || "",
+        timestamp: new Date(),
+      });
+    }
 
     await updatedAppointment.save()
 
