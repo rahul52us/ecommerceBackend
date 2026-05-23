@@ -157,7 +157,7 @@ export const deleteWorkDone = async (data: any) => {
   try {
     const { workDoneId, user } = data;
     await WorkDoneSchema.findByIdAndUpdate(workDoneId, { isActive: false, updatedBy: user });
-    
+
     // Cascade delete any corresponding accountability record linked to this work done entry
     await AccountabilityModel.deleteMany({ workDone: workDoneId });
 

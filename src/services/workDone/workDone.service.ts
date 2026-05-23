@@ -20,6 +20,7 @@ import {
   generateWorkDoneReportPDF,
   generateDailyWorkDoneReportPDF
 } from "../../modules/config/pdfGenerator";
+import UserModel from "../../schemas/User/User";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -361,16 +362,34 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
   try {
     const { patientId } = req.params;
     const { date, company } = req.query;
+    const reportType = req.query.reportType || req.body.reportType || "both";
     const { prescriptions, topPadding, bottomPadding } = req.body;
 
-    const { statusCode, success, message, data }: any = await getDailyWorkDoneData({
-      patientId,
-      date: date as string,
-      company: company as string
-    });
+    let records: any[] = [];
+    let patient: any = null;
 
-    if (success === "error") {
-      return res.status(statusCode).send({ status: success, message });
+    if (reportType === "prescription") {
+      // For daily prescriptions, we bypass the procedures check entirely
+      patient = await UserModel.findById(patientId)
+        .select("name mobileNumber code profile_details")
+        .populate({
+          path: "profile_details",
+          model: "ProfileDetails"
+        });
+    } else {
+      // For procedures or combined summary, fetch daily records
+      const result: any = await getDailyWorkDoneData({
+        patientId,
+        date: date as string,
+        company: company as string
+      });
+
+      if (result.success === "error") {
+        return res.status(result.statusCode).send({ status: "error", message: result.message });
+      }
+
+      records = result.data || [];
+      patient = records[0]?.patient;
     }
 
     const chunks: any[] = [];
@@ -388,10 +407,13 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
     });
 
     generateDailyWorkDoneReportPDF({
-      records: data,
+      records,
+      patient,
+      date: date as string,
       prescriptions,
       topPadding,
-      bottomPadding
+      bottomPadding,
+      reportType
     }, stream);
   } catch (err: any) {
     return res.status(500).send({

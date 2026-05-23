@@ -784,7 +784,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
  * Lists all procedures for a specific day and adds a single prescription list.
  */
 export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
-  const { records, prescriptions: customPrescriptions, topPadding = 150, bottomPadding = 50 } = data;
+  const { records = [], patient, date: reportDateParam, prescriptions: customPrescriptions, topPadding = 150, bottomPadding = 50, reportType = "both" } = data;
 
   console.log(records)
   const doc = new PDFDocument({ margin: 0, size: "A4", bufferPages: true });
@@ -804,29 +804,38 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   let y = Number(topPadding);
 
   // --- Header & Patient Details ---
-  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(14).text("Daily Treatment Summary", MARGIN, y);
+  const title = reportType === "prescription"
+    ? "Daily Prescription Report"
+    : "Daily Treatment Summary";
+
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(14).text(title, MARGIN, y);
   y += 22;
 
-  if (records.length > 0) {
-    const patient = records[0].patient;
-    const reportDate = new Date(records[0].createdAt).toLocaleDateString('en-IN', {
+  const patientToUse = patient || (records.length > 0 ? records[0].patient : null);
+
+  if (patientToUse) {
+    const reportDate = reportDateParam ? new Date(reportDateParam).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'long', year: 'numeric'
-    });
+    }) : (records.length > 0 ? new Date(records[0].createdAt).toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    }) : new Date().toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    }));
 
     // Patient Info Row
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text("Patient:", MARGIN, y, { continued: true });
-    doc.font("Helvetica").text(` ${patient?.name || "N/A"}`, { continued: true });
+    doc.font("Helvetica").text(` ${patientToUse?.name || "N/A"}`, { continued: true });
     doc.font("Helvetica-Bold").text("    Age/Sex:", { continued: true });
-    doc.font("Helvetica").text(` ${calculateAge(patient?.profile_details?.personalInfo?.dob) || "N/A"} / ${patient?.profile_details?.personalInfo?.gender ? patient?.profile_details?.personalInfo?.gender === 1 ? "Male" : "Female" : "N/A"}`, { continued: true });
+    doc.font("Helvetica").text(` ${calculateAge(patientToUse?.profile_details?.personalInfo?.dob) || "N/A"} / ${patientToUse?.profile_details?.personalInfo?.gender ? patientToUse?.profile_details?.personalInfo?.gender === 1 ? "Male" : "Female" : "N/A"}`, { continued: true });
     doc.font("Helvetica-Bold").text("    Date:", { continued: true });
     doc.font("Helvetica").text(` ${reportDate}`);
     y += 15;
 
     // Address Row
-    if (patient?.profile_details?.personalInfo?.address) {
+    if (patientToUse?.profile_details?.personalInfo?.address) {
       doc.font("Helvetica-Bold").fontSize(10).text("Address: ", MARGIN, y, { continued: true });
-      doc.font("Helvetica").text(patient.profile_details?.personalInfo?.address, { width: CONTENT_WIDTH - 50 });
-      y += doc.heightOfString(patient.profile_details.personalInfo?.address, { width: CONTENT_WIDTH - 50 }) + 10;
+      doc.font("Helvetica").text(patientToUse.profile_details?.personalInfo?.address, { width: CONTENT_WIDTH - 50 });
+      y += doc.heightOfString(patientToUse.profile_details.personalInfo?.address, { width: CONTENT_WIDTH - 50 }) + 10;
     } else {
       y += 10;
     }
@@ -836,8 +845,9 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   }
 
   // --- Procedures List ---
-  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Procedures Performed:", MARGIN, y);
-  y += 20;
+  if (reportType !== "prescription" && records.length > 0) {
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Procedures Performed:", MARGIN, y);
+    y += 20;
 
   records.forEach((record: any, index: number) => {
     // Check height for procedure entry
@@ -873,9 +883,10 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   });
 
   y += 15;
+  }
 
   // --- Prescription Section ---
-  if (customPrescriptions && customPrescriptions.length > 0) {
+  if (reportType !== "procedures" && customPrescriptions && customPrescriptions.length > 0) {
     doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Combined Prescription:", MARGIN, y);
     y += 20;
 
