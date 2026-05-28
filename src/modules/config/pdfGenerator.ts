@@ -685,10 +685,47 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
 
   // --- REPORT TITLE BAR ---
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
-  y += 10;
+  y += 15; // Extra padding from top border
+  
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
   doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For    ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
-  y += 20;
+  
+  y += 18; // Extra padding between the two lines
+  
+  const pInfo = patient?.profile_details?.personalInfo || {};
+  let ageStr = "";
+  if (pInfo.dob) {
+    const ageDiffMs = Date.now() - new Date(pInfo.dob).getTime();
+    if (ageDiffMs > 0) {
+      const ageDate = new Date(ageDiffMs);
+      const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+      if (age > 0) ageStr = `${age}Y`;
+    }
+  }
+  
+  let sexStr = "";
+  if (pInfo.gender === 1) sexStr = "Male";
+  else if (pInfo.gender === 2) sexStr = "Female";
+  else if (pInfo.gender === 3) sexStr = "Other";
+  
+  const addressObj = pInfo.addresses || {};
+  const address = addressObj.residential || addressObj.office || addressObj.other || "";
+  
+  const metaArr = [];
+  if (ageStr) metaArr.push(`Age: ${ageStr}`);
+  if (sexStr) metaArr.push(`Sex: ${sexStr}`);
+  if (address) metaArr.push(`Address: ${address}`);
+  
+  if (metaArr.length > 0) {
+    const metaText = metaArr.join("   |   ");
+    doc.font("Helvetica").fontSize(9).fillColor(COLORS.textMuted);
+    const textHeight = doc.heightOfString(metaText, { width: PAGE_WIDTH - 2 * MARGIN });
+    doc.text(metaText, MARGIN, y, { width: PAGE_WIDTH - 2 * MARGIN });
+    y += textHeight + 12; // Extra padding from bottom border
+  } else {
+    y += 10;
+  }
+  
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
 
   y += 25;
@@ -742,7 +779,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
     // Brand Name and Type (Pushed right to avoid number overlap)
-    doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
+    doc.fillColor("#b91c1c").text(`${p.form || ""}`, MARGIN + 25, y, { continued: true });
 
     // Dosage Summary (printed immediately after the Brand Name)
     const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;

@@ -244,7 +244,14 @@ export const getSingleWorkDoneStatementData = async (query: any) => {
 
     const clinic = await CompanyModel.findById(cId);
     const record = await WorkDoneSchema.findOne({ _id: wId, company: cId, isActive: { $ne: false } })
-      .populate("patient", "name mobileNumber code profile_details")
+      .populate({
+        path: "patient",
+        select: "name mobileNumber code profile_details",
+        populate: {
+          path: "profile_details",
+          model: "ProfileDetails"
+        }
+      })
       .populate("doctor", "name")
       .populate("examiningDoctor", "name")
       .populate("treatment", "treatmentPlan");
