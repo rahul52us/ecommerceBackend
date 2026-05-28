@@ -144,7 +144,8 @@ export const getLabServices = async (req: any, res: Response, next: any) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = req?.query?.search ? req?.query?.search?.trim() : undefined;
+    const searchQuery = req?.query?.search || req?.query?.searchValue;
+    const search = searchQuery ? (searchQuery as string).trim() : undefined;
 
     const { status, statusCode, data, totalPages, message } = await getLabs(
       search,
@@ -175,9 +176,8 @@ export const getLabItems = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const lab = req.query.lab ? new mongoose.Types.ObjectId(req.query.lab) : null
 
-    const search = req?.query?.search
-      ? (req.query.search as string).trim()
-      : undefined;
+    const searchQuery = req?.query?.search || req?.query?.searchValue;
+    const search = searchQuery ? (searchQuery as string).trim() : undefined;
 
     let match: any = {
       isActive: true,
@@ -270,9 +270,8 @@ export const getPatientLabItems = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const patientName = new mongoose.Types.ObjectId(req.query.id);
 
-    const search = req?.query?.search
-      ? (req.query.search as string).trim()
-      : undefined;
+    const searchQuery = req?.query?.search || req?.query?.searchValue;
+    const search = searchQuery ? (searchQuery as string).trim() : undefined;
 
     const match: any = {
       isActive: true,

@@ -59,7 +59,8 @@ export const getLabDoctorsService = async (req: any, res: Response, next: any) =
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const search = req?.query?.search ? (req.query.search as string).trim() : undefined;
+    const searchQuery = req?.query?.search || req?.query?.searchValue;
+    const search = searchQuery ? (searchQuery as string).trim() : undefined;
 
     const { status, statusCode, data, totalPages, message } = await getLabDoctors(
       search,

@@ -61,7 +61,7 @@ export const deleteLab = async (data: any) => {
 }
 
 export const getLabs = async (
-  search: string,
+  search: string | undefined,
   page: number,
   limit: number,
   company: any
