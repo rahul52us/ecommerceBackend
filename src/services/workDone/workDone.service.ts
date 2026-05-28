@@ -18,9 +18,11 @@ import {
   generateSingleRecordPDF,
   generatePaymentReceiptPDF,
   generateWorkDoneReportPDF,
+  generateFilteredWorkDoneReportPDF,
   generateDailyWorkDoneReportPDF
 } from "../../modules/config/pdfGenerator";
 import UserModel from "../../schemas/User/User";
+import PatientPrescriptionModel from "../../schemas/prescription/patientPrescription.schema";
 
 export const getOverallPatientStatsService = async (req: any, res: any) => {
   try {
@@ -442,4 +444,87 @@ export const getWorkDoneCountByDateService = async (req: any, res: any) => {
     });
   }
 };
+
+export const generateFilteredWorkDoneReportService = async (req: any, res: any) => {
+  try {
+    const { patientId } = req.params;
+    const { company, treatmentId, fromDate, toDate, doctorId } = req.query;
+    const { prescriptions, topPadding, bottomPadding } = req.body;
+
+    const result: any = await getWorkDone({
+      patientId,
+      treatmentId,
+      company,
+      fromDate,
+      toDate,
+      doctorId,
+      limit: 1000,
+      page: 1
+    });
+
+    if (result.success === "error") {
+      return res.status(result.statusCode).send({ status: "error", message: result.message });
+    }
+
+    const records = result.data?.data || result.data || [];
+    if (records.length === 0) {
+      return res.status(404).send({ status: "error", message: "No records found for this filter" });
+    }
+
+    const patient = await UserModel.findById(patientId)
+      .select("name mobileNumber code profile_details")
+      .populate({
+        path: "profile_details",
+        model: "ProfileDetails"
+      });
+
+    // Extract unique dates from the records in YYYY-MM-DD format
+    const uniqueDates = Array.from(new Set(records.map((r: any) => {
+      const d = new Date(r.createdAt || Date.now());
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })));
+
+    // Fetch prescriptions from the db in backend directly for the workdone dates
+    const patientPrescriptions = await PatientPrescriptionModel.find({
+      patient: patientId,
+      date: { $in: uniqueDates }
+    }).lean();
+
+    let dbPrescriptions: any[] = [];
+    patientPrescriptions.forEach((pp: any) => {
+      if (pp.prescriptions && Array.isArray(pp.prescriptions)) {
+        dbPrescriptions = dbPrescriptions.concat(pp.prescriptions);
+      }
+    });
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Filtered Report generated successfully",
+        data: base64
+      });
+    });
+
+    generateFilteredWorkDoneReportPDF({
+      records: records,
+      patient,
+      prescriptions: dbPrescriptions,
+      topPadding,
+      bottomPadding
+    }, stream);
+
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
 

@@ -41,7 +41,6 @@ export const getWorkDone = async (query: any) => {
 
     const companyId = toObjectId(company);
     const patId = toObjectId(patientId);
-    const docId = toObjectId(doctorId);
 
     // Build Match Stage
     const matchStage: any = {
@@ -51,12 +50,17 @@ export const getWorkDone = async (query: any) => {
     if (companyId) {
       matchStage.company = companyId;
     }
-    if (patId) {
+    if (patientId && patientId !== 'undefined' && patId) {
       matchStage.patient = patId;
     }
-    if (docId && doctorId !== 'all') {
-      matchStage.doctor = docId;
+    
+    if (doctorId && doctorId !== 'all' && doctorId !== 'undefined') {
+      const docIds = String(doctorId).split(',').map((id: string) => toObjectId(id.trim())).filter(Boolean);
+      if (docIds.length > 0) {
+        matchStage.doctor = { $in: docIds };
+      }
     }
+    
     if (treatmentId && mongoose.Types.ObjectId.isValid(treatmentId)) {
       matchStage.treatment = new mongoose.Types.ObjectId(String(treatmentId));
     }

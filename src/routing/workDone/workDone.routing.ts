@@ -15,6 +15,7 @@ import {
   generateWorkDoneReportService,
   generateDailyWorkDoneReportService,
   getWorkDoneCountByDateService,
+  generateFilteredWorkDoneReportService,
 } from "../../services/workDone/workDone.service";
 
 const workDone = express.Router();
@@ -31,6 +32,7 @@ workDone.get("/generate-payment-receipt/:workDoneId/:paymentIndex", authenticate
 workDone.get("/generate-doctor-report", authenticate, generateDoctorWorkDoneReportService);
 workDone.post("/generate-workdone-report/:id", authenticate, generateWorkDoneReportService);
 workDone.post("/generate-daily-report/:patientId", authenticate, generateDailyWorkDoneReportService);
+workDone.post("/generate-filtered-report/:patientId", authenticate, generateFilteredWorkDoneReportService);
 workDone.put("/:id", authenticate, updateWorkDoneService);
 workDone.delete("/:id", authenticate, deleteWorkDoneService);
 
