@@ -781,7 +781,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
     // Brand Name and Type (Pushed right to avoid number overlap)
-    doc.fillColor("#b91c1c").text(`${p.type || ""} - ${p.form || ""}`, MARGIN + 25, y, { continued: true });
+    doc.fillColor("#b91c1c").text(`${p.form || ""} - ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
     // Dosage Summary (printed immediately after the Brand Name)
     const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
@@ -962,7 +962,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
       // Brand Name and Type (Pushed right to avoid number overlap)
-      doc.fillColor("#b91c1c").text(`${p.type || ""} - ${p.form || ""}`, MARGIN + 25, y, { continued: true });
+      doc.fillColor("#b91c1c").text(`${p.form || ""}-${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
       // Dosage Summary (printed immediately after the Brand Name)
       const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
