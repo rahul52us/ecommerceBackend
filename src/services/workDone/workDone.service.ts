@@ -347,6 +347,8 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
       });
     });
 
+    console.log("thi i called")
+
     generateWorkDoneReportPDF({
       ...data,
       prescriptions: req.body.prescriptions,
