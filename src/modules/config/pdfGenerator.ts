@@ -741,13 +741,10 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
 
   // --- TOOTH DETAILS ---
   if (record.tooth) {
-    const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""} - ${record.treatmentCode || "Procedure"}`;
-    doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y, { width: CONTENT_WIDTH });
-    y += doc.heightOfString(toothDesc.toUpperCase(), { width: CONTENT_WIDTH }) + 5;
-
-    if (record.toothNote) {
-      doc.font("Helvetica").fontSize(9).text(record.toothNote, MARGIN, y, { width: CONTENT_WIDTH });
-      y += doc.heightOfString(record.toothNote, { width: CONTENT_WIDTH }) + 10;
+    const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim();
+    if (toothDesc) {
+      doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y, { width: CONTENT_WIDTH });
+      y += doc.heightOfString(toothDesc.toUpperCase(), { width: CONTENT_WIDTH }) + 5;
     }
   }
 
@@ -919,16 +916,12 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
     // --- TOOTH DETAILS ---
     if (record.tooth) {
-      const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""} - ${record.treatmentCode || "Procedure"}`;
-      doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y, { width: CONTENT_WIDTH });
-      y += doc.heightOfString(toothDesc.toUpperCase(), { width: CONTENT_WIDTH }) + 5;
-
-      if (record.toothNote) {
-        doc.font("Helvetica").fontSize(9).text(record.toothNote, MARGIN, y, { width: CONTENT_WIDTH });
-        y += doc.heightOfString(record.toothNote, { width: CONTENT_WIDTH }) + 10;
+      const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim();
+      if (toothDesc) {
+        doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y, { width: CONTENT_WIDTH });
+        y += doc.heightOfString(toothDesc.toUpperCase(), { width: CONTENT_WIDTH }) + 5;
       }
     }
-
     y += 10;
   });
 
