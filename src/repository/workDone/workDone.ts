@@ -71,6 +71,18 @@ export const getWorkDone = async (query: any) => {
       if (query.toDate) matchStage.createdAt.$lte = new Date(query.toDate);
     }
 
+    if (query.status && query.status !== "all" && query.status !== "undefined") {
+      matchStage.status = query.status.toLowerCase();
+    }
+
+    if (query.search) {
+      matchStage.$or = [
+        { tooth: { $regex: query.search, $options: "i" } },
+        { treatmentCode: { $regex: query.search, $options: "i" } },
+        { workDoneNote: { $regex: query.search, $options: "i" } }
+      ];
+    }
+
     const pipeline: any[] = [
       { $match: matchStage },
       { $sort: { createdAt: -1 } },
