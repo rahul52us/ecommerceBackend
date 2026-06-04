@@ -1,4 +1,5 @@
 import LabWork from "../../schemas/labWork/labWork.schema";
+import mongoose from "mongoose";
 
 class LabWorkRepository {
   async create(data: any) {
@@ -12,6 +13,19 @@ class LabWorkRepository {
     const skip = (page - 1) * limit;
 
     let mongoQuery: any = { ...filters, isActive: true };
+
+    if (mongoQuery.patient && typeof mongoQuery.patient === "string") {
+      mongoQuery.patient = new mongoose.Types.ObjectId(mongoQuery.patient);
+    }
+    if (mongoQuery.primaryDoctor && typeof mongoQuery.primaryDoctor === "string") {
+      mongoQuery.primaryDoctor = new mongoose.Types.ObjectId(mongoQuery.primaryDoctor);
+    }
+    if (mongoQuery.lab && typeof mongoQuery.lab === "string") {
+      mongoQuery.lab = new mongoose.Types.ObjectId(mongoQuery.lab);
+    }
+    if (mongoQuery.company && typeof mongoQuery.company === "string") {
+      mongoQuery.company = new mongoose.Types.ObjectId(mongoQuery.company);
+    }
 
     // Use aggregation to support searching by populated fields
     const pipeline: any[] = [
