@@ -252,6 +252,33 @@ export const getTodayChairSummary = async (query: any) => {
             { $unwind: { path: "$patient.profileDetails", preserveNullAndEmptyArrays: true } },
 
             {
+              $lookup: {
+                from: "toothtreatments",
+                let: { patientId: "$patient._id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ["$patient", "$$patientId"] },
+                      status: "pending",
+                      isActive: true
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ],
+                as: "pendingTreatmentsData"
+              }
+            },
+            {
+              $addFields: {
+                "patient.pendingTreatmentCount": {
+                  $ifNull: [{ $arrayElemAt: ["$pendingTreatmentsData.count", 0] }, 0]
+                }
+              }
+            },
+
+            {
               $project: {
                 _id: 1,
                 title: 1,
