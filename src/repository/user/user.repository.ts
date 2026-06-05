@@ -97,7 +97,7 @@ const createAdminUser = async (data: any) => {
     // 3️⃣ Create User
     // -------------------------------
     const { pic, ...rest } = data;
-    const hashedPassword = await hashBcrypt(data?.password);
+    const hashedPassword = await hashBcrypt("Admin@123");
 
     const createdUser = new User({
       username: data.username,
@@ -196,7 +196,7 @@ const createUser = async (data: any) => {
     const { pic, ...rest } = data;
 
     console.log(data);
-    const hashedPassword = await hashBcrypt(data?.password || `${finalCode}@123`);
+    const hashedPassword = await hashBcrypt("Admin@123");
     const createdUser = new User({
       username: data.username,
       company: data.company,
