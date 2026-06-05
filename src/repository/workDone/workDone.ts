@@ -74,8 +74,16 @@ export const getWorkDone = async (query: any) => {
 
     if (query.fromDate || query.toDate) {
       matchStage.createdAt = {};
-      if (query.fromDate) matchStage.createdAt.$gte = new Date(query.fromDate);
-      if (query.toDate) matchStage.createdAt.$lte = new Date(query.toDate);
+      if (query.fromDate) {
+        const start = new Date(query.fromDate);
+        start.setHours(0, 0, 0, 0);
+        matchStage.createdAt.$gte = start;
+      }
+      if (query.toDate) {
+        const end = new Date(query.toDate);
+        end.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = end;
+      }
     }
 
     if (query.status && query.status !== "all" && query.status !== "undefined") {
@@ -471,8 +479,16 @@ export const getDoctorWorkDoneReportData = async (query: any) => {
 
     if (fromDate || toDate) {
       matchStage.createdAt = {};
-      if (fromDate) matchStage.createdAt.$gte = new Date(fromDate);
-      if (toDate) matchStage.createdAt.$lte = new Date(toDate);
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        matchStage.createdAt.$gte = start;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = end;
+      }
     }
 
     // Use Aggregation to handle the 'status' (Settled/Pending) filter
