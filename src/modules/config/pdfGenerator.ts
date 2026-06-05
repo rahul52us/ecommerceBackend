@@ -259,39 +259,55 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
 
   // --- PATIENT CARD ---
   let y = 160;
-  doc.fillColor(COLORS.bgLight).roundedRect(MARGIN, y, CONTENT_WIDTH, 80, 10).fill();
-  doc.lineWidth(0.5).strokeColor(COLORS.border).roundedRect(MARGIN, y, CONTENT_WIDTH, 80, 10).stroke();
 
-  doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("PATIENT DETAILS", MARGIN + 20, y + 15);
-  doc.fillColor(COLORS.textMain).fontSize(16).text(patient?.name || "N/A", MARGIN + 20, y + 30);
-  doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica").text(`ID: ${patient?.code || "N/A"}  |  Mob: ${patient?.mobileNumber || "N/A"}`, MARGIN + 20, y + 52);
+  const pInfo = patient?.profile_details?.personalInfo || {};
+  let ageStr = "";
+  if (pInfo.dob) {
+    const ageDiffMs = Date.now() - new Date(pInfo.dob).getTime();
+    if (ageDiffMs > 0) {
+      const ageDate = new Date(ageDiffMs);
+      const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+      if (age > 0) ageStr = `${age}Y`;
+    }
+  }
+
+  let sexStr = "";
+  if (pInfo.gender === 1) sexStr = "Male";
+  else if (pInfo.gender === 2) sexStr = "Female";
+  else if (pInfo.gender === 3) sexStr = "Other";
+
+  const addressObj = pInfo.addresses || {};
+  const address = addressObj.residential || addressObj.office || addressObj.other || "";
+
+  const title = pInfo.title ? (pInfo.title.label || pInfo.title) : "";
+  const fullName = `${title ? title + " " : ""}${patient?.name || "N/A"}`.trim();
+
+  const metaArr = [];
+  if (patient?.mobileNumber) metaArr.push(`Mob: ${patient.mobileNumber}`);
+  if (ageStr) metaArr.push(`Age: ${ageStr}`);
+  if (sexStr) metaArr.push(`Sex: ${sexStr}`);
+
+  const cardHeight = address ? 100 : 80;
+  doc.fillColor(COLORS.bgLight).roundedRect(MARGIN, y, CONTENT_WIDTH, cardHeight, 10).fill();
+  doc.lineWidth(0.5).strokeColor(COLORS.border).roundedRect(MARGIN, y, CONTENT_WIDTH, cardHeight, 10).stroke();
+
+  doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("PATIENT DETAILS", MARGIN + 20, y + 12);
+  doc.fillColor(COLORS.textMain).fontSize(16).text(fullName, MARGIN + 20, y + 25);
+  doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica").text(metaArr.join("  |  "), MARGIN + 20, y + 48);
+  if (address) {
+    doc.text(`Address: ${address}`, MARGIN + 20, y + 63, { width: CONTENT_WIDTH - 40 });
+  }
 
   // --- TREATMENT DETAILS ---
-  y += 110;
-  doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("TREATMENT INFORMATION", MARGIN, y);
-  y += 15;
-  doc.lineWidth(1).strokeColor(COLORS.brand).moveTo(MARGIN, y).lineTo(MARGIN + 30, y).stroke();
-  y += 15;
+  y += cardHeight + 20;
 
-  doc.fillColor(COLORS.textMain).fontSize(12).font("Helvetica-Bold").text("Procedure:", MARGIN, y);
-  doc.font("Helvetica").text((record.treatment as any)?.treatmentPlan || record.workDoneNote || "General Procedure", MARGIN + 80, y);
-  y += 20;
+  // Doctor Name
+  const doctorName = (record.doctor as any)?.name || "N/A";
+  doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("DOCTOR", MARGIN + 15, y);
+  y += 12;
+  doc.fillColor(COLORS.textMain).fontSize(13).font("Helvetica-Bold").text(`Dr. ${doctorName}`, MARGIN + 15, y);
+  y += 35;
 
-  doc.font("Helvetica-Bold").text("Doctor:", MARGIN, y);
-  doc.font("Helvetica").text(`Dr. ${(record.doctor as any)?.name || "N/A"}`, MARGIN + 80, y);
-  y += 20;
-
-  doc.font("Helvetica-Bold").text("Tooth:", MARGIN, y);
-  doc.font("Helvetica").text(record.tooth || "N/A", MARGIN + 80, y);
-  y += 30;
-
-  // Clinical Notes
-  if (record.workDoneNote) {
-    doc.fillColor(COLORS.bgLight).roundedRect(MARGIN, y, CONTENT_WIDTH, 60, 8).fill();
-    doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("CLINICAL NOTES", MARGIN + 15, y + 12);
-    doc.fillColor(COLORS.textMain).fontSize(9).font("Helvetica").text(record.workDoneNote, MARGIN + 15, y + 25, { width: CONTENT_WIDTH - 30 });
-    y += 80;
-  }
 
   // --- PAYMENT HISTORY ---
   doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("PAYMENT TIMELINE", MARGIN, y);
