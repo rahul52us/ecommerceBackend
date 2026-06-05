@@ -271,9 +271,31 @@ export const getTodayChairSummary = async (query: any) => {
               }
             },
             {
+              $lookup: {
+                from: "toothtreatments",
+                let: { patientId: "$patient._id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ["$patient", "$$patientId"] },
+                      status: "incomplete",
+                      isActive: true
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ],
+                as: "incompleteTreatmentsData"
+              }
+            },
+            {
               $addFields: {
                 "patient.pendingTreatmentCount": {
                   $ifNull: [{ $arrayElemAt: ["$pendingTreatmentsData.count", 0] }, 0]
+                },
+                "patient.incompleteTreatmentCount": {
+                  $ifNull: [{ $arrayElemAt: ["$incompleteTreatmentsData.count", 0] }, 0]
                 }
               }
             },
