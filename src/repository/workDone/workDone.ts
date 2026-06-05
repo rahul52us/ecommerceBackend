@@ -192,7 +192,7 @@ export const deleteWorkDone = async (data: any) => {
 
 export const getPatientStatementData = async (query: any) => {
   try {
-    const { patientId, company, doctorId, status, startDate, endDate } = query;
+    const { patientId, company, doctorId, status, startDate, endDate, toothNumber } = query;
     const pId = toObjectId(patientId);
     const cId = toObjectId(company);
 
@@ -209,6 +209,13 @@ export const getPatientStatementData = async (query: any) => {
       isActive: { $ne: false }
     };
 
+    if (toothNumber && toothNumber !== 'all' && toothNumber !== 'undefined') {
+      const teeth = String(toothNumber).split(',').map(t => t.trim()).filter(Boolean);
+      if (teeth.length > 0) {
+        findQuery.tooth = { $in: teeth };
+      }
+    }
+
     if (doctorId && doctorId !== "all") {
       findQuery.doctor = toObjectId(doctorId);
     }
@@ -224,7 +231,7 @@ export const getPatientStatementData = async (query: any) => {
     }
 
     const records = await WorkDoneSchema.find(findQuery)
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .populate("doctor", "name")
       .populate("examiningDoctor", "name");
 

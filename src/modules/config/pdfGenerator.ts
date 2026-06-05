@@ -115,7 +115,8 @@ export const generateStatementPDF = (data: any, stream: any) => {
   // Rebalanced Column Widths
   const colX = {
     date: MARGIN + 10,
-    treatment: MARGIN + 70,
+    tooth: MARGIN + 70,
+    treatment: MARGIN + 110,
     doctor: MARGIN + 280,
     fees: MARGIN + 385,
     paid: MARGIN + 445,
@@ -127,6 +128,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .fontSize(8)
     .font("Helvetica-Bold")
     .text("DATE", colX.date, tableTop + 9)
+    .text("TOOTH", colX.tooth, tableTop + 9)
     .text("TREATMENT / PROCEDURE", colX.treatment, tableTop + 9)
     .text("DOCTOR", colX.doctor, tableTop + 9)
     .text("FEES", colX.fees, tableTop + 9, { width: 50, align: "right" })
@@ -148,6 +150,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
 
     const date = new Date(record.createdAt).toLocaleDateString('en-IN');
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
+    const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
     const bill = record.amount - (record.discount || 0);
     const paid = record.receivedAmount || 0;
@@ -160,7 +163,8 @@ export const generateStatementPDF = (data: any, stream: any) => {
       .font("Helvetica-Bold")
       .text(date, colX.date, y + 9)
       .font("Helvetica")
-      .text(treatment, colX.treatment, y + 9, { width: 200, height: 12, ellipsis: true })
+      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
+      .text(treatment, colX.treatment, y + 9, { width: 160, height: 12, ellipsis: true })
       .fillColor(COLORS.textMuted)
       .text(doctor, colX.doctor, y + 9, { width: 100, height: 12, ellipsis: true })
       .fillColor(COLORS.textMain)
