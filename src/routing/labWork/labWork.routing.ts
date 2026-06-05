@@ -27,6 +27,7 @@ LabWorkRouter.get("/", authenticate, async (req: any, res) => {
   if (req.query.doctor) (query as any)["primaryDoctor"] = req.query.doctor;
   if (req.query.workType) (query as any)["workType"] = req.query.workType;
   if (req.query.status) (query as any)["status"] = req.query.status;
+  if (req.query.search) (query as any)["search"] = req.query.search;
   if (req.userId && req.bodyData.userType === "staff") {
     console.log("true");
     (query as any)["createdBy"] = new mongoose.Types.ObjectId(req.userId);

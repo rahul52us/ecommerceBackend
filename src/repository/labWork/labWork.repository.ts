@@ -38,6 +38,7 @@ class LabWorkRepository {
           as: "patientData",
         },
       },
+      { $unwind: { path: "$patientData", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "users",
@@ -46,6 +47,7 @@ class LabWorkRepository {
           as: "doctorData",
         },
       },
+      { $unwind: { path: "$doctorData", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "labs",
@@ -54,22 +56,26 @@ class LabWorkRepository {
           as: "labData",
         },
       },
+      { $unwind: { path: "$labData", preserveNullAndEmptyArrays: true } },
     ];
 
     if (search) {
-      const searchRegex = new RegExp(search, "i");
       pipeline.push({
         $match: {
           $or: [
-            { labInstructions: searchRegex },
-            { labNameManual: searchRegex },
-            { patientNameManual: searchRegex },
-            { doctorNameManual: searchRegex },
-            { warrantyCardNumber: searchRegex },
-            { "selectedWorks.customNotes": searchRegex },
-            { "patientData.name": searchRegex },
-            { "doctorData.name": searchRegex },
-            { "labData.name": searchRegex },
+            { labInstructions: { $regex: search, $options: "i" } },
+            { labNameManual: { $regex: search, $options: "i" } },
+            { patientNameManual: { $regex: search, $options: "i" } },
+            { doctorNameManual: { $regex: search, $options: "i" } },
+            { warrantyCardNumber: { $regex: search, $options: "i" } },
+            { "selectedWorks.customNotes": { $regex: search, $options: "i" } },
+            { "patientData.name": { $regex: search, $options: "i" } },
+            { "patientData.mobileNumber": { $regex: search, $options: "i" } },
+            { "patientData.code": { $regex: search, $options: "i" } },
+            { "doctorData.name": { $regex: search, $options: "i" } },
+            { "doctorData.mobileNumber": { $regex: search, $options: "i" } },
+            { "doctorData.code": { $regex: search, $options: "i" } },
+            { "labData.name": { $regex: search, $options: "i" } },
           ],
         },
       });
