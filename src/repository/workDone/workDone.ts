@@ -159,7 +159,7 @@ export const updateWorkDone = async (data: any) => {
     const {
       id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
       tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
-      receivedAmount, paymentAmount, paymentMethod, user
+      receivedAmount, paymentAmount, paymentMethod, paymentHistory, user
     } = data;
 
     const updateQuery: any = {
@@ -170,7 +170,13 @@ export const updateWorkDone = async (data: any) => {
       }
     };
 
-    if (paymentAmount) {
+    if (paymentHistory !== undefined) {
+      // Full paymentHistory replacement (e.g. editing an existing payment entry)
+      updateQuery.$set.paymentHistory = paymentHistory;
+      // Also update receivedAmount as sum of all entries if not explicitly provided
+      const totalReceived = paymentHistory.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      updateQuery.$set.receivedAmount = receivedAmount !== undefined ? receivedAmount : totalReceived;
+    } else if (paymentAmount) {
       updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date(), paymentMethod } };
       updateQuery.$inc = { receivedAmount: paymentAmount };
     } else if (receivedAmount !== undefined) {
