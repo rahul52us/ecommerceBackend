@@ -29,6 +29,7 @@ import labWorkStatusRouting from "./labWork/labWorkStatus.routing";
 import workDoneRouting from "./workDone/workDone.routing";
 import prescriptionRouting from "./prescription/prescription.routing";
 import accountabilityRouting from "./accountability/accountability.routing";
+import patientDocumentRouting from "./patientDocument/patientDocument.routing";
 
 
 const importRoutings = (app: any) => {
@@ -64,6 +65,7 @@ const importRoutings = (app: any) => {
   app.use('/api/workDone', workDoneRouting)
   app.use('/api/prescription', prescriptionRouting)
   app.use('/api/accountability', accountabilityRouting)
+  app.use('/api/patient-documents', patientDocumentRouting)
 };
 
 
