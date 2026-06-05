@@ -290,12 +290,56 @@ export const getTodayChairSummary = async (query: any) => {
               }
             },
             {
+              $lookup: {
+                from: "workdones",
+                let: { patientId: "$patient._id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ["$patient", "$$patientId"] },
+                      status: "pending",
+                      isActive: true
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ],
+                as: "pendingWorkDoneData"
+              }
+            },
+            {
+              $lookup: {
+                from: "workdones",
+                let: { patientId: "$patient._id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ["$patient", "$$patientId"] },
+                      status: "incomplete",
+                      isActive: true
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ],
+                as: "incompleteWorkDoneData"
+              }
+            },
+            {
               $addFields: {
                 "patient.pendingTreatmentCount": {
                   $ifNull: [{ $arrayElemAt: ["$pendingTreatmentsData.count", 0] }, 0]
                 },
                 "patient.incompleteTreatmentCount": {
                   $ifNull: [{ $arrayElemAt: ["$incompleteTreatmentsData.count", 0] }, 0]
+                },
+                "patient.pendingWorkDoneCount": {
+                  $ifNull: [{ $arrayElemAt: ["$pendingWorkDoneData.count", 0] }, 0]
+                },
+                "patient.incompleteWorkDoneCount": {
+                  $ifNull: [{ $arrayElemAt: ["$incompleteWorkDoneData.count", 0] }, 0]
                 }
               }
             },
