@@ -659,7 +659,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
  * GENERATE SPECIALIZED WORK DONE CLINICAL REPORT WITH PRESCRIPTIONS
  */
 export const generateWorkDoneReportPDF = (data: any, stream: any) => {
-  const { patient, clinic, records, prescriptions: customPrescriptions, topPadding = 0, bottomPadding = 0 } = data;
+  const { patient, clinic, records, prescriptions: customPrescriptions, topPadding = 0, bottomPadding = 0, reportType = "both" } = data;
   const record = records[0] || {};
   const doc = new PDFDocument({
     margin: 0,
@@ -687,8 +687,10 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
   y += 15; // Extra padding from top border
 
+  console.log('the patient are', patient)
+
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
-  doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For    ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
+  doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For  ${patient?.profile_details?.personalInfo?.title ? (patient?.profile_details?.personalInfo?.title?.label || patient?.profile_details?.personalInfo?.title) : ""}  ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
 
   y += 18; // Extra padding between the two lines
 
@@ -730,29 +732,34 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
 
   y += 25;
 
-  // --- DOCTOR & PATIENT NOTES ---
-  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr.${(record.doctor as any)?.name || "N/A"}`, MARGIN, y);
-  y += 18;
+  if (reportType === "both" || reportType === "workdone_only") {
+    // --- DOCTOR & PATIENT NOTES ---
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr.${(record.doctor as any)?.name || "N/A"}`, MARGIN, y);
+    y += 18;
 
-  if (record.workDoneNote) {
-    doc.font("Helvetica-Oblique").fontSize(10).text(record.workDoneNote, MARGIN, y, { width: CONTENT_WIDTH });
-    y += doc.heightOfString(record.workDoneNote, { width: CONTENT_WIDTH }) + 10;
-  }
+    // --- NOTE & TOOTH DETAILS ON SAME LINE ---
+    let noteText = record.workDoneNote || "";
+    const toothDesc = record.tooth ? `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim().toUpperCase() : "";
 
-  // --- TOOTH DETAILS ---
-  if (record.tooth) {
-    const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim();
-    if (toothDesc) {
-      doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y, { width: CONTENT_WIDTH });
-      y += doc.heightOfString(toothDesc.toUpperCase(), { width: CONTENT_WIDTH }) + 5;
+  if (noteText && toothDesc) {
+    doc.font("Helvetica-Bold").fontSize(10).text(`${toothDesc}    `, MARGIN, y, { continued: true })
+       .font("Helvetica-Oblique").text(noteText);
+    y += doc.heightOfString(`${toothDesc}    ${noteText}`, { width: CONTENT_WIDTH }) + 10;
+  } else if (noteText) {
+    doc.font("Helvetica-Oblique").fontSize(10).text(noteText, MARGIN, y, { width: CONTENT_WIDTH });
+    y += doc.heightOfString(noteText, { width: CONTENT_WIDTH }) + 10;
+  } else if (toothDesc) {
+    doc.font("Helvetica-Bold").fontSize(10).text(toothDesc, MARGIN, y, { width: CONTENT_WIDTH });
+    y += doc.heightOfString(toothDesc, { width: CONTENT_WIDTH }) + 10;
+    } else {
+      y += 10;
     }
   }
 
-  y += 10;
-
   // --- PRESCRIPTION SECTION ---
-  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription:", MARGIN, y);
-  y += 20;
+  if ((reportType === "both" || reportType === "prescription_only") && customPrescriptions && customPrescriptions.length > 0) {
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription:", MARGIN, y);
+    y += 20;
 
   console.log('the prescription is', customPrescriptions)
   const prescriptionsToUse = customPrescriptions || [];
@@ -808,6 +815,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.lineWidth(0.2).strokeColor("#dddddd").moveTo(MARGIN + 25, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
   });
+  }
 
   // Remove manual empty space as requested
   y += 10;
@@ -819,7 +827,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
  * GENERATE SPECIALIZED WORK DONE CLINICAL REPORT WITH PRESCRIPTIONS FOR MULTIPLE FILTERED RECORDS
  */
 export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
-  const { patient, clinic, records, prescriptions: customPrescriptions, topPadding = 0, bottomPadding = 0 } = data;
+  const { patient, clinic, records, prescriptions: customPrescriptions, topPadding = 0, bottomPadding = 0, reportType = "both" } = data;
   const safeRecords = Array.isArray(records) ? records : (records ? [records] : []);
   const doc = new PDFDocument({
     margin: 0,
@@ -849,7 +857,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
   const titleDate = safeRecords.length > 0 ? new Date(safeRecords[0].createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-  doc.text(`Filtered Work Done on  ${titleDate}  For    ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
+  doc.text(`Filtered Work Done on  ${titleDate}  For  ${patient?.profile_details?.personalInfo?.title ? (patient?.profile_details?.personalInfo?.title?.label || patient?.profile_details?.personalInfo?.title) : ""}  ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
 
   y += 18; // Extra padding between the two lines
 
@@ -891,42 +899,82 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
   y += 25;
 
-  // --- DOCTOR & PATIENT NOTES (For each record) ---
-  safeRecords.forEach((record: any, index: number) => {
-    if (index > 0) {
+  if (reportType === "both" || reportType === "workdone_only") {
+    // --- DOCTOR & PATIENT NOTES (Grouped by Doctor) ---
+    const recordsByDoctor: { [key: string]: any[] } = {};
+    safeRecords.forEach((record: any) => {
+      const doctorName = (record.doctor as any)?.name || "N/A";
+      if (!recordsByDoctor[doctorName]) {
+        recordsByDoctor[doctorName] = [];
+      }
+      recordsByDoctor[doctorName].push(record);
+    });
+
+  const pageBottomLimit = 780 - Number(bottomPadding);
+
+  Object.keys(recordsByDoctor).forEach((doctorName, docIndex) => {
+    if (docIndex > 0) {
       doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
       y += 15;
     }
 
-    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${(record.doctor as any)?.name || "N/A"}`, MARGIN, y);
+    if (y > pageBottomLimit - 40) {
+      doc.addPage({ margin: 0 });
+      y = 50;
+    }
 
-    // Add Date for this record
-    const recordDate = new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMuted).text(recordDate, MARGIN, y, { width: CONTENT_WIDTH, align: 'right' });
-
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${doctorName}`, MARGIN, y);
     y += 18;
 
-    doc.fillColor(COLORS.textMain); // Reset color to main text color for following fields
+    recordsByDoctor[doctorName].forEach((record: any, recIndex: number) => {
+      // Add Date for this record
+      const recordDate = new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      
+      let noteText = record.workDoneNote || "";
+      const toothDesc = record.tooth ? `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim().toUpperCase() : "";
 
+      // Estimate height needed for this record
+      let recordHeight = 14 + 10; // Date height + bottom padding
+      if (noteText && toothDesc) recordHeight += doc.heightOfString(`${toothDesc}    ${noteText}`, { width: CONTENT_WIDTH });
+      else if (noteText) recordHeight += doc.heightOfString(noteText, { width: CONTENT_WIDTH });
+      else if (toothDesc) recordHeight += doc.heightOfString(toothDesc, { width: CONTENT_WIDTH });
 
-    if (record.workDoneNote) {
-      doc.font("Helvetica-Oblique").fontSize(10).text(record.workDoneNote, MARGIN, y, { width: CONTENT_WIDTH });
-      y += doc.heightOfString(record.workDoneNote, { width: CONTENT_WIDTH }) + 10;
-    }
-
-    // --- TOOTH DETAILS ---
-    if (record.tooth) {
-      const toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim();
-      if (toothDesc) {
-        doc.font("Helvetica-Bold").fontSize(10).text(toothDesc.toUpperCase(), MARGIN, y, { width: CONTENT_WIDTH });
-        y += doc.heightOfString(toothDesc.toUpperCase(), { width: CONTENT_WIDTH }) + 5;
+      if (y + recordHeight > pageBottomLimit) {
+        doc.addPage({ margin: 0 });
+        y = 50;
+        doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${doctorName} (cont.)`, MARGIN, y);
+        y += 18;
       }
-    }
-    y += 10;
+
+      if (recIndex > 0) {
+        y += 5; // Spacing between records of the same doctor
+      }
+
+      doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMuted).text(recordDate, MARGIN, y);
+      y += 14;
+
+      doc.fillColor(COLORS.textMain); // Reset color to main text color for following fields
+
+      // --- NOTE & TOOTH DETAILS ON SAME LINE ---
+      if (noteText && toothDesc) {
+        doc.font("Helvetica-Bold").fontSize(10).text(`${toothDesc}    `, MARGIN, y, { continued: true })
+           .font("Helvetica-Oblique").text(noteText);
+        y += doc.heightOfString(`${toothDesc}    ${noteText}`, { width: CONTENT_WIDTH }) + 10;
+      } else if (noteText) {
+        doc.font("Helvetica-Oblique").fontSize(10).text(noteText, MARGIN, y, { width: CONTENT_WIDTH });
+        y += doc.heightOfString(noteText, { width: CONTENT_WIDTH }) + 10;
+      } else if (toothDesc) {
+        doc.font("Helvetica-Bold").fontSize(10).text(toothDesc, MARGIN, y, { width: CONTENT_WIDTH });
+        y += doc.heightOfString(toothDesc, { width: CONTENT_WIDTH }) + 10;
+      } else {
+        y += 10;
+      }
+    });
   });
+  }
 
   // --- PRESCRIPTION SECTION ---
-  if (customPrescriptions && customPrescriptions.length > 0) {
+  if ((reportType === "both" || reportType === "prescription_only") && customPrescriptions && customPrescriptions.length > 0) {
     doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription:", MARGIN, y);
     y += 20;
 
@@ -1038,7 +1086,7 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
 
     // Patient Info Row
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text("Patient:", MARGIN, y, { continued: true });
-    doc.font("Helvetica").text(` ${patientToUse?.name || "N/A"}`, { continued: true });
+    doc.font("Helvetica").text(` ${patientToUse?.title ? (patientToUse?.title?.label || patientToUse?.title) : ""} ${patientToUse?.name || "N/A"}`, { continued: true });
     doc.font("Helvetica-Bold").text("    Age/Sex:", { continued: true });
     doc.font("Helvetica").text(` ${calculateAge(patientToUse?.profile_details?.personalInfo?.dob) || "N/A"} / ${patientToUse?.profile_details?.personalInfo?.gender ? patientToUse?.profile_details?.personalInfo?.gender === 1 ? "Male" : "Female" : "N/A"}`, { continued: true });
     doc.font("Helvetica-Bold").text("    Date:", { continued: true });

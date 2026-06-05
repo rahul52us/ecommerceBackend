@@ -349,11 +349,14 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
 
     console.log("thi i called")
 
+    const reportType = req.query.reportType || req.body.reportType || "both";
+
     generateWorkDoneReportPDF({
       ...data,
       prescriptions: req.body.prescriptions,
       topPadding: req.body.topPadding,
-      bottomPadding: req.body.bottomPadding
+      bottomPadding: req.body.bottomPadding,
+      reportType
     }, stream);
   } catch (err: any) {
     return res.status(500).send({
@@ -450,7 +453,7 @@ export const getWorkDoneCountByDateService = async (req: any, res: any) => {
 export const generateFilteredWorkDoneReportService = async (req: any, res: any) => {
   try {
     const { patientId } = req.params;
-    const { company, treatmentId, fromDate, toDate, doctorId } = req.query;
+    const { company, treatmentId, fromDate, toDate, doctorId, toothNumber, reportType } = req.query;
     const { prescriptions, topPadding, bottomPadding } = req.body;
 
     const result: any = await getWorkDone({
@@ -460,6 +463,7 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       fromDate,
       toDate,
       doctorId,
+      toothNumber,
       limit: 1000,
       page: 1
     });
@@ -518,7 +522,8 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       patient,
       prescriptions: dbPrescriptions,
       topPadding,
-      bottomPadding
+      bottomPadding,
+      reportType: reportType || "both"
     }, stream);
 
   } catch (err: any) {

@@ -37,7 +37,7 @@ export const getWorkDone = async (query: any) => {
     const pageNum = Number(query.page) || 1;
     const limitNum = Number(query.limit) || 10;
     const skip = (pageNum - 1) * limitNum;
-    const { patientId, treatmentId, company, doctorId } = query;
+    const { patientId, treatmentId, company, doctorId, toothNumber } = query;
 
     const companyId = toObjectId(company);
     const patId = toObjectId(patientId);
@@ -58,6 +58,13 @@ export const getWorkDone = async (query: any) => {
       const docIds = String(doctorId).split(',').map((id: string) => toObjectId(id.trim())).filter(Boolean);
       if (docIds.length > 0) {
         matchStage.doctor = { $in: docIds };
+      }
+    }
+    
+    if (toothNumber && toothNumber !== 'all' && toothNumber !== 'undefined') {
+      const teeth = String(toothNumber).split(',').map(t => t.trim()).filter(Boolean);
+      if (teeth.length > 0) {
+        matchStage.tooth = { $in: teeth };
       }
     }
     
