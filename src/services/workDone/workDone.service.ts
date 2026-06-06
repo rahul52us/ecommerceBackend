@@ -13,6 +13,7 @@ import {
   getDailyWorkDoneData,
   getWorkDoneCountByDate,
 } from "../../repository/workDone/workDone";
+import { createReceipt } from "../../repository/receipt/receipt.repository";
 import {
   generateStatementPDF,
   generateSingleRecordPDF,
@@ -210,6 +211,19 @@ export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
       return res.status(statusCode).send({ status: success, message });
     }
 
+    // Create Receipt document
+    const record = data.records[0];
+    const receiptResult = await createReceipt({
+      patient: (record.patient as any)?._id || record.patient,
+      workDone: record._id,
+      company: req.query.company,
+      generatedBy: req.userId,
+    });
+
+    // Attach receipt number to data for PDF
+    const receiptNumber = receiptResult?.data?.receiptNumber || "N/A";
+    data.receiptNumber = receiptNumber;
+
     const chunks: any[] = [];
     const stream = new (require("stream").PassThrough)();
 
@@ -220,7 +234,8 @@ export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
       return res.status(200).send({
         status: "success",
         message: "Single Record PDF generated successfully",
-        data: base64
+        data: base64,
+        receiptNumber,
       });
     });
 
@@ -285,6 +300,18 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
       return res.status(statusCode).send({ status: success, message });
     }
 
+    // Create Receipt document
+    const receiptResult = await createReceipt({
+      patient: (data.patient as any)?._id || data.patient,
+      workDone: data.record._id,
+      company: req.query.company,
+      generatedBy: req.userId,
+    });
+
+    // Attach receipt number to data for PDF
+    const receiptNumber = receiptResult?.data?.receiptNumber || "N/A";
+    data.record.receiptNumber = receiptNumber;
+
     const chunks: any[] = [];
     const stream = new (require("stream").PassThrough)();
 
@@ -302,7 +329,8 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
         return res.status(200).send({
           status: "success",
           message: "Payment Receipt PDF generated successfully",
-          data: base64
+          data: base64,
+          receiptNumber,
         });
       } catch (err: any) {
         if (!res.headersSent) {

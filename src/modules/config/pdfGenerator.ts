@@ -250,8 +250,9 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
 
   // --- HEADER ---
   doc.rect(0, 0, PAGE_WIDTH, 140).fill(COLORS.brand);
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(24).text("TREATMENT RECEIPT", MARGIN, 40);
-  doc.fontSize(10).opacity(0.8).text(`Date: ${new Date().toLocaleDateString()}`, MARGIN, 70);
+  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(24).text("TREATMENT RECEIPT", MARGIN, 35);
+  doc.fontSize(10).opacity(0.8).text(`Date: ${new Date().toLocaleDateString()}`, MARGIN, 65);
+  doc.fontSize(10).text(`Receipt No: ${data.receiptNumber || "N/A"}`, MARGIN, 80);
 
   // Clinic Info (Top Right)
   doc.opacity(1).fontSize(14).text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", PAGE_WIDTH - MARGIN - 200, 40, { align: "right", width: 200 });
@@ -616,8 +617,9 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   }
 
   // --- CARD HEADER ---
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(24).text("RECEIPT", 0, 45, { align: "center", width: WIDTH });
-  doc.fontSize(8).font("Helvetica").opacity(0.8).text("OFFICIAL PAYMENT ACKNOWLEDGMENT", 0, 75, { align: "center", width: WIDTH });
+  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(24).text("RECEIPT", 0, 40, { align: "center", width: WIDTH });
+  doc.fontSize(8).font("Helvetica").opacity(0.8).text("OFFICIAL PAYMENT ACKNOWLEDGMENT", 0, 70, { align: "center", width: WIDTH });
+  doc.fontSize(9).font("Helvetica-Bold").opacity(0.9).text(`No: ${record.receiptNumber || "N/A"}`, 0, 85, { align: "center", width: WIDTH });
 
   // Clinic Details
   let y = 145;
