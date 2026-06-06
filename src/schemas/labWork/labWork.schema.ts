@@ -98,6 +98,18 @@ const labWorkSchema = new mongoose.Schema(
     delay: {
       type: Number, // Difference in days between dueDate and receivedDate
     },
+    itemsReceived: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    itemsSent: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    returnableItems: {
+      type: String,
+      trim: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
