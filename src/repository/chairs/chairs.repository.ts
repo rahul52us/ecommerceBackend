@@ -164,282 +164,362 @@ export const updateChairsRepo = async (id: string, payload: any) => {
   }
 };
 
-export const getTodayChairSummary = async (query: any) => {
-  try {
-    const { company, date, status, userId, userType } = query;
+  export const getTodayChairSummary = async (query: any) => {
+    try {
+      const { company, date, status, userId, userType } = query;
 
-    let baseDate: Date;
+      let baseDate: Date;
 
-    if (date) {
-      const [year, month, day] = date.split("-").map(Number);
-      baseDate = new Date(year, month - 1, day);
-    } else {
-      baseDate = new Date();
-    }
+      if (date) {
+        const [year, month, day] = date.split("-").map(Number);
+        baseDate = new Date(year, month - 1, day);
+      } else {
+        baseDate = new Date();
+      }
 
-    const dayStart = new Date(baseDate);
-    dayStart.setHours(0, 0, 0, 0);
+      const dayStart = new Date(baseDate);
+      dayStart.setHours(0, 0, 0, 0);
 
-    const dayEnd = new Date(baseDate);
-    dayEnd.setHours(23, 59, 59, 999);
+      const dayEnd = new Date(baseDate);
+      dayEnd.setHours(23, 59, 59, 999);
 
-    const companyMatch = company
-      ? { company: new mongoose.Types.ObjectId(company) }
-      : {};
+      const companyMatch = company
+        ? { company: new mongoose.Types.ObjectId(company) }
+        : {};
 
-    console.log('the data areq', query)
+      // Dynamic status match
+      const statusMatch = status
+        ? { status: status }
+        : { status: { $ne: "cancelled" } };
 
-    // Dynamic status match
-    const statusMatch = status
-      ? { status: status }
-      : { status: { $ne: "cancelled" } };
+      const pipeline: any = [
+        { $match: companyMatch },
 
-    const pipeline: any = [
-      { $match: companyMatch },
-
-      {
-        $lookup: {
-          from: "appointments",
-          let: { chairId: "$_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$chair", "$$chairId"] },
-                ...statusMatch, // apply dynamic status filter
-                appointmentDate: { $gte: dayStart, $lte: dayEnd },
-                ...(userType === "staff" && userId
-                  ? { createdBy: new mongoose.Types.ObjectId(userId) }
-                  : {}),
-              },
-            },
-            {
-              $lookup: {
-                from: "users",
-                localField: "primaryDoctor",
-                foreignField: "_id",
-                as: "primaryDoctor",
-              },
-            },
-            { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
-
-            {
-              $lookup: {
-                from: "users",
-                localField: "additionalDoctors",
-                foreignField: "_id",
-                as: "additionalDoctors",
-              },
-            },
-
-            {
-              $lookup: {
-                from: "users",
-                localField: "patient",
-                foreignField: "_id",
-                as: "patient",
-              },
-            },
-            { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
-
-            {
-              $lookup: {
-                from: "profiledetails",
-                localField: "patient.profile_details",
-                foreignField: "_id",
-                as: "patient.profileDetails",
-              },
-            },
-            { $unwind: { path: "$patient.profileDetails", preserveNullAndEmptyArrays: true } },
-
-            {
-              $lookup: {
-                from: "toothtreatments",
-                let: { patientId: "$patient._id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: { $eq: ["$patient", "$$patientId"] },
-                      status: "pending",
-                      isActive: true
-                    }
-                  },
-                  {
-                    $count: "count"
-                  }
-                ],
-                as: "pendingTreatmentsData"
-              }
-            },
-            {
-              $lookup: {
-                from: "toothtreatments",
-                let: { patientId: "$patient._id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: { $eq: ["$patient", "$$patientId"] },
-                      status: "incomplete",
-                      isActive: true
-                    }
-                  },
-                  {
-                    $count: "count"
-                  }
-                ],
-                as: "incompleteTreatmentsData"
-              }
-            },
-            {
-              $lookup: {
-                from: "workdones",
-                let: { patientId: "$patient._id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: { $eq: ["$patient", "$$patientId"] },
-                      status: "pending",
-                      isActive: true
-                    }
-                  },
-                  {
-                    $count: "count"
-                  }
-                ],
-                as: "pendingWorkDoneData"
-              }
-            },
-            {
-              $lookup: {
-                from: "workdones",
-                let: { patientId: "$patient._id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: { $eq: ["$patient", "$$patientId"] },
-                      status: "incomplete",
-                      isActive: true
-                    }
-                  },
-                  {
-                    $count: "count"
-                  }
-                ],
-                as: "incompleteWorkDoneData"
-              }
-            },
-            {
-              $addFields: {
-                "patient.pendingTreatmentCount": {
-                  $ifNull: [{ $arrayElemAt: ["$pendingTreatmentsData.count", 0] }, 0]
+        {
+          $lookup: {
+            from: "appointments",
+            let: { chairId: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$chair", "$$chairId"] },
+                  ...statusMatch, // apply dynamic status filter
+                  appointmentDate: { $gte: dayStart, $lte: dayEnd },
+                  ...(userType === "staff" && userId
+                    ? { createdBy: new mongoose.Types.ObjectId(userId) }
+                    : {}),
                 },
-                "patient.incompleteTreatmentCount": {
-                  $ifNull: [{ $arrayElemAt: ["$incompleteTreatmentsData.count", 0] }, 0]
+              },
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "primaryDoctor",
+                  foreignField: "_id",
+                  as: "primaryDoctor",
                 },
-                "patient.pendingWorkDoneCount": {
-                  $ifNull: [{ $arrayElemAt: ["$pendingWorkDoneData.count", 0] }, 0]
+              },
+              { $unwind: { path: "$primaryDoctor", preserveNullAndEmptyArrays: true } },
+
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "additionalDoctors",
+                  foreignField: "_id",
+                  as: "additionalDoctors",
                 },
-                "patient.incompleteWorkDoneCount": {
-                  $ifNull: [{ $arrayElemAt: ["$incompleteWorkDoneData.count", 0] }, 0]
+              },
+
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "patient",
+                  foreignField: "_id",
+                  as: "patient",
+                },
+              },
+              { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+
+              {
+                $lookup: {
+                  from: "profiledetails",
+                  localField: "patient.profile_details",
+                  foreignField: "_id",
+                  as: "patient.profileDetails",
+                },
+              },
+              { $unwind: { path: "$patient.profileDetails", preserveNullAndEmptyArrays: true } },
+
+              {
+                $lookup: {
+                  from: "toothtreatments",
+                  let: { patientId: "$patient._id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$patient", "$$patientId"] },
+                        status: "pending",
+                        isActive: true
+                      }
+                    },
+                    {
+                      $count: "count"
+                    }
+                  ],
+                  as: "pendingTreatmentsData"
                 }
+              },
+              {
+                $lookup: {
+                  from: "toothtreatments",
+                  let: { patientId: "$patient._id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$patient", "$$patientId"] },
+                        status: "incomplete",
+                        isActive: true
+                      }
+                    },
+                    {
+                      $count: "count"
+                    }
+                  ],
+                  as: "incompleteTreatmentsData"
+                }
+              },
+              {
+    $lookup: {
+      from: "workdones",
+      let: { patientId: "$patient._id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ["$patient", "$$patientId"] },
+            isActive: { $ne: false }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalBill: {
+              $sum: {
+                $subtract: [
+                  { $ifNull: ["$amount", 0] },
+                  { $ifNull: ["$discount", 0] }
+                ]
               }
             },
-
-            {
-              $project: {
-                _id: 1,
-                title: 1,
-                description: 1,
-                status: 1,
-                mode: 1,
-                appointmentDate: 1,
-                startTime: 1,
-                endTime: 1,
-                shiftOrCancelledReason: 1,
-                primaryDoctor: {
-                  _id: "$primaryDoctor._id",
-                  name: "$primaryDoctor.name",
-                  code: "$primaryDoctor.code",
-                  mobileNumber: "$primaryDoctor.mobileNumber"
-                },
-
-                additionalDoctors: {
-                  _id: 1,
-                  name: 1,
-                  code: 1,
-                },
-
-                patient: "$patient",
+            totalReceived: {
+              $sum: { $ifNull: ["$receivedAmount", 0] }
+            }
+          }
+        }
+      ],
+      as: "patientBillingData"
+    }
+  },
+              {
+                $lookup: {
+                  from: "workdones",
+                  let: { patientId: "$patient._id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$patient", "$$patientId"] },
+                        status: "pending",
+                        isActive: true
+                      }
+                    },
+                    {
+                      $count: "count"
+                    }
+                  ],
+                  as: "pendingWorkDoneData"
+                }
               },
-            },
-          ],
-          as: "appointments",
-        },
+              {
+                $lookup: {
+                  from: "workdones",
+                  let: { patientId: "$patient._id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$patient", "$$patientId"] },
+                        status: "incomplete",
+                        isActive: true
+                      }
+                    },
+                    {
+                      $count: "count"
+                    }
+                  ],
+                  as: "incompleteWorkDoneData"
+                }
+              },
+              {
+    $addFields: {
+      "patient.pendingTreatmentCount": {
+        $ifNull: [
+          { $arrayElemAt: ["$pendingTreatmentsData.count", 0] },
+          0
+        ]
       },
 
-      {
-        $addFields: {
-          doctors: {
-            $setUnion: [
-              { $map: { input: "$appointments", in: "$$this.primaryDoctor" } },
+      "patient.incompleteTreatmentCount": {
+        $ifNull: [
+          { $arrayElemAt: ["$incompleteTreatmentsData.count", 0] },
+          0
+        ]
+      },
+
+      "patient.pendingWorkDoneCount": {
+        $ifNull: [
+          { $arrayElemAt: ["$pendingWorkDoneData.count", 0] },
+          0
+        ]
+      },
+
+      "patient.incompleteWorkDoneCount": {
+        $ifNull: [
+          { $arrayElemAt: ["$incompleteWorkDoneData.count", 0] },
+          0
+        ]
+      },
+
+      "patient.totalBill": {
+        $ifNull: [
+          { $arrayElemAt: ["$patientBillingData.totalBill", 0] },
+          0
+        ]
+      },
+
+      "patient.totalReceived": {
+        $ifNull: [
+          { $arrayElemAt: ["$patientBillingData.totalReceived", 0] },
+          0
+        ]
+      },
+
+      "patient.patientPendingBalance": {
+        $max: [
+          0,
+          {
+            $subtract: [
               {
-                $reduce: {
-                  input: "$appointments.additionalDoctors",
-                  initialValue: [],
-                  in: { $concatArrays: ["$$value", "$$this"] },
+                $ifNull: [
+                  { $arrayElemAt: ["$patientBillingData.totalBill", 0] },
+                  0
+                ]
+              },
+              {
+                $ifNull: [
+                  { $arrayElemAt: ["$patientBillingData.totalReceived", 0] },
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+              },
+
+              {
+                $project: {
+                  _id: 1,
+                  title: 1,
+                  description: 1,
+                  status: 1,
+                  mode: 1,
+                  appointmentDate: 1,
+                  startTime: 1,
+                  endTime: 1,
+                  shiftOrCancelledReason: 1,
+                  primaryDoctor: {
+                    _id: "$primaryDoctor._id",
+                    name: "$primaryDoctor.name",
+                    code: "$primaryDoctor.code",
+                    mobileNumber: "$primaryDoctor.mobileNumber"
+                  },
+
+                  additionalDoctors: {
+                    _id: 1,
+                    name: 1,
+                    code: 1,
+                  },
+
+                  patient: "$patient",
                 },
               },
             ],
+            as: "appointments",
           },
         },
-      },
 
-      {
-        $addFields: {
-          patients: {
-            $setUnion: [{ $map: { input: "$appointments", in: "$$this.patient" } }],
+        {
+          $addFields: {
+            doctors: {
+              $setUnion: [
+                { $map: { input: "$appointments", in: "$$this.primaryDoctor" } },
+                {
+                  $reduce: {
+                    input: "$appointments.additionalDoctors",
+                    initialValue: [],
+                    in: { $concatArrays: ["$$value", "$$this"] },
+                  },
+                },
+              ],
+            },
           },
         },
-      },
 
-      {
-        $addFields: {
-          count: { $size: "$appointments" },
+        {
+          $addFields: {
+            patients: {
+              $setUnion: [{ $map: { input: "$appointments", in: "$$this.patient" } }],
+            },
+          },
         },
-      },
 
-      {
-        $project: {
-          _id: 1,
-          chairName: 1,
-          chairNo: 1,
-          chairColor: 1,
-          count: 1,
-          appointments: 1,
-          doctors: 1,
-          patients: 1,
+        {
+          $addFields: {
+            count: { $size: "$appointments" },
+          },
         },
-      },
 
-      { $sort: { chairNo: 1 } },
-    ];
+        {
+          $project: {
+            _id: 1,
+            chairName: 1,
+            chairNo: 1,
+            chairColor: 1,
+            count: 1,
+            appointments: 1,
+            doctors: 1,
+            patients: 1,
+          },
+        },
 
-    const data = await Chair.aggregate(pipeline);
+        { $sort: { chairNo: 1 } },
+      ];
 
-    return {
-      status: "success",
-      message: "Chair summary fetched",
-      data,
-      statusCode: 200,
-    };
-  } catch (error: any) {
-    console.error("getTodayChairSummary error:", error);
-    return {
-      status: "error",
-      message: "Failed to get summary",
-      error: error.message,
-      statusCode: 500,
-    };
-  }
-};
+      const data = await Chair.aggregate(pipeline);
+
+      return {
+        status: "success",
+        message: "Chair summary fetched",
+        data,
+        statusCode: 200,
+      };
+    } catch (error: any) {
+      console.error("getTodayChairSummary error:", error);
+      return {
+        status: "error",
+        message: "Failed to get summary",
+        error: error.message,
+        statusCode: 500,
+      };
+    }
+  };
 
 
