@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { adultTeeth, childTeeth } from "./teethData";
 
 const calculateAge = (dob: any) => {
   if (!dob) return "";
@@ -763,7 +764,16 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
 
     // --- NOTE & TOOTH DETAILS ON SAME LINE ---
     let noteText = record.workDoneNote || "";
-    const toothDesc = record.tooth ? `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim().toUpperCase() : "";
+    let toothDesc = "";
+    if (record.tooth) {
+      const toothId = String(record.tooth);
+      let toothObj = adultTeeth.find((t: any) => t.id === toothId) || childTeeth.find((t: any) => t.id === toothId);
+      if (toothObj) {
+        toothDesc = `${toothId} ${toothObj.name.toUpperCase()}`;
+      } else {
+        toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim().toUpperCase();
+      }
+    }
 
   if (noteText && toothDesc) {
     doc.font("Helvetica-Bold").fontSize(10).text(`${toothDesc}    `, MARGIN, y, { continued: true })
@@ -957,7 +967,16 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       const recordDate = new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       
       let noteText = record.workDoneNote || "";
-      const toothDesc = record.tooth ? `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim().toUpperCase() : "";
+      let toothDesc = "";
+      if (record.tooth) {
+        const toothId = String(record.tooth);
+        let toothObj = adultTeeth.find((t: any) => t.id === toothId) || childTeeth.find((t: any) => t.id === toothId);
+        if (toothObj) {
+          toothDesc = `${toothId} ${toothObj.name.toUpperCase()}`;
+        } else {
+          toothDesc = `${record.tooth} ${record.side || ""} ${record.position || ""}`.trim().toUpperCase();
+        }
+      }
 
       // Estimate height needed for this record
       let recordHeight = 14 + 10; // Date height + bottom padding
