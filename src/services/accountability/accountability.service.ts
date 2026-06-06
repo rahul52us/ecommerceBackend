@@ -11,6 +11,15 @@ export const createAccountability = async (data: any) => {
   }
 };
 
+export const updateAccountability = async (id: string, data: any) => {
+  try {
+    const accountability = await Accountability.findByIdAndUpdate(id, { $set: data }, { new: true });
+    return { status: "success", data: accountability };
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};
+
 export const getAccountabilityList = async (query: any) => {
   try {
     const { page = 1, limit = 10, companyId, doctorId, payoutStatus, startDate, endDate } = query;
