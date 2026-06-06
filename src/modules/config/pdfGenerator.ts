@@ -284,9 +284,9 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   const fullName = `${title ? title + " " : ""}${patient?.name || "N/A"}`.trim();
 
   const metaArr = [];
-  if (patient?.mobileNumber) metaArr.push(`Mob: ${patient.mobileNumber}`);
-  if (ageStr) metaArr.push(`Age: ${ageStr}`);
-  if (sexStr) metaArr.push(`Sex: ${sexStr}`);
+  // Removed mobile number entirely per user request
+  if (ageStr) metaArr.push(`${ageStr}`);
+  if (sexStr) metaArr.push(`${sexStr}`);
 
   const cardHeight = address ? 100 : 80;
   doc.fillColor(COLORS.bgLight).roundedRect(MARGIN, y, CONTENT_WIDTH, cardHeight, 10).fill();
@@ -709,6 +709,8 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
   y += 15; // Extra padding from top border
 
+  const getPageBottomLimit = () => doc.bufferedPageRange().count === 1 ? 780 : 780 - Number(bottomPadding);
+
   console.log('the patient are', patient)
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
@@ -736,8 +738,8 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   const address = addressObj.residential || addressObj.office || addressObj.other || "";
 
   const metaArr = [];
-  if (ageStr) metaArr.push(`Age: ${ageStr}`);
-  if (sexStr) metaArr.push(`Sex: ${sexStr}`);
+  if (ageStr) metaArr.push(`${ageStr}`);
+  if (sexStr) metaArr.push(`${sexStr}`);
   if (address) metaArr.push(`Address: ${address}`);
 
   if (metaArr.length > 0) {
@@ -794,10 +796,8 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
       itemHeight += 5;
     }
 
-    const pageBottomLimit = 780 - Number(bottomPadding);
-
     // If this item will exceed the bottom limit, start a new page BEFORE printing it
-    if (y + itemHeight > pageBottomLimit) {
+    if (y + itemHeight > getPageBottomLimit()) {
       doc.addPage({ margin: 0 });
       y = 50;
       doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription (cont.):", MARGIN, y);
@@ -842,6 +842,10 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   // Remove manual empty space as requested
   y += 10;
 
+  if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
+    doc.addPage({ margin: 0 });
+  }
+
   doc.end();
 };
 
@@ -879,7 +883,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
   const titleDate = safeRecords.length > 0 ? new Date(safeRecords[0].createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-  doc.text(`Filtered Work Done on  ${titleDate}  For  ${patient?.profile_details?.personalInfo?.title ? (patient?.profile_details?.personalInfo?.title?.label || patient?.profile_details?.personalInfo?.title) : ""}  ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
+  doc.text(`Work Done on  ${titleDate}  For  ${patient?.profile_details?.personalInfo?.title ? (patient?.profile_details?.personalInfo?.title?.label || patient?.profile_details?.personalInfo?.title) : ""}  ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
 
   y += 18; // Extra padding between the two lines
 
@@ -903,8 +907,8 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
   const address = addressObj.residential || addressObj.office || addressObj.other || "";
 
   const metaArr = [];
-  if (ageStr) metaArr.push(`Age: ${ageStr}`);
-  if (sexStr) metaArr.push(`Sex: ${sexStr}`);
+  if (ageStr) metaArr.push(`${ageStr}`);
+  if (sexStr) metaArr.push(`${sexStr}`);
   if (address) metaArr.push(`Address: ${address}`);
 
   if (metaArr.length > 0) {
@@ -921,6 +925,8 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
   y += 25;
 
+  const getPageBottomLimit = () => doc.bufferedPageRange().count === 1 ? 780 : 780 - Number(bottomPadding);
+
   if (reportType === "both" || reportType === "workdone_only") {
     // --- DOCTOR & PATIENT NOTES (Grouped by Doctor) ---
     const recordsByDoctor: { [key: string]: any[] } = {};
@@ -932,15 +938,13 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       recordsByDoctor[doctorName].push(record);
     });
 
-  const pageBottomLimit = 780 - Number(bottomPadding);
-
   Object.keys(recordsByDoctor).forEach((doctorName, docIndex) => {
     if (docIndex > 0) {
       doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
       y += 15;
     }
 
-    if (y > pageBottomLimit - 40) {
+    if (y > getPageBottomLimit() - 40) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
@@ -961,7 +965,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       else if (noteText) recordHeight += doc.heightOfString(noteText, { width: CONTENT_WIDTH });
       else if (toothDesc) recordHeight += doc.heightOfString(toothDesc, { width: CONTENT_WIDTH });
 
-      if (y + recordHeight > pageBottomLimit) {
+      if (y + recordHeight > getPageBottomLimit()) {
         doc.addPage({ margin: 0 });
         y = 50;
         doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${doctorName} (cont.)`, MARGIN, y);
@@ -1012,10 +1016,8 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
         itemHeight += 5;
       }
 
-      const pageBottomLimit = 780 - Number(bottomPadding);
-
       // If this item will exceed the bottom limit, start a new page BEFORE printing it
-      if (y + itemHeight > pageBottomLimit) {
+      if (y + itemHeight > getPageBottomLimit()) {
         doc.addPage({ margin: 0 });
         y = 50;
         doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text("Prescription (cont.):", MARGIN, y);
@@ -1058,6 +1060,10 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
     // Remove manual empty space as requested
     y += 10;
+  }
+
+  if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
+    doc.addPage({ margin: 0 });
   }
 
   doc.end();
