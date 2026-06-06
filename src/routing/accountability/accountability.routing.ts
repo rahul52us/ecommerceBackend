@@ -21,6 +21,15 @@ router.put("/update/:id", async (req, res) => {
   }
 });
 
+router.get("/count-by-date", async (req, res) => {
+  try {
+    const result = await accountabilityService.getAccountabilityCountByDate(req.query);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 router.get("/list", async (req, res) => {
   try {
     const result = await accountabilityService.getAccountabilityList(req.query);

@@ -145,3 +145,34 @@ export const generateAccountabilityReportService = async (query: any) => {
     throw new Error(err.message);
   }
 };
+
+export const getAccountabilityCountByDate = async (query: any) => {
+  try {
+    const { company, patientId } = query;
+    if (!company || !patientId) {
+      throw new Error("Company and Patient ID are required");
+    }
+
+    const accountabilityData = await Accountability.find({
+      company,
+      patient: patientId
+    });
+
+    const counts: { [date: string]: number } = {};
+    accountabilityData.forEach((item: any) => {
+      const date = new Date(item.createdAt).toISOString().split('T')[0];
+      counts[date] = (counts[date] || 0) + 1;
+    });
+
+    const result = Object.keys(counts).map(date => ({
+      date,
+      count: counts[date]
+    }));
+
+    result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return { status: "success", data: result };
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
+};
