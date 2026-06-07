@@ -10,6 +10,8 @@ import {
   getToothTreatmentById,
   deleteToothTreatment,
   getTreatmentCountByDate,
+  getTreatmentsBySitting,
+  assignSittingNo,
 } from "../../repository/toothTreatment/toothTreatment";
 
 
@@ -251,3 +253,58 @@ export const getTreatmentCountByDateService = async (req: any, res: any) => {
   }
 };
 
+/* =====================================================
+   GET TREATMENTS BY SITTING NO
+==================================================== */
+export const getTreatmentsBySittingService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data, totalItems }: any =
+      await getTreatmentsBySitting({
+        ...req.query,
+        patientId: req.query.patientId,
+        company: req.query.company,
+      });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data: {
+        data,
+        totalItems,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/* =====================================================
+   ASSIGN SITTING NO
+===================================================== */
+export const assignSittingNoService = async (
+  req: any,
+  res: any
+) => {
+  try {
+    const { status, statusCode, data, message }: any =
+      await assignSittingNo({
+        ...req.body,
+        treatmentId: new mongoose.Types.ObjectId(req.params.id),
+        user: req.userId,
+      });
+
+    return res.status(statusCode).send({
+      status,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};

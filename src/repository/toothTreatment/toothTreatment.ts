@@ -26,6 +26,7 @@ export const createToothTreatment = async (data: any) => {
       user, // createdBy
       examiningDoctor,
       toothNotation,
+      sittingNo,
     } = data;
 
     const finalRecordType = recordType || "tooth";
@@ -60,6 +61,7 @@ export const createToothTreatment = async (data: any) => {
       totalMax: totalMax || 0,
       toothNote: toothNote || "",
       complaintType: complaintType || "",
+      sittingNo: sittingNo || null,
       createdBy: user,
       examiningDoctor: examiningDoctor || null,
       createdAt: new Date(),
@@ -104,6 +106,7 @@ export const updateToothTreatment = async (data: any) => {
       complaintType,
       user, // updatedBy
       examiningDoctor,
+      sittingNo,
     } = data;
 
     if (!treatmentId) {
@@ -136,6 +139,7 @@ export const updateToothTreatment = async (data: any) => {
     if (toothNote !== undefined) updatePayload.toothNote = toothNote;
     if (complaintType !== undefined) updatePayload.complaintType = complaintType;
     if (examiningDoctor !== undefined) updatePayload.examiningDoctor = examiningDoctor;
+    if (sittingNo !== undefined) updatePayload.sittingNo = sittingNo;
     if (data.position) updatePayload.position = data.position;
     if (data.side) updatePayload.side = data.side;
 
@@ -220,7 +224,56 @@ export const updateToothTreatmentStatus = async (data: any) => {
 };
 
 /* =====================================================
-   4️⃣ GET TOOTH TREATMENTS (LIST + FILTERS)
+   4️⃣ ASSIGN SITTING NO TO TOOTH TREATMENT
+===================================================== */
+export const assignSittingNo = async (data: any) => {
+  try {
+    const { treatmentId, sittingNo, user } = data;
+
+    if (!treatmentId || sittingNo === undefined) {
+      return {
+        success: "error",
+        message: "Treatment ID and Sitting No are required.",
+        statusCode: 400,
+      };
+    }
+
+    const treatment: any = await ToothTreatmentSchema.findById(treatmentId);
+
+    if (!treatment) {
+      return {
+        success: "error",
+        message: "Tooth treatment not found.",
+        statusCode: 404,
+      };
+    }
+
+    treatment.sittingNo = Number(sittingNo);
+    if (treatment.status && treatment.status !== treatment.status.toLowerCase()) {
+      treatment.status = treatment.status.toLowerCase();
+    }
+    treatment.updatedAt = new Date();
+    treatment.updatedBy = user;
+
+    const saved = await treatment.save();
+
+    return {
+      success: "success",
+      message: "Sitting number assigned successfully.",
+      data: saved,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   5️⃣ GET TOOTH TREATMENTS (LIST + FILTERS)
 ===================================================== */
 export const getToothTreatments = async (query: any) => {
   try {
@@ -233,6 +286,7 @@ export const getToothTreatments = async (query: any) => {
       fdi,
       status,
       complaintType,
+      sittingNo,
     } = query;
 
     const limit = Number(query.limit) || 20;
@@ -247,10 +301,14 @@ export const getToothTreatments = async (query: any) => {
     if (company && mongoose.Types.ObjectId.isValid(company)) matchStage.company = new mongoose.Types.ObjectId(company);
     if (pId && mongoose.Types.ObjectId.isValid(pId)) matchStage.patient = new mongoose.Types.ObjectId(pId);
     if (doctor && mongoose.Types.ObjectId.isValid(doctor)) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
-    if (status) matchStage.status = status.toLowerCase();
+    if (status) matchStage.status = { $regex: new RegExp(`^${status}$`, 'i') };
     if (fdi) matchStage.tooth = fdi;
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
+    if (sittingNo !== undefined) {
+      matchStage.sittingNo = Number(sittingNo);
+      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    }
 
     if (query.toDate) {
       const startOfDay = new Date(query.toDate);
@@ -368,6 +426,7 @@ export const getToothTreatments = async (query: any) => {
           totalMax: 1,
           toothNote: 1,
           complaintType: 1,
+          sittingNo: 1,
           receivedAmount: 1,
           createdAt: 1,
 
@@ -778,6 +837,55 @@ export const getTreatmentCountByDate = async (query: any) => {
     return {
       success: "error",
       message: "Server error while aggregating treatment counts.",
+      error: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   10️⃣ GET TREATMENTS BY SITTING NO
+===================================================== */
+export const getTreatmentsBySitting = async (query: any) => {
+  try {
+    const { sittingNo, patientId, company } = query;
+
+    if (!patientId || !company) {
+      return {
+        success: "error",
+        message: "Patient ID and Company ID are required.",
+        statusCode: 400,
+      };
+    }
+
+    const matchStage: any = {
+      isActive: true,
+      patient: new mongoose.Types.ObjectId(patientId),
+      company: new mongoose.Types.ObjectId(company),
+    };
+
+    if (sittingNo) {
+      matchStage.sittingNo = Number(sittingNo);
+      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    }
+
+    const records = await ToothTreatmentSchema.find(matchStage)
+      .populate("doctor", "_id name code")
+      .populate("patient", "_id name code")
+      .populate("examiningDoctor", "_id name code")
+      .populate("createdBy", "_id name code")
+      .sort({ createdAt: -1 });
+
+    return {
+      success: "success",
+      totalItems: records.length,
+      data: records,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: "Server error while fetching treatments by sitting.",
       error: error.message,
       statusCode: 500,
     };

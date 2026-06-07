@@ -55,7 +55,6 @@ const ToothTreatmentSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in-progress", "complete", "completed", "incomplete", "cancelled"],
       default: "pending",
       lowercase: true,
     },
@@ -102,6 +101,10 @@ const ToothTreatmentSchema = new Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    sittingNo: {
+      type: Number,
+      index: true,
     },
     deletedAt: {
       type: Date

@@ -53,21 +53,21 @@ export const getWorkDone = async (query: any) => {
     if (patientId && patientId !== 'undefined' && patId) {
       matchStage.patient = patId;
     }
-    
+
     if (doctorId && doctorId !== 'all' && doctorId !== 'undefined') {
       const docIds = String(doctorId).split(',').map((id: string) => toObjectId(id.trim())).filter(Boolean);
       if (docIds.length > 0) {
         matchStage.doctor = { $in: docIds };
       }
     }
-    
+
     if (toothNumber && toothNumber !== 'all' && toothNumber !== 'undefined') {
       const teeth = String(toothNumber).split(',').map(t => t.trim()).filter(Boolean);
       if (teeth.length > 0) {
         matchStage.tooth = { $in: teeth };
       }
     }
-    
+
     if (treatmentId && mongoose.Types.ObjectId.isValid(treatmentId)) {
       matchStage.treatment = new mongoose.Types.ObjectId(String(treatmentId));
     }
@@ -96,6 +96,11 @@ export const getWorkDone = async (query: any) => {
         { treatmentCode: { $regex: query.search, $options: "i" } },
         { workDoneNote: { $regex: query.search, $options: "i" } }
       ];
+    }
+
+    if (query.sittingNo) {
+      matchStage.sittingNo = Number(query.sittingNo);
+      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
     }
 
     const pipeline: any[] = [
@@ -201,6 +206,52 @@ export const deleteWorkDone = async (data: any) => {
     return { success: "success", message: "Work done deleted successfully.", statusCode: 200 };
   } catch (error: any) {
     return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
+export const assignWorkDoneSittingNo = async (data: any) => {
+  try {
+    const { workDoneId, sittingNo, user } = data;
+
+    if (!workDoneId || sittingNo === undefined) {
+      return {
+        success: "error",
+        message: "WorkDone ID and Sitting No are required.",
+        statusCode: 400,
+      };
+    }
+
+    const record: any = await WorkDoneSchema.findById(workDoneId);
+
+    if (!record) {
+      return {
+        success: "error",
+        message: "Work done record not found.",
+        statusCode: 404,
+      };
+    }
+
+    record.sittingNo = Number(sittingNo);
+    if (record.status && record.status !== record.status.toLowerCase()) {
+      record.status = record.status.toLowerCase();
+    }
+    record.updatedAt = new Date();
+    record.updatedBy = user;
+
+    const saved = await record.save();
+
+    return {
+      success: "success",
+      message: "Sitting number assigned successfully.",
+      data: saved,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
   }
 };
 
@@ -328,6 +379,11 @@ export const getPatientFinancialStats = async (query: any) => {
     const matchStage: any = {
       isActive: { $ne: false },
     };
+
+    if (query.sittingNo) {
+      matchStage.sittingNo = Number(query.sittingNo);
+      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    }
 
     if (patId) matchStage.patient = patId;
     if (companyId) matchStage.company = companyId;

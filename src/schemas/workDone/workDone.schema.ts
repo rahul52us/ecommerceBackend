@@ -97,6 +97,10 @@ const WorkDoneSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    sittingNo: {
+      type: Number,
+      index: true,
+    },
     deletedAt: {
       type: Date,
     },

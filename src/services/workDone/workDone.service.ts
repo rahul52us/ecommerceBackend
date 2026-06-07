@@ -12,6 +12,7 @@ import {
   getPaymentReceiptData,
   getDailyWorkDoneData,
   getWorkDoneCountByDate,
+  assignWorkDoneSittingNo,
 } from "../../repository/workDone/workDone";
 import { createReceipt } from "../../repository/receipt/receipt.repository";
 import {
@@ -145,6 +146,27 @@ export const updateWorkDoneService = async (req: any, res: any) => {
     });
   }
 };
+export const assignWorkDoneSittingNoService = async (req: any, res: any) => {
+  try {
+    const { status, statusCode, message, data }: any = await assignWorkDoneSittingNo({
+      workDoneId: req.params.id,
+      sittingNo: req.body.sittingNo,
+      user: req.userId,
+    });
+
+    return res.status(statusCode).send({
+      status,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
 export const getDoctorFinancialStatsService = async (req: any, res: any) => {
   try {
     const { statusCode, success, message, data }: any = await getDoctorFinancialStats({
