@@ -16,7 +16,7 @@ const WorkDoneSchema = new Schema(
     treatment: {
       type: Schema.Types.ObjectId,
       ref: "ToothTreatment",
-      required: false,
+      required: true,
     },
     examiningDoctor: {
       type: Schema.Types.ObjectId,
