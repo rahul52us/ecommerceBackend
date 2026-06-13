@@ -73,11 +73,26 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .fontSize(8.5)
     .font("Helvetica")
     .opacity(0.8)
-    .text(`${clinic?.addressInfo?.[0]?.address || ""} | ${clinic?.addressInfo?.[0]?.city || ""}`, MARGIN, 52)
-    .text(`Phone: ${clinic?.mobileNo || "N/A"} | Email: ${clinic?.email || "N/A"}`, MARGIN, 65);
+    .text(`${clinic?.addressInfo?.[0]?.address || ""} ${clinic?.addressInfo?.[0]?.city ? '| ' + clinic?.addressInfo?.[0]?.city : ""}`, MARGIN, 52);
 
   // Statement & Patient Info (Right Side)
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+  const pInfo = patient?.profile_details?.personalInfo || {};
+  let ageStr = calculateAge(pInfo.dob);
+  if (ageStr) ageStr = `${ageStr}Y`;
+
+  let sexStr = "";
+  if (pInfo.gender === 1) sexStr = "Male";
+  else if (pInfo.gender === 2) sexStr = "Female";
+  else if (pInfo.gender === 3) sexStr = "Other";
+
+  const addressObj = pInfo.addresses || {};
+  const patientAddress = addressObj.residential || addressObj.office || addressObj.other || "";
+
+  const metaArr = [];
+  if (ageStr) metaArr.push(ageStr);
+  if (sexStr) metaArr.push(sexStr);
+
   doc
     .fillColor(COLORS.white)
     .font("Helvetica-Bold")
@@ -88,8 +103,10 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 })
     .fontSize(8.5)
     .font("Helvetica")
-    .text(`Patient ID: ${patient?.code || "N/A"} | Mob: ${patient?.mobileNumber || "N/A"}`, rightAlignX, 65, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 78, { align: "right", width: 250 });
+    .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
+    .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
+    .text(`Receipt No: ${data.receiptNumber || `STM-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 96, { align: "right", width: 250 });
 
   // --- SUMMARY CARDS ---
   const contentY = 125;
@@ -1291,11 +1308,26 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .fontSize(8.5)
     .font("Helvetica")
     .opacity(0.8)
-    .text(`${clinic?.addressInfo?.[0]?.address || ""} | ${clinic?.addressInfo?.[0]?.city || ""}`, MARGIN, 52)
-    .text(`Phone: ${clinic?.mobileNo || "N/A"} | Email: ${clinic?.email || "N/A"}`, MARGIN, 65);
+    .text(`${clinic?.addressInfo?.[0]?.address || ""} ${clinic?.addressInfo?.[0]?.city ? '| ' + clinic?.addressInfo?.[0]?.city : ""}`, MARGIN, 52);
 
   // Statement & Patient Info (Right Side)
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+  const pInfo = patient?.profile_details?.personalInfo || {};
+  let ageStr = calculateAge(pInfo.dob);
+  if (ageStr) ageStr = `${ageStr}Y`;
+
+  let sexStr = "";
+  if (pInfo.gender === 1) sexStr = "Male";
+  else if (pInfo.gender === 2) sexStr = "Female";
+  else if (pInfo.gender === 3) sexStr = "Other";
+
+  const addressObj = pInfo.addresses || {};
+  const patientAddress = addressObj.residential || addressObj.office || addressObj.other || "";
+
+  const metaArr = [];
+  if (ageStr) metaArr.push(ageStr);
+  if (sexStr) metaArr.push(sexStr);
+
   doc
     .fillColor(COLORS.white)
     .font("Helvetica-Bold")
@@ -1306,8 +1338,10 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 })
     .fontSize(8.5)
     .font("Helvetica")
-    .text(`Patient ID: ${patient?.code || "N/A"} | Mob: ${patient?.mobileNumber || "N/A"}`, rightAlignX, 65, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 78, { align: "right", width: 250 });
+    .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
+    .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
+    .text(`Receipt No: ${data.receiptNumber || `WDR-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 96, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
   const tableTop = 135;
@@ -1474,10 +1508,25 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     .fillColor(COLORS.textMuted)
     .font("Helvetica")
     .fontSize(9)
-    .text(clinic?.address || "Clinic Address Not Provided", MARGIN, 52)
-    .text(`Phone: ${clinic?.mobileNo || "N/A"} | Email: ${clinic?.email || "N/A"}`, MARGIN, 65);
+    .text(clinic?.address || "Clinic Address Not Provided", MARGIN, 52);
 
   // Statement & Patient Info (Right Side)
+  const pInfo = patient?.profile_details?.personalInfo || {};
+  let ageStr = calculateAge(pInfo.dob);
+  if (ageStr) ageStr = `${ageStr}Y`;
+
+  let sexStr = "";
+  if (pInfo.gender === 1) sexStr = "Male";
+  else if (pInfo.gender === 2) sexStr = "Female";
+  else if (pInfo.gender === 3) sexStr = "Other";
+
+  const addressObj = pInfo.addresses || {};
+  const patientAddress = addressObj.residential || addressObj.office || addressObj.other || "";
+
+  const metaArr = [];
+  if (ageStr) metaArr.push(ageStr);
+  if (sexStr) metaArr.push(sexStr);
+
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
   doc
     .fillColor(COLORS.brand)
@@ -1490,8 +1539,10 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     .fillColor(COLORS.textMuted)
     .fontSize(8.5)
     .font("Helvetica")
-    .text(`Patient ID: ${patient?.code || "N/A"} | Mob: ${patient?.mobileNumber || "N/A"}`, rightAlignX, 65, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 78, { align: "right", width: 250 });
+    .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
+    .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
+    .text(`Receipt No: ${data.receiptNumber || `TRM-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 96, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
   const tableTop = 115;

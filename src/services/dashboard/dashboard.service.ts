@@ -56,10 +56,6 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
 
     let query: any = {}
 
-    if (req.bodyData.userType === "staff") {
-      query.createdBy = new mongoose.Types.ObjectId(req.userId);
-    }
-
     const userTypeCounts = await UserModel.aggregate([
       {
         $match: {

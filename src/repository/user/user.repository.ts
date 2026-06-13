@@ -504,10 +504,6 @@ const getUsers = async (data: {
       role: { $ne: "admin" },
     };
 
-    if (data?.id && data.role == "staff") {
-      matchConditions.createdBy = new mongoose.Types.ObjectId(data.id);
-    }
-
     if (data.userType === "superAdmin") {
       matchConditions = {
         ...matchConditions,

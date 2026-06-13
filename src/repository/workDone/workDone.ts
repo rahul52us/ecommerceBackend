@@ -268,7 +268,7 @@ export const getPatientStatementData = async (query: any) => {
       return { success: "error", message: "Patient and Company ID required", statusCode: 400 };
     }
 
-    const patient = await UserModel.findById(pId).select("name mobileNumber code profile_details");
+    const patient = await UserModel.findById(pId).select("name mobileNumber code profile_details").populate({ path: "profile_details", model: "ProfileDetails" });
     const clinic = await CompanyModel.findById(cId);
 
     const findQuery: any = {
