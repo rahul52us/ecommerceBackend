@@ -126,14 +126,18 @@ const labWorkSchema = new mongoose.Schema(
   }
 );
 
-// Middleware to calculate delay if both dates are present
+// Middleware to calculate delay based on work type and dates
 labWorkSchema.pre("save", function (next) {
-  if (this.sendDate && this.receivedDate) {
+  if (this.workType === "in-house" && this.sendDate && this.dueDate) {
     const s = this.sendDate.getTime();
+    const d = this.dueDate.getTime();
+    const diffTime = s - d;
+    this.delay = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  } else if (this.workType === "outside" && this.receivedDate && this.dueDate) {
     const r = this.receivedDate.getTime();
-    const diffTime = r - s;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    this.delay = diffDays;
+    const d = this.dueDate.getTime();
+    const diffTime = r - d;
+    this.delay = Math.round(diffTime / (1000 * 60 * 60 * 24));
   }
   next();
 });

@@ -465,12 +465,20 @@ export async function downloadReport(data: any) {
       case "labWork": {
         let matchStage: any = { isActive: true };
 
-        if (filters.workType && filters.workType !== "all") {
-          matchStage.workType = filters.workType;
+        if (filters.workType && filters.workType !== "all" && filters.workType.length > 0) {
+          if (Array.isArray(filters.workType)) {
+            matchStage.workType = { $in: filters.workType };
+          } else {
+            matchStage.workType = filters.workType;
+          }
         }
 
-        if (filters.status && filters.status !== "all") {
-          matchStage.status = filters.status;
+        if (filters.status && filters.status !== "all" && filters.status.length > 0) {
+          if (Array.isArray(filters.status)) {
+            matchStage.status = { $in: filters.status };
+          } else {
+            matchStage.status = filters.status;
+          }
         }
 
         if (filters.patientId) {
@@ -497,9 +505,19 @@ export async function downloadReport(data: any) {
           }
         });
 
-        const dateType = filters.dateType || "sendDate";
-        if (Object.keys(dateFilter).length > 0 && !matchStage[dateType]) {
-          matchStage[dateType] = dateFilter;
+        const dateTypes = Array.isArray(filters.dateType) ? filters.dateType : [filters.dateType || "sendDate"];
+        if (Object.keys(dateFilter).length > 0) {
+          if (dateTypes.length === 1) {
+            if (!matchStage[dateTypes[0]]) matchStage[dateTypes[0]] = dateFilter;
+          } else {
+            const orConditions = dateTypes.map((dt: string) => ({ [dt]: dateFilter }));
+            if (matchStage.$or) {
+              matchStage.$and = matchStage.$and || [];
+              matchStage.$and.push({ $or: orConditions });
+            } else {
+              matchStage.$or = orConditions;
+            }
+          }
         }
 
         columns = [
@@ -554,7 +572,7 @@ export async function downloadReport(data: any) {
             },
           },
           { $unwind: { path: "$labData", preserveNullAndEmptyArrays: true } },
-          { $sort: { [dateType]: -1 } },
+          { $sort: { [dateTypes[0]]: -1 } },
           {
             $project: {
               patientName: { $ifNull: ["$patientData.name", "$patientNameManual"] },

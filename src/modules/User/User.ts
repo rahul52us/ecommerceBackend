@@ -350,7 +350,8 @@ const getUsersByCompany = async (
         {
           $project: {
             _id: 1,
-            username: "$name",
+            name: 1,
+            username: { $ifNull: ["$name", "$username"] },
             code: 1,
             type: 1, // include type in response if needed
           },
