@@ -1246,3 +1246,364 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   doc.end();
 };
 
+/**
+ * GENERATE WORK DONE TABLE PDF
+ */
+export const generateTableDataPDF = (data: any, stream: any) => {
+  const { patient, clinic, records } = data;
+  const doc = new PDFDocument({
+    margin: 0,
+    size: "A4",
+    bufferPages: true
+  });
+
+  doc.pipe(stream);
+
+  // --- STYLE TOKENS ---
+  const COLORS = {
+    brand: "#1e3a8a",
+    brandLight: "#3b82f6",
+    textMain: "#111827",
+    textMuted: "#4b5563",
+    bgLight: "#f8fafc",
+    zebra: "#f1f5f9",
+    success: "#059669",
+    danger: "#dc2626",
+    border: "#e2e8f0",
+    white: "#ffffff"
+  };
+
+  // --- DIMENSIONS ---
+  const PAGE_WIDTH = 595.28;
+  const MARGIN = 20;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  // --- COMPACT HEADER ---
+  const headerHeight = 110;
+  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
+
+  // Clinic Info (Left Side) - Using company_name from schema
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(20)
+    .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25)
+    .fontSize(8.5)
+    .font("Helvetica")
+    .opacity(0.8)
+    .text(`${clinic?.addressInfo?.[0]?.address || ""} | ${clinic?.addressInfo?.[0]?.city || ""}`, MARGIN, 52)
+    .text(`Phone: ${clinic?.mobileNo || "N/A"} | Email: ${clinic?.email || "N/A"}`, MARGIN, 65);
+
+  // Statement & Patient Info (Right Side)
+  const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .text("WORK DONE REPORT", rightAlignX, 25, { align: "right", width: 250 })
+    .opacity(0.8)
+    .fontSize(10)
+    .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 })
+    .fontSize(8.5)
+    .font("Helvetica")
+    .text(`Patient ID: ${patient?.code || "N/A"} | Mob: ${patient?.mobileNumber || "N/A"}`, rightAlignX, 65, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 78, { align: "right", width: 250 });
+
+  // --- PREMIUM TABLE SECTION ---
+  const tableTop = 135;
+  const rowH = 28;
+  const headerH = 26;
+
+  doc.save();
+  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+
+  // Rebalanced Column Widths
+  const colX = {
+    sit: MARGIN + 10,
+    date: MARGIN + 35,
+    tooth: MARGIN + 90,
+    treatment: MARGIN + 130,
+    doctor: MARGIN + 290,
+    fees: MARGIN + 390,
+    paid: MARGIN + 445,
+    status: MARGIN + 500
+  };
+
+  doc
+    .fillColor(COLORS.white)
+    .fontSize(8)
+    .font("Helvetica-Bold")
+    .text("SIT.", colX.sit, tableTop + 9)
+    .text("DATE", colX.date, tableTop + 9)
+    .text("TOOTH", colX.tooth, tableTop + 9)
+    .text("TREATMENT / PROCEDURE", colX.treatment, tableTop + 9)
+    .text("DOCTOR", colX.doctor, tableTop + 9)
+    .text("FEES", colX.fees, tableTop + 9, { width: 50, align: "right" })
+    .text("PAID", colX.paid, tableTop + 9, { width: 50, align: "right" })
+    .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
+  doc.restore();
+
+  let y = tableTop + headerH;
+  let rowCount = 0;
+
+  records.forEach((record: any) => {
+    // Zebra Striping
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
+    }
+
+    // Bottom Border
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
+
+    const sitStr = record.sittingNo ? String(record.sittingNo) : "-";
+    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
+    const toothStr = record.tooth || "N/A";
+    const doctor = (record.doctor as any)?.name || "N/A";
+    const bill = record.amount - (record.discount || 0);
+    const paid = record.receivedAmount || 0;
+    const isSettled = paid >= bill;
+
+    // Data Row
+    doc
+      .fillColor(COLORS.textMain)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text(sitStr, colX.sit, y + 9)
+      .text(date, colX.date, y + 9)
+      .font("Helvetica")
+      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
+      .text(treatment, colX.treatment, y + 9, { width: 155, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMuted)
+      .text(doctor, colX.doctor, y + 9, { width: 95, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMain)
+      .font("Helvetica-Bold")
+      .text(bill.toLocaleString(), colX.fees, y + 9, { width: 50, align: "right" })
+      .text(paid.toLocaleString(), colX.paid, y + 9, { width: 50, align: "right" });
+
+    // Status Badge
+    const badgeW = 40;
+    const badgeH = 13;
+    const badgeX = colX.status + (45 - badgeW) / 2;
+    const badgeY = y + 7.5;
+
+    doc.save();
+    doc.fillColor(isSettled ? COLORS.success : COLORS.danger).roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill();
+    doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(isSettled ? "SETTLED" : "DUE", badgeX, badgeY + 4, { width: badgeW, align: "center" });
+    doc.restore();
+
+    y += rowH;
+    rowCount++;
+
+    // New Page Logic
+    if (y > 770 && rowCount < records.length) {
+      doc.addPage({ margin: 0 });
+      y = 40;
+      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
+      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
+      y += 24;
+    }
+  });
+
+  // --- FOOTER ---
+  const footerY = 795;
+  doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
+
+  doc
+    .fillColor(COLORS.textMuted)
+    .fontSize(7)
+    .font("Helvetica")
+    .text(`Generated by ${clinic?.company_name || "Clinic System"}`, MARGIN, footerY + 10, { align: "left", lineBreak: false })
+    .text(`Page Count: ${doc.bufferedPageRange().count}`, PAGE_WIDTH - MARGIN - 100, footerY + 10, { align: "right", width: 100, lineBreak: false });
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, 815, { align: "center", width: PAGE_WIDTH, lineBreak: false });
+  }
+
+  doc.end();
+};
+
+/**
+ * GENERATE TREATMENT TABLE PDF
+ */
+export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
+  const { patient, clinic, records } = data;
+  const doc = new PDFDocument({
+    size: "A4",
+    margin: 0,
+    bufferPages: true,
+  });
+
+  doc.pipe(stream);
+
+  const PAGE_WIDTH = 595.28;
+  const PAGE_HEIGHT = 841.89;
+  const MARGIN = 40;
+  const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+
+  // --- BRANDING & COLORS ---
+  const COLORS = {
+    brand: "#7E22CE",
+    brandLight: "#F3E8FF",
+    textMain: "#1E293B",
+    textMuted: "#64748B",
+    border: "#E2E8F0",
+    zebra: "#F8FAFC",
+    success: "#10B981",
+    warning: "#F59E0B",
+    danger: "#EF4444",
+    white: "#FFFFFF"
+  };
+
+  // Background Wash
+  doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT).fill("#FAFAFA");
+
+  // --- HEADER SECTION ---
+  doc.rect(0, 0, PAGE_WIDTH, 90).fill(COLORS.brandLight);
+
+  // Clinic Info (Left Side)
+  doc
+    .fillColor(COLORS.brand)
+    .font("Helvetica-Bold")
+    .fontSize(22)
+    .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25);
+
+  doc
+    .fillColor(COLORS.textMuted)
+    .font("Helvetica")
+    .fontSize(9)
+    .text(clinic?.address || "Clinic Address Not Provided", MARGIN, 52)
+    .text(`Phone: ${clinic?.mobileNo || "N/A"} | Email: ${clinic?.email || "N/A"}`, MARGIN, 65);
+
+  // Statement & Patient Info (Right Side)
+  const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+  doc
+    .fillColor(COLORS.brand)
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .text("TREATMENT REPORT", rightAlignX, 25, { align: "right", width: 250 })
+    .fillColor(COLORS.textMain)
+    .fontSize(10)
+    .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 })
+    .fillColor(COLORS.textMuted)
+    .fontSize(8.5)
+    .font("Helvetica")
+    .text(`Patient ID: ${patient?.code || "N/A"} | Mob: ${patient?.mobileNumber || "N/A"}`, rightAlignX, 65, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 78, { align: "right", width: 250 });
+
+  // --- PREMIUM TABLE SECTION ---
+  const tableTop = 115;
+  const rowH = 28;
+  const headerH = 26;
+
+  doc.save();
+  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+
+  const colX = {
+    sit: MARGIN + 10,
+    date: MARGIN + 35,
+    tooth: MARGIN + 90,
+    treatment: MARGIN + 130,
+    complaint: MARGIN + 280,
+    doctor: MARGIN + 400,
+    status: MARGIN + 470
+  };
+
+  doc
+    .fillColor(COLORS.white)
+    .fontSize(8)
+    .font("Helvetica-Bold")
+    .text("SIT.", colX.sit, tableTop + 9)
+    .text("DATE", colX.date, tableTop + 9)
+    .text("TOOTH", colX.tooth, tableTop + 9)
+    .text("TREATMENT PLAN", colX.treatment, tableTop + 9)
+    .text("COMPLAINT", colX.complaint, tableTop + 9)
+    .text("DOCTOR", colX.doctor, tableTop + 9)
+    .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
+  doc.restore();
+
+  let y = tableTop + headerH;
+  let rowCount = 0;
+
+  records.forEach((record: any) => {
+    // Zebra Striping
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
+    }
+
+    // Bottom Border
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
+
+    const sitStr = record.sittingNo ? String(record.sittingNo) : "-";
+    const date = record.treatmentDate ? new Date(record.treatmentDate).toLocaleDateString('en-IN') : new Date(record.createdAt).toLocaleDateString('en-IN');
+    const treatment = record.treatmentPlan || "General Procedure";
+    const complaint = record.complaintType || "N/A";
+    const toothStr = record.tooth || "N/A";
+    const doctor = (record.doctor as any)?.name || "N/A";
+    const status = record.status || "N/A";
+
+    let statusColor = COLORS.warning;
+    if (status.toLowerCase() === 'complete') statusColor = COLORS.success;
+    if (status.toLowerCase() === 'incomplete') statusColor = COLORS.danger;
+
+    // Data Row
+    doc
+      .fillColor(COLORS.textMain)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text(sitStr, colX.sit, y + 9)
+      .text(date, colX.date, y + 9)
+      .font("Helvetica")
+      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
+      .text(treatment, colX.treatment, y + 9, { width: 145, height: 12, ellipsis: true })
+      .text(complaint, colX.complaint, y + 9, { width: 115, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMuted)
+      .text(doctor, colX.doctor, y + 9, { width: 65, height: 12, ellipsis: true });
+
+    // Status Badge
+    const badgeW = 45;
+    const badgeH = 13;
+    const badgeX = colX.status + (45 - badgeW) / 2;
+    const badgeY = y + 7.5;
+
+    doc.save();
+    doc.fillColor(statusColor).roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill();
+    doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(status.toUpperCase(), badgeX, badgeY + 4, { width: badgeW, align: "center" });
+    doc.restore();
+
+    y += rowH;
+    rowCount++;
+
+    // New Page Logic
+    if (y > 770 && rowCount < records.length) {
+      doc.addPage({ margin: 0 });
+      y = 40;
+      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
+      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
+      y += 24;
+    }
+  });
+
+  // --- FOOTER ---
+  const footerY = 795;
+  doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
+
+  doc
+    .fillColor(COLORS.textMuted)
+    .fontSize(7)
+    .font("Helvetica")
+    .text(`Generated by ${clinic?.company_name || "Clinic System"}`, MARGIN, footerY + 10, { align: "left", lineBreak: false })
+    .text(`Page Count: ${doc.bufferedPageRange().count}`, PAGE_WIDTH - MARGIN - 100, footerY + 10, { align: "right", width: 100, lineBreak: false });
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.white).rect(0, 0, PAGE_WIDTH, 15).fill(COLORS.brand);
+    doc.rect(0, PAGE_HEIGHT - 15, PAGE_WIDTH, 15).fill(COLORS.brand);
+  }
+
+  doc.end();
+};
+

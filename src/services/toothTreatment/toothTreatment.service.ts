@@ -12,7 +12,10 @@ import {
   getTreatmentCountByDate,
   getTreatmentsBySitting,
   assignSittingNo,
+  getFilteredTreatmentTablePDFData,
 } from "../../repository/toothTreatment/toothTreatment";
+import { generateTreatmentTableDataPDF } from "../../modules/config/pdfGenerator";
+import { Writable } from "stream";
 
 
 export const getToothTreatmentByIdService = async (req: any, res: any) => {
@@ -305,6 +308,47 @@ export const assignSittingNoService = async (
     return res.status(500).send({
       status: "error",
       message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/* =====================================================
+   GENERATE FILTERED TREATMENT TABLE PDF SERVICE
+===================================================== */
+export const generateFilteredTreatmentTablePDFService = async (req: any, res: any) => {
+  try {
+    const { patientId } = req.params;
+    const { statusCode, success, message, data }: any = await getFilteredTreatmentTablePDFData({
+      ...req.query,
+      patientId,
+      company: req.query.company
+    });
+
+    if (success === "error") {
+      return res.status(statusCode || 500).send({ status: "error", message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new Writable({
+      write(chunk, encoding, callback) {
+        chunks.push(chunk);
+        callback();
+      }
+    });
+
+    generateTreatmentTableDataPDF(data, stream);
+
+    stream.on('finish', () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="Filtered_Treatment_Table_${patientId}.pdf"`);
+      return res.status(200).send(pdfBuffer.toString('base64'));
+    });
+
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Error generating treatment table PDF"
     });
   }
 };

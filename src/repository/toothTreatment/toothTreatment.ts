@@ -305,9 +305,12 @@ export const getToothTreatments = async (query: any) => {
     if (fdi) matchStage.tooth = fdi;
     if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) matchStage.appointment = new mongoose.Types.ObjectId(appointmentId);
     if (complaintType) matchStage.complaintType = { $regex: complaintType, $options: "i" };
-    if (sittingNo !== undefined) {
-      matchStage.sittingNo = Number(sittingNo);
-      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    if (sittingNo && sittingNo !== 'undefined') {
+      const sittings = String(sittingNo).split(',').map(s => Number(s.trim())).filter(s => !isNaN(s));
+      if (sittings.length > 0) {
+        matchStage.sittingNo = { $in: sittings };
+        matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+      }
     }
 
     if (query.toDate) {
@@ -864,9 +867,12 @@ export const getTreatmentsBySitting = async (query: any) => {
       company: new mongoose.Types.ObjectId(company),
     };
 
-    if (sittingNo) {
-      matchStage.sittingNo = Number(sittingNo);
-      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    if (sittingNo && sittingNo !== 'undefined') {
+      const sittings = String(sittingNo).split(',').map(s => Number(s.trim())).filter(s => !isNaN(s));
+      if (sittings.length > 0) {
+        matchStage.sittingNo = { $in: sittings };
+        matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+      }
     }
 
     const records = await ToothTreatmentSchema.find(matchStage)
@@ -892,3 +898,58 @@ export const getTreatmentsBySitting = async (query: any) => {
   }
 };
 
+/* =====================================================
+   11️⃣ GET FILTERED TREATMENT TABLE PDF DATA
+===================================================== */
+export const getFilteredTreatmentTablePDFData = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+    const cId = new mongoose.Types.ObjectId(company);
+
+    if (!cId) {
+      return { success: "error", message: "Company ID required", statusCode: 400 };
+    }
+
+    // Reuse getToothTreatments to fetch the exact table data without limit
+    const result = await getToothTreatments({
+      ...query,
+      limit: 10000,
+      page: 1
+    });
+
+    if (result.success === "error") return result;
+
+    const records = result.data || [];
+    records.sort((a: any, b: any) => {
+      const sA = a.sittingNo ? Number(a.sittingNo) : Infinity;
+      const sB = b.sittingNo ? Number(b.sittingNo) : Infinity;
+      if (sA !== sB) return sA - sB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    let patientObj = records.length > 0 ? records[0].patient : null;
+
+    if (!patientObj && patientId) {
+      const UserModel = mongoose.model("User");
+      patientObj = await UserModel.findById(patientId).select("name mobileNumber code profile_details").populate({
+        path: "profile_details",
+        model: "ProfileDetails"
+      });
+    }
+
+    const CompanyModel = mongoose.model("Company");
+    const clinic = await CompanyModel.findById(cId);
+
+    return {
+      success: "success",
+      data: {
+        patient: patientObj,
+        clinic,
+        records
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};

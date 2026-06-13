@@ -17,6 +17,7 @@ import {
   getWorkDoneCountByDateService,
   generateFilteredWorkDoneReportService,
   assignWorkDoneSittingNoService,
+  generateFilteredTablePDFService,
 } from "../../services/workDone/workDone.service";
 
 const workDone = express.Router();
@@ -34,6 +35,7 @@ workDone.get("/generate-doctor-report", authenticate, generateDoctorWorkDoneRepo
 workDone.post("/generate-workdone-report/:id", authenticate, generateWorkDoneReportService);
 workDone.post("/generate-daily-report/:patientId", authenticate, generateDailyWorkDoneReportService);
 workDone.post("/generate-filtered-report/:patientId", authenticate, generateFilteredWorkDoneReportService);
+workDone.get("/generate-filtered-table-pdf/:patientId", authenticate, generateFilteredTablePDFService);
 workDone.put("/assign-sitting/:id", authenticate, assignWorkDoneSittingNoService);
 workDone.put("/:id", authenticate, updateWorkDoneService);
 workDone.delete("/:id", authenticate, deleteWorkDoneService);

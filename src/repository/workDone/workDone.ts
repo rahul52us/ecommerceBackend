@@ -98,9 +98,12 @@ export const getWorkDone = async (query: any) => {
       ];
     }
 
-    if (query.sittingNo) {
-      matchStage.sittingNo = Number(query.sittingNo);
-      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    if (query.sittingNo && query.sittingNo !== 'undefined') {
+      const sittings = String(query.sittingNo).split(',').map(s => Number(s.trim())).filter(s => !isNaN(s));
+      if (sittings.length > 0) {
+        matchStage.sittingNo = { $in: sittings };
+        matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+      }
     }
 
     const pipeline: any[] = [
@@ -369,6 +372,59 @@ export const getSingleWorkDoneStatementData = async (query: any) => {
   }
 };
 
+/**
+ * FETCH FILTERED TABLE DATA FOR PDF
+ */
+export const getFilteredTablePDFData = async (query: any) => {
+  try {
+    const { patientId, company } = query;
+    const cId = toObjectId(company);
+
+    if (!cId) {
+      return { success: "error", message: "Company ID required", statusCode: 400 };
+    }
+
+    // Reuse getWorkDone to fetch the exact table data without limit
+    const result = await getWorkDone({
+      ...query,
+      limit: 10000,
+      page: 1
+    });
+
+    if (result.success === "error") return result;
+
+    const records = result.data || [];
+    records.sort((a: any, b: any) => {
+      const sA = a.sittingNo ? Number(a.sittingNo) : Infinity;
+      const sB = b.sittingNo ? Number(b.sittingNo) : Infinity;
+      if (sA !== sB) return sA - sB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    let patientObj = records.length > 0 ? records[0].patient : null;
+
+    if (!patientObj && patientId) {
+      patientObj = await UserModel.findById(patientId).select("name mobileNumber code profile_details").populate({
+        path: "profile_details",
+        model: "ProfileDetails"
+      });
+    }
+
+    const clinic = await CompanyModel.findById(cId);
+
+    return {
+      success: "success",
+      data: {
+        patient: patientObj,
+        clinic,
+        records
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
 export const getPatientFinancialStats = async (query: any) => {
   try {
     const { patientId, company, doctorId } = query;
@@ -380,9 +436,12 @@ export const getPatientFinancialStats = async (query: any) => {
       isActive: { $ne: false },
     };
 
-    if (query.sittingNo) {
-      matchStage.sittingNo = Number(query.sittingNo);
-      matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+    if (query.sittingNo && query.sittingNo !== 'undefined') {
+      const sittings = String(query.sittingNo).split(',').map(s => Number(s.trim())).filter(s => !isNaN(s));
+      if (sittings.length > 0) {
+        matchStage.sittingNo = { $in: sittings };
+        matchStage.status = { $in: [/^pending$/i, /^incomplete$/i] };
+      }
     }
 
     if (patId) matchStage.patient = patId;

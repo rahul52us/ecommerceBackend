@@ -13,6 +13,7 @@ import {
   getDailyWorkDoneData,
   getWorkDoneCountByDate,
   assignWorkDoneSittingNo,
+  getFilteredTablePDFData,
 } from "../../repository/workDone/workDone";
 import { createReceipt } from "../../repository/receipt/receipt.repository";
 import {
@@ -21,7 +22,8 @@ import {
   generatePaymentReceiptPDF,
   generateWorkDoneReportPDF,
   generateFilteredWorkDoneReportPDF,
-  generateDailyWorkDoneReportPDF
+  generateDailyWorkDoneReportPDF,
+  generateTableDataPDF
 } from "../../modules/config/pdfGenerator";
 import UserModel from "../../schemas/User/User";
 import PatientPrescriptionModel from "../../schemas/prescription/patientPrescription.schema";
@@ -503,7 +505,7 @@ export const getWorkDoneCountByDateService = async (req: any, res: any) => {
 export const generateFilteredWorkDoneReportService = async (req: any, res: any) => {
   try {
     const { patientId } = req.params;
-    const { company, treatmentId, fromDate, toDate, doctorId, toothNumber, reportType } = req.query;
+    const { company, treatmentId, fromDate, toDate, doctorId, toothNumber, reportType, sittingNo } = req.query;
     const { prescriptions, topPadding, bottomPadding } = req.body;
 
     const result: any = await getWorkDone({
@@ -514,6 +516,7 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       toDate,
       doctorId,
       toothNumber,
+      sittingNo,
       limit: 1000,
       page: 1
     });
@@ -576,6 +579,40 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       reportType: reportType || "both"
     }, stream);
 
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+export const generateFilteredTablePDFService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getFilteredTablePDFData({
+      ...req.query,
+      patientId: req.params.patientId
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Table PDF generated successfully",
+        data: base64
+      });
+    });
+
+    generateTableDataPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",
