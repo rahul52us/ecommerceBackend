@@ -1982,6 +1982,26 @@ const updateStaffPermissions = async (data: any) => {
   }
 };
 
+export const getReferredPatients = async (referredByUserId: string) => {
+  try {
+    const patients = await User.find({
+      "references.refrenceBy": new mongoose.Types.ObjectId(referredByUserId)
+    }).select("-password");
+
+    return {
+      status: "success",
+      data: patients,
+      statusCode: 200,
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      message: err.message,
+      data: err,
+    };
+  }
+};
+
 export {
   createUser,
   updateUserProfileDetails,

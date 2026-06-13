@@ -28,6 +28,7 @@ import {
   getUserByName,
   deleteUser,
   createAdminUser,
+  getReferredPatients
 } from "../../repository/user/user.repository";
 import mongoose from "mongoose";
 import { getRoleUsersService } from "../auth/auth.service";
@@ -738,6 +739,32 @@ const getCompanyDetailsByIdService = async (
   }
 };
 
+const getReferredPatientsService = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.params.id;
+    const { status, data, statusCode, message }: any = await getReferredPatients(userId);
+    
+    if (status === "success") {
+      res.status(statusCode || 200).send({
+        status: "success",
+        data: data,
+      });
+    } else {
+      res.status(statusCode || 400).send({
+        status: "error",
+        message: message,
+        data: data,
+      });
+    }
+  } catch (err: any) {
+    next(err);
+  }
+};
+
 export {
   createUserservice,
   deleteUserService,
@@ -761,5 +788,6 @@ export {
   getManagersOfUserService,
   getRoleCountOfCompanyService,
   getCompanyDetailsByUserIdService,
-  createAdminUserservice
+  createAdminUserservice,
+  getReferredPatientsService
 };

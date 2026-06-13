@@ -28,6 +28,7 @@ import {
   getUserByNameService,
   deleteUserService,
   createAdminUserservice,
+  getReferredPatientsService,
 } from "../services/employe/user.service";
 
 const router = express.Router();
@@ -59,5 +60,6 @@ router.post('/info/Subordinate',getUserInfoWithManagerService)
 router.get('/info/Subordinate/:id',getUserInfoWithManagerActionService)
 router.get('/getManagers/:userId', getManagersOfUserService)
 router.get('/get/roles/count',authenticate,getRoleCountOfCompanyService)
+router.get('/referred-patients/:id', authenticate, getReferredPatientsService)
 
 export default router;
