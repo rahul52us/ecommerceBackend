@@ -28,10 +28,9 @@ LabWorkRouter.get("/", authenticate, async (req: any, res) => {
   if (req.query.workType) (query as any)["workType"] = req.query.workType;
   if (req.query.status) (query as any)["status"] = req.query.status;
   if (req.query.search) (query as any)["search"] = req.query.search;
-  if (req.userId && req.bodyData.userType === "staff") {
-    console.log("true");
-    (query as any)["createdBy"] = new mongoose.Types.ObjectId(req.userId);
-  }
+  if (req.query.doctorName) (query as any)["doctorName"] = req.query.doctorName;
+  if (req.query.fromDate) (query as any)["fromDate"] = req.query.fromDate;
+  if (req.query.toDate) (query as any)["toDate"] = req.query.toDate;
 
   console.log(query);
   const result = await labWorkService.getAllLabWorks(query, options);

@@ -8,11 +8,21 @@ class LabWorkRepository {
   }
 
   async getAll(query: any = {}, options: any = {}) {
-    const { search, ...filters } = query;
+    const { search, fromDate, toDate, doctorName, ...filters } = query;
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
     let mongoQuery: any = { ...filters, isActive: true };
+
+    if (fromDate || toDate) {
+      mongoQuery.createdAt = {};
+      if (fromDate) mongoQuery.createdAt.$gte = new Date(fromDate);
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        mongoQuery.createdAt.$lte = to;
+      }
+    }
 
     if (mongoQuery.patient && typeof mongoQuery.patient === "string") {
       mongoQuery.patient = new mongoose.Types.ObjectId(mongoQuery.patient);
@@ -50,6 +60,15 @@ class LabWorkRepository {
       { $unwind: { path: "$doctorData", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
+          from: "labdoctors",
+          localField: "primaryDoctor",
+          foreignField: "_id",
+          as: "labDoctorData",
+        },
+      },
+      { $unwind: { path: "$labDoctorData", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
           from: "labs",
           localField: "lab",
           foreignField: "_id",
@@ -58,6 +77,18 @@ class LabWorkRepository {
       },
       { $unwind: { path: "$labData", preserveNullAndEmptyArrays: true } },
     ];
+
+    if (doctorName) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "doctorData.name": { $regex: doctorName, $options: "i" } },
+            { "labDoctorData.labDoctorName": { $regex: doctorName, $options: "i" } },
+            { doctorNameManual: { $regex: doctorName, $options: "i" } },
+          ],
+        },
+      });
+    }
 
     if (search) {
       pipeline.push({
@@ -75,6 +106,8 @@ class LabWorkRepository {
             { "doctorData.name": { $regex: search, $options: "i" } },
             { "doctorData.mobileNumber": { $regex: search, $options: "i" } },
             { "doctorData.code": { $regex: search, $options: "i" } },
+            { "labDoctorData.labDoctorName": { $regex: search, $options: "i" } },
+            { "labDoctorData.mobileNumber": { $regex: search, $options: "i" } },
             { "labData.name": { $regex: search, $options: "i" } },
           ],
         },

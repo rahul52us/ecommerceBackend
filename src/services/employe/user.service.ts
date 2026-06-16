@@ -202,11 +202,15 @@ const getAllUserService = async (
   next: NextFunction
 ) => {
   try {
+
+    console.log('the body data are ',req.body)
     const page = req.body.page || 1;
     const limit = req.body.limit || 10;
     const search = req.body.search || undefined;
     const id = req.userId || undefined;
     const type = req.body.type;
+
+    console.log('the company data are ', type)
     const { data, status, totalPages } = await getUsers({
       id: id,
       userType: type,
@@ -747,7 +751,7 @@ const getReferredPatientsService = async (
   try {
     const userId = req.params.id;
     const { status, data, statusCode, message }: any = await getReferredPatients(userId);
-    
+
     if (status === "success") {
       res.status(statusCode || 200).send({
         status: "success",

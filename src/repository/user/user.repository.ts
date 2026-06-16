@@ -110,6 +110,7 @@ const createAdminUser = async (data: any) => {
       bio: data.bio,
       is_active: true,
       title: data.title,
+      role:data?.role || "admin",
       permissions: data.permissions || {},
       references: (data.references || []).map((ref: any) => ({
         ...ref,
@@ -119,7 +120,6 @@ const createAdminUser = async (data: any) => {
 
     const savedUser = await createdUser.save();
     if (!savedUser) throw generateError(`Cannot create the user`, 400);
-
     // -------------------------------
     // 4️⃣ Create Profile
     // -------------------------------
