@@ -1353,11 +1353,11 @@ export const generateTableDataPDF = (data: any, stream: any) => {
 
   // Rebalanced Column Widths
   const colX = {
-    sit: MARGIN + 10,
-    date: MARGIN + 35,
-    tooth: MARGIN + 90,
-    treatment: MARGIN + 130,
-    doctor: MARGIN + 290,
+    sit: MARGIN + 5,
+    date: MARGIN + 45,
+    tooth: MARGIN + 95,
+    treatment: MARGIN + 135,
+    doctor: MARGIN + 295,
     fees: MARGIN + 390,
     paid: MARGIN + 445,
     status: MARGIN + 500
@@ -1367,7 +1367,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .fillColor(COLORS.white)
     .fontSize(8)
     .font("Helvetica-Bold")
-    .text("SIT.", colX.sit, tableTop + 9)
+    .text("SITTING", colX.sit, tableTop + 9)
     .text("DATE", colX.date, tableTop + 9)
     .text("TOOTH", colX.tooth, tableTop + 9)
     .text("TREATMENT / PROCEDURE", colX.treatment, tableTop + 9)
@@ -1553,12 +1553,12 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
 
   const colX = {
-    sit: MARGIN + 10,
-    date: MARGIN + 35,
-    tooth: MARGIN + 90,
-    treatment: MARGIN + 130,
-    complaint: MARGIN + 280,
-    doctor: MARGIN + 400,
+    sit: MARGIN + 5,
+    date: MARGIN + 45,
+    tooth: MARGIN + 95,
+    notes: MARGIN + 135,
+    estimate: MARGIN + 335,
+    doctor: MARGIN + 395,
     status: MARGIN + 470
   };
 
@@ -1566,11 +1566,11 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     .fillColor(COLORS.white)
     .fontSize(8)
     .font("Helvetica-Bold")
-    .text("SIT.", colX.sit, tableTop + 9)
+    .text("SITTING", colX.sit, tableTop + 9)
     .text("DATE", colX.date, tableTop + 9)
     .text("TOOTH", colX.tooth, tableTop + 9)
-    .text("TREATMENT PLAN", colX.treatment, tableTop + 9)
-    .text("COMPLAINT", colX.complaint, tableTop + 9)
+    .text("NOTES", colX.notes, tableTop + 9)
+    .text("ESTIMATE", colX.estimate, tableTop + 9)
     .text("DOCTOR", colX.doctor, tableTop + 9)
     .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
   doc.restore();
@@ -1579,21 +1579,37 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   let rowCount = 0;
 
   records.forEach((record: any) => {
-    // Zebra Striping
-    if (rowCount % 2 !== 0) {
-      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
-    }
-
-    // Bottom Border
-    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
-
     const sitStr = record.sittingNo ? String(record.sittingNo) : "-";
     const date = record.treatmentDate ? new Date(record.treatmentDate).toLocaleDateString('en-IN') : new Date(record.createdAt).toLocaleDateString('en-IN');
-    const treatment = record.treatmentPlan || "General Procedure";
-    const complaint = record.complaintType || "N/A";
+    const notesStr = record.notes || "N/A";
+    let estimateStr = "N/A";
+    if (record.estimateMin || record.estimateMax) {
+      estimateStr = `₹${record.estimateMin || 0} - ₹${record.estimateMax || 0}`;
+    }
     const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
     const status = record.status || "N/A";
+
+    doc.font("Helvetica").fontSize(8);
+    const notesHeight = doc.heightOfString(notesStr, { width: 200 });
+    const currentRowH = Math.max(rowH, notesHeight + 16);
+
+    // New Page Logic
+    if (y + currentRowH > 770 && rowCount > 0) {
+      doc.addPage({ margin: 0 });
+      y = 40;
+      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
+      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
+      y += 24;
+    }
+
+    // Zebra Striping
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, currentRowH).fill();
+    }
+
+    // Bottom Border
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + currentRowH).lineTo(MARGIN + CONTENT_WIDTH, y + currentRowH).stroke();
 
     let statusColor = COLORS.warning;
     if (status.toLowerCase() === 'complete') statusColor = COLORS.success;
@@ -1607,11 +1623,11 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
       .text(sitStr, colX.sit, y + 9)
       .text(date, colX.date, y + 9)
       .font("Helvetica")
-      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
-      .text(treatment, colX.treatment, y + 9, { width: 145, height: 12, ellipsis: true })
-      .text(complaint, colX.complaint, y + 9, { width: 115, height: 12, ellipsis: true })
+      .text(toothStr, colX.tooth, y + 9, { width: 35, height: currentRowH - 10, ellipsis: true })
+      .text(notesStr, colX.notes, y + 9, { width: 200, lineBreak: true })
+      .text(estimateStr, colX.estimate, y + 9, { width: 55, height: currentRowH - 10, ellipsis: true })
       .fillColor(COLORS.textMuted)
-      .text(doctor, colX.doctor, y + 9, { width: 65, height: 12, ellipsis: true });
+      .text(doctor, colX.doctor, y + 9, { width: 70, height: currentRowH - 10, ellipsis: true });
 
     // Status Badge
     const badgeW = 45;
@@ -1624,17 +1640,8 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(status.toUpperCase(), badgeX, badgeY + 4, { width: badgeW, align: "center" });
     doc.restore();
 
-    y += rowH;
+    y += currentRowH;
     rowCount++;
-
-    // New Page Logic
-    if (y > 770 && rowCount < records.length) {
-      doc.addPage({ margin: 0 });
-      y = 40;
-      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
-      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
-      y += 24;
-    }
   });
 
   // --- FOOTER ---
