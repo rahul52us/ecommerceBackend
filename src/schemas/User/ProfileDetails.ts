@@ -11,7 +11,8 @@ interface addressInfo  {
 
 interface ProfileDetailsI extends Document {
   user: mongoose.Schema.Types.ObjectId;
-  personalInfo?:mongoose.Schema.Types.Mixed
+  personalInfo?:mongoose.Schema.Types.Mixed;
+  previousRecord?: boolean;
 }
 
 const ProfileDetailsSchema = new mongoose.Schema<ProfileDetailsI>({
@@ -23,6 +24,10 @@ const ProfileDetailsSchema = new mongoose.Schema<ProfileDetailsI>({
   },
   personalInfo : {
     type : mongoose.Schema.Types.Mixed
+  },
+  previousRecord: {
+    type: Boolean,
+    default: false
   }
 });
 

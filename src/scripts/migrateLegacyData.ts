@@ -43,7 +43,8 @@ async function migrateDoctors(reader: any) {
 
     const profileDocs = docRows.map((row: any, idx: number) => ({
       user: userDocs[idx]._id,
-      personalInfo: { ...row }
+      personalInfo: { ...row },
+      previousRecord: true
     }));
 
     await UserModel.insertMany(userDocs, { ordered: false });
@@ -90,7 +91,8 @@ async function migratePatients(reader: any) {
         code: userDocs[idx].code,
         mobileNumber: userDocs[idx].mobileNumber,
         userType: "patient"
-      }
+      },
+      previousRecord: true
     }));
 
     await UserModel.insertMany(userDocs, { ordered: false }).catch(e => console.error("Batch insert warning"));
