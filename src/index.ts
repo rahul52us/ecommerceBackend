@@ -10,7 +10,7 @@ import * as path from "path";
 import { setupSocket } from "./modules/chatSocket/chatSocket";
 import { statusCode } from "./config/helper/statusCode";
 import connectToDatabase from "./db/db";
-// import "./mdbReader";
+import "./mdbReader";
 
 // // import deploy from "./config/common/reactAppDeployment";
 

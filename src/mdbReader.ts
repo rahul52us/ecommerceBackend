@@ -3,77 +3,105 @@ import path from "path";
 import MDBReader from "mdb-reader";
 import ExcelJS from "exceljs";
 
-export const exportPatientsToExcel = async () => {
-    try {
-        // MDB File Path
-        const filePath = "D:\\download\\dentalcare.mdb";
+async function exportAllTables() {
+  try {
+    const filePath = "D:\\download\\dentalcare.mdb";
 
-        // Check file exists
-        if (!fs.existsSync(filePath)) {
-            throw new Error("MDB file not found");
-        }
+    if (!fs.existsSync(filePath)) {
+      throw new Error("MDB file not found");
+    }
 
-        // Read MDB File
-        const buffer = fs.readFileSync(path.resolve(filePath));
+    // Read MDB
+    const buffer = fs.readFileSync(path.resolve(filePath));
+    const reader = new MDBReader(buffer);
 
-        // Create Reader
-        const reader = new MDBReader(buffer);
+    // Get table names
+    const tableNames = reader.getTableNames();
 
-        // Get patient table
-        const patientTable = reader.getTable("patient");
+    console.log(`Found ${tableNames.length} tables`);
 
-        // Read patient data
-        const patientData = patientTable.getData();
+    // Create exports folder
+    const exportDir = path.join(process.cwd(), "exports");
 
-        console.log("Total Patients:", patientData.length);
+    if (!fs.existsSync(exportDir)) {
+      fs.mkdirSync(exportDir, { recursive: true });
+    }
 
-        if (!patientData.length) {
-            throw new Error("No patient data found");
-        }
+    // Process each table separately
+    for (const tableName of tableNames) {
+      try {
+        const table = reader.getTable(tableName);
+        const data = table.getData();
 
-        // Create Excel Workbook
-        const workbook = new ExcelJS.Workbook();
+        console.log(`Processing ${tableName} (${data.length} rows)`);
 
-        const worksheet = workbook.addWorksheet("Patients");
+        const outputPath = path.join(
+          exportDir,
+          `${tableName}.xlsx`
+        );
 
-        // Get dynamic columns
-        const columns = Object.keys(patientData[0]);
+        // Streaming workbook
+        const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+          filename: outputPath,
+        });
 
-        // Add Header
-        worksheet.columns = columns.map((column) => ({
+        const worksheet = workbook.addWorksheet(
+          tableName.substring(0, 31)
+        );
+
+        if (data.length > 0) {
+          // Get all columns
+          const columns = [
+            ...new Set(
+              data.flatMap((row: any) => Object.keys(row))
+            ),
+          ];
+
+          worksheet.columns = columns.map((column) => ({
             header: column,
             key: column,
             width: 25,
-        }));
+          }));
 
-        // Add Rows
-        patientData.forEach((patient: any) => {
-            worksheet.addRow(patient);
-        });
+          // Add rows
+          for (const row of data) {
+            const safeRow: any = {};
 
-        // Header Style
-        worksheet.getRow(1).font = {
-            bold: true,
-        };
+            for (const column of columns) {
+              let value = row[column];
 
-        // Save Excel File
-        const outputPath = path.join(
-            process.cwd(),
-            "patients_export.xlsx"
-        );
+              if (value === undefined || value === null) {
+                value = "";
+              } else if (Buffer.isBuffer(value)) {
+                value = value.toString("base64");
+              } else if (
+                typeof value === "object" &&
+                !(value instanceof Date)
+              ) {
+                value = JSON.stringify(value);
+              }
 
-        await workbook.xlsx.writeFile(outputPath);
+              safeRow[column] = value;
+            }
 
-        console.log("\nExcel Exported Successfully");
-        console.log("File:", outputPath);
+            worksheet.addRow(safeRow).commit();
+          }
+        }
 
-        return outputPath;
-    } catch (error) {
-        console.error("Error Exporting Patients:", error);
+        worksheet.commit();
+        await workbook.commit();
 
-        throw error;
+        console.log(`✓ ${tableName}.xlsx created`);
+      } catch (err) {
+        console.error(`Error processing ${tableName}:`, err);
+      }
     }
-};
 
-// Run Function
-exportPatientsToExcel();
+    console.log("\nAll tables exported successfully!");
+    console.log(`Location: ${exportDir}`);
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+
+// exportAllTables();

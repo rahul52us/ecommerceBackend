@@ -31,6 +31,7 @@ import prescriptionRouting from "./prescription/prescription.routing";
 import accountabilityRouting from "./accountability/accountability.routing";
 import patientDocumentRouting from "./patientDocument/patientDocument.routing";
 import doctorInventoryRouting from "./doctorInventory/doctorInventory.routing";
+import oldDataRouting from "./oldData/oldData.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -67,6 +68,7 @@ const importRoutings = (app: any) => {
   app.use('/api/accountability', accountabilityRouting)
   app.use('/api/patient-documents', patientDocumentRouting)
   app.use('/api/doctor-inventory', doctorInventoryRouting)
+  app.use('/api/old-data', oldDataRouting)
 };
 
 

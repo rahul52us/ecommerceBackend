@@ -547,6 +547,9 @@ const getUsers = async (data: {
     // Aggregation pipeline
     const pipeline: any = [
       { $match: matchConditions },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
       {
         $lookup: {
           from: "users",
@@ -634,13 +637,12 @@ const getUsers = async (data: {
         $project: {
           password: 0, // exclude sensitive field
         },
-      },
-      { $sort: { createdAt: -1 } },
+      }
     ];
 
     // Execute parallel queries
     const [usersResult, totalResult]: any = await Promise.all([
-      User.aggregate([...pipeline, { $skip: skip }, { $limit: limit }]),
+      User.aggregate([...pipeline]),
       User.aggregate([{ $match: matchConditions }, { $count: "count" }]),
     ]);
 

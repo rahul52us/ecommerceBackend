@@ -26,6 +26,7 @@ export interface UserInterface extends Document {
   }[];
   refrenceBy?: any;
   refrenceNote?: string;
+  previousRecord?: boolean;
 }
 
 const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
@@ -94,6 +95,10 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   },
   updatedAt: {
     type: Date,
+  },
+  previousRecord: {
+    type: Boolean,
+    default: false,
   },
 });
 
