@@ -8,6 +8,15 @@ import LabWork from "../../schemas/labWork/labWork.schema";
 import LabWorkHierarchy from "../../schemas/labWork/labWorkHierarchy.schema";
 import mongoose from "mongoose";
 
+const formatToIndianDate = (dateString: any) => {
+  if (!dateString) return "-";
+  const d = new Date(dateString);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 
 export async function downloadReport(data: any) {
   try {
@@ -609,10 +618,10 @@ export async function downloadReport(data: any) {
           doctorName: lw.doctorName || "N/A",
           workType: lw.workType || "N/A",
           labName: lw.labName || "In-house",
-          createdAt: lw.createdAt ? new Date(lw.createdAt).toLocaleDateString() : "-",
-          sendDate: lw.sendDate ? new Date(lw.sendDate).toLocaleDateString() : "-",
-          dueDate: lw.dueDate ? new Date(lw.dueDate).toLocaleDateString() : "-",
-          receivedDate: lw.receivedDate ? new Date(lw.receivedDate).toLocaleDateString() : "-",
+          createdAt: formatToIndianDate(lw.createdAt),
+          sendDate: formatToIndianDate(lw.sendDate),
+          dueDate: formatToIndianDate(lw.dueDate),
+          receivedDate: formatToIndianDate(lw.receivedDate),
           status: lw.status ? lw.status.toUpperCase() : "N/A",
           price: lw.price || 0,
           works: lw.selectedWorks?.map((w: any) => {

@@ -466,6 +466,13 @@ const updateUserProfileDetails = async (data: any) => {
         type: data.pic.type,
       };
       await users.save();
+    } else if (pic && pic.url && !pic.buffer) {
+      users.pic = {
+        name: pic.name || "profile_pic",
+        url: pic.url,
+        type: pic.type || "image/png"
+      };
+      await users.save();
     }
 
     return {

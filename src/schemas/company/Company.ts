@@ -17,7 +17,7 @@ export interface CompanyI extends Document {
   createdBy: mongoose.Schema.Types.ObjectId;
   activeUser: mongoose.Schema.Types.ObjectId;
   is_active?: boolean;
-  logo?: string;
+  logo?: { name?: string; url?: string; type?: string; };
   bio?: string;
   mobileNo?: string;
   workNo?: string;

@@ -472,3 +472,49 @@ export const getCompanyDetails = async (req: any, res: Response, next: NextFunct
     next(err)
   }
 }
+
+export const updateCompanyLogo = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { companyId, logoUrl, logo } = req.body;
+    if (!companyId) {
+      throw generateError("Company ID is required", 400);
+    }
+
+    const comp = await Company.findById(companyId);
+    if (!comp) {
+      throw generateError("Company not found", 404);
+    }
+
+    let newLogo: any;
+
+    if (logoUrl) {
+      newLogo = {
+        name: "company_logo",
+        url: logoUrl,
+        type: "image/png"
+      };
+    } else if (logo && logo.buffer && logo.filename) {
+      let url = await uploadFile(logo);
+      newLogo = {
+        name: logo.filename,
+        url: url,
+        type: logo.type || "image/png",
+      };
+    }
+
+    const updatedComp = await Company.findByIdAndUpdate(
+      companyId,
+      { $set: { logo: newLogo } },
+      { new: true, runValidators: false }
+    );
+
+    res.status(200).send({
+      message: "Company logo updated successfully",
+      data: updatedComp,
+      statusCode: 200,
+      success: true
+    });
+  } catch (err) {
+    next(err);
+  }
+};
