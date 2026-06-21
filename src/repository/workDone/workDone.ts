@@ -971,3 +971,194 @@ export const getReceiptsLogData = async (query: any) => {
   }
 };
 
+export const getGlobalAccountabilityData = async (payload: any) => {
+  try {
+    const {
+      company,
+      patientIds,
+      doctorIds,
+      fromDate,
+      toDate,
+      status,
+      tooth,
+      page = 1,
+      limit = 50,
+    } = payload;
+
+    const compId = toObjectId(company);
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const matchStage: any = {
+      isActive: { $ne: false },
+    };
+
+    if (compId) {
+      matchStage.company = compId;
+    }
+
+    // Multiple patients
+    if (Array.isArray(patientIds) && patientIds.length > 0) {
+      const pIds = patientIds.map((id: string) => toObjectId(id)).filter(Boolean);
+      if (pIds.length > 0) matchStage.patient = { $in: pIds };
+    }
+
+    // Multiple doctors
+    if (Array.isArray(doctorIds) && doctorIds.length > 0) {
+      const dIds = doctorIds.map((id: string) => toObjectId(id)).filter(Boolean);
+      if (dIds.length > 0) matchStage.doctor = { $in: dIds };
+    }
+
+    // Date range
+    if (fromDate || toDate) {
+      matchStage.createdAt = {};
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        matchStage.createdAt.$gte = start;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = end;
+      }
+    }
+
+    // Tooth filter
+    if (tooth) {
+      matchStage.tooth = { $regex: tooth, $options: "i" };
+    }
+
+    // Status filter is applied after balanceDue calculation
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patientInfo",
+          pipeline: [{ $project: { name: 1, code: 1, mobileNumber: 1, title: 1 } }],
+        },
+      },
+      { $unwind: { path: "$patientInfo", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "doctor",
+          foreignField: "_id",
+          as: "doctorInfo",
+          pipeline: [{ $project: { name: 1, code: 1, title: 1 } }],
+        },
+      },
+      { $unwind: { path: "$doctorInfo", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "treatments",
+          localField: "treatment",
+          foreignField: "_id",
+          as: "treatmentInfo",
+          pipeline: [{ $project: { name: 1 } }],
+        },
+      },
+      { $unwind: { path: "$treatmentInfo", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          totalPaid: "$receivedAmount",
+          balanceDue: {
+            $subtract: [
+              { $ifNull: ["$amount", 0] },
+              { $ifNull: ["$receivedAmount", 0] }
+            ]
+          }
+        }
+      },
+      ...(status && status !== "all" ? [{
+        $match: {
+          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : { $lte: 0 }
+        }
+      }] : []),
+      {
+        $project: {
+          _id: 1,
+          createdAt: 1,
+          tooth: 1,
+          status: 1,
+          amount: 1,
+          workDoneNote: 1,
+          totalPaid: 1,
+          balanceDue: 1,
+          "patientInfo.name": 1,
+          "patientInfo.code": 1,
+          "patientInfo.mobileNumber": 1,
+          "patientInfo.title": 1,
+          "patientInfo._id": 1,
+          "doctorInfo.name": 1,
+          "doctorInfo._id": 1,
+          "treatmentInfo.name": 1,
+        }
+      }
+    ];
+
+    // Get total count
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await WorkDoneSchema.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination
+    pipeline.push({ $skip: skip }, { $limit: Number(limit) });
+
+    const records = await WorkDoneSchema.aggregate(pipeline);
+
+    // Summary totals across ALL matching records (not just this page)
+    const summaryPipeline: any[] = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          balanceDue: {
+            $subtract: [
+              { $ifNull: ["$amount", 0] },
+              { $ifNull: ["$receivedAmount", 0] }
+            ]
+          }
+        }
+      },
+      ...(status && status !== "all" ? [{
+        $match: {
+          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : { $lte: 0 }
+        }
+      }] : []),
+      {
+        $group: {
+          _id: null,
+          totalBilled: { $sum: { $ifNull: ["$amount", 0] } },
+          totalPaid: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+        },
+      },
+      {
+        $addFields: {
+          totalDue: { $subtract: ["$totalBilled", "$totalPaid"] }
+        }
+      }
+    ];
+
+    const summaryResult = await WorkDoneSchema.aggregate(summaryPipeline);
+    const summary = summaryResult[0] || { totalBilled: 0, totalPaid: 0, totalDue: 0 };
+
+    return {
+      success: "success",
+      message: "Global accountability data fetched successfully.",
+      data: {
+        records,
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        summary,
+      },
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};

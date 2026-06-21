@@ -20,6 +20,8 @@ import {
   generateFilteredTablePDFService,
   updateWorkDoneAmountService,
   generateReceiptsLogPDFService,
+  getGlobalAccountabilityDataService,
+  generateGlobalAccountabilityReportService,
 } from "../../services/workDone/workDone.service";
 
 const workDone = express.Router();
@@ -39,6 +41,8 @@ workDone.post("/generate-daily-report/:patientId", authenticate, generateDailyWo
 workDone.post("/generate-filtered-report/:patientId", authenticate, generateFilteredWorkDoneReportService);
 workDone.get("/generate-filtered-table-pdf/:patientId", authenticate, generateFilteredTablePDFService);
 workDone.get("/generate-receipts-log/:patientId", authenticate, generateReceiptsLogPDFService);
+workDone.post("/global-accountability", authenticate, getGlobalAccountabilityDataService);
+workDone.post("/generate-global-accountability-report", authenticate, generateGlobalAccountabilityReportService);
 workDone.put("/assign-sitting/:id", authenticate, assignWorkDoneSittingNoService);
 workDone.put("/update-amount/:id", authenticate, updateWorkDoneAmountService);
 workDone.put("/:id", authenticate, updateWorkDoneService);

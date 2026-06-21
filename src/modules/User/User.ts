@@ -345,7 +345,7 @@ const getUsersByCompany = async (
 
       matchConditions.company = new mongoose.Types.ObjectId(req.bodyData.company)
 
-      const users = await User.aggregate([
+      const pipeline: any[] = [
         { $match: matchConditions },
         {
           $project: {
@@ -356,7 +356,13 @@ const getUsersByCompany = async (
             type: 1, // include type in response if needed
           },
         },
-      ]);
+      ];
+
+      if (req.query.limit) {
+        pipeline.push({ $limit: parseInt(req.query.limit) });
+      }
+
+      const users = await User.aggregate(pipeline);
 
       res.status(statusCode.success).send({
         message: "Fetch Users Successfully",

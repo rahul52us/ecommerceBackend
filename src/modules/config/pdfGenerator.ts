@@ -1808,3 +1808,169 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   doc.end();
 };
 
+
+
+export const generateGlobalAccountabilityPDF = (data: any, stream: any) => {
+  const PDFDocument = require("pdfkit");
+  const { summary, records } = data;
+  const doc = new PDFDocument({
+    margin: 0,
+    size: "A4",
+    bufferPages: true
+  });
+
+  doc.pipe(stream);
+
+  // --- STYLE TOKENS ---
+  const COLORS = {
+    brand: "#1e3a8a",
+    brandLight: "#3b82f6",
+    textMain: "#111827",
+    textMuted: "#4b5563",
+    bgLight: "#f8fafc",
+    zebra: "#f1f5f9",
+    success: "#059669",
+    danger: "#dc2626",
+    border: "#e2e8f0",
+    white: "#ffffff"
+  };
+
+  // --- DIMENSIONS ---
+  const PAGE_WIDTH = 595.28;
+  const PAGE_HEIGHT = 841.89;
+  const MARGIN = 20;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  // --- COMPACT HEADER ---
+  const headerHeight = 110;
+  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
+
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(20)
+    .text("CLINICAL AUDIT", MARGIN, 25)
+    .fontSize(10)
+    .font("Helvetica")
+    .opacity(0.8)
+    .text("Global Accountability Report", MARGIN, 52);
+
+  const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .text("SUMMARY", rightAlignX, 25, { align: "right", width: 250 })
+    .opacity(0.8)
+    .fontSize(10)
+    .text(`Billed: Rs. ${summary.totalBilled}`, rightAlignX, 48, { align: "right", width: 250 })
+    .text(`Paid: Rs. ${summary.totalPaid}`, rightAlignX, 60, { align: "right", width: 250 })
+    .text(`Due: Rs. ${summary.totalDue}`, rightAlignX, 72, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 84, { align: "right", width: 250 });
+
+  // --- PREMIUM TABLE SECTION ---
+  const tableTop = 135;
+  const rowH = 28;
+  const headerH = 26;
+
+  doc.save();
+  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+
+  const colX = {
+    date: MARGIN + 5,
+    patient: MARGIN + 60,
+    tooth: MARGIN + 140,
+    treatment: MARGIN + 180,
+    doctor: MARGIN + 280,
+    fees: MARGIN + 360,
+    paid: MARGIN + 410,
+    due: MARGIN + 460,
+    status: MARGIN + 510
+  };
+
+  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
+  doc.text("DATE", colX.date, tableTop + 8);
+  doc.text("PATIENT", colX.patient, tableTop + 8);
+  doc.text("TOOTH", colX.tooth, tableTop + 8);
+  doc.text("TREATMENT", colX.treatment, tableTop + 8);
+  doc.text("DOCTOR", colX.doctor, tableTop + 8);
+  doc.text("FEES", colX.fees, tableTop + 8);
+  doc.text("PAID", colX.paid, tableTop + 8);
+  doc.text("DUE", colX.due, tableTop + 8);
+  doc.text("STATUS", colX.status, tableTop + 8);
+  doc.restore();
+
+  let y = tableTop + headerH + 5;
+  let rowCount = 0;
+
+  records.forEach((row: any) => {
+    if (y + rowH > PAGE_HEIGHT - 60) {
+      doc.addPage();
+      y = MARGIN;
+      doc.save();
+      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, headerH, 6).fill();
+      doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
+      doc.text("DATE", colX.date, y + 8);
+      doc.text("PATIENT", colX.patient, y + 8);
+      doc.text("TOOTH", colX.tooth, y + 8);
+      doc.text("TREATMENT", colX.treatment, y + 8);
+      doc.text("DOCTOR", colX.doctor, y + 8);
+      doc.text("FEES", colX.fees, y + 8);
+      doc.text("PAID", colX.paid, y + 8);
+      doc.text("DUE", colX.due, y + 8);
+      doc.text("STATUS", colX.status, y + 8);
+      doc.restore();
+      y += headerH + 5;
+    }
+
+    if (rowCount % 2 !== 0) {
+      doc.save().fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill().restore();
+    }
+
+    const patientName = row.patientInfo?.name || "Unknown";
+    const docName = row.doctorInfo?.name || "Unknown";
+    const treatName = row.treatmentInfo?.name || row.workDoneNote || "-";
+    const balDue = row.balanceDue || 0;
+    const statusText = balDue <= 0 ? "Settled" : "Due";
+    const statusColor = balDue <= 0 ? COLORS.success : COLORS.danger;
+
+    doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(8);
+    
+    doc.text(new Date(row.createdAt).toLocaleDateString("en-GB"), colX.date, y + 8);
+    doc.font("Helvetica-Bold").text(patientName.slice(0, 15), colX.patient, y + 8).font("Helvetica");
+    doc.text((row.tooth || "-").slice(0, 10), colX.tooth, y + 8);
+    doc.text(treatName.slice(0, 20), colX.treatment, y + 8);
+    doc.text(docName.slice(0, 15), colX.doctor, y + 8);
+    
+    doc.font("Helvetica-Bold").text((row.amount || 0).toString(), colX.fees, y + 8);
+    doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
+    doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
+
+    doc.save();
+    doc.fillColor(statusColor).roundedRect(colX.status, y + 6, 35, 12, 3).fill();
+    doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(statusText.toUpperCase(), colX.status, y + 10, { width: 35, align: "center" });
+    doc.restore();
+
+    y += rowH;
+    rowCount++;
+  });
+
+  const footerY = 795;
+  doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
+
+  doc
+    .fillColor(COLORS.textMuted)
+    .fontSize(7)
+    .font("Helvetica")
+    .text("Generated by Clinic System", MARGIN, footerY + 10, { align: "left", lineBreak: false })
+    .text(`Page Count: ${doc.bufferedPageRange().count}`, PAGE_WIDTH - MARGIN - 100, footerY + 10, { align: "right", width: 100, lineBreak: false });
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.white).rect(0, 0, PAGE_WIDTH, 15).fill(COLORS.brand);
+    doc.rect(0, PAGE_HEIGHT - 15, PAGE_WIDTH, 15).fill(COLORS.brand);
+  }
+
+  doc.end();
+};

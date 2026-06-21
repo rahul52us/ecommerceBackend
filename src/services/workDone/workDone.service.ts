@@ -16,6 +16,7 @@ import {
   updateWorkDoneAmount,
   getFilteredTablePDFData,
   getReceiptsLogData,
+  getGlobalAccountabilityData,
 } from "../../repository/workDone/workDone";
 import { createReceipt } from "../../repository/receipt/receipt.repository";
 import {
@@ -684,6 +685,67 @@ export const generateReceiptsLogPDFService = async (req: any, res: any) => {
 
     const { generateReceiptsLogPDF } = require("../../modules/config/pdfGenerator");
     generateReceiptsLogPDF(data, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+export const getGlobalAccountabilityDataService = async (req: any, res: any) => {
+  try {
+    const payload = {
+      ...req.body,
+      company: req.body.company || req.bodyData?.company,
+    };
+    
+    const { statusCode, success, message, data }: any = await getGlobalAccountabilityData(payload);
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+export const generateGlobalAccountabilityReportService = async (req: any, res: any) => {
+  try {
+    const payload = {
+      ...req.body,
+      company: req.body.company || req.bodyData?.company,
+      limit: 1000, // Limit to 1000 for PDF report to avoid extreme server load
+      page: 1
+    };
+    
+    const { statusCode, success, message, data }: any = await getGlobalAccountabilityData(payload);
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: "error", message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Report generated successfully",
+        data: base64
+      });
+    });
+
+    const { generateGlobalAccountabilityPDF } = require("../../modules/config/pdfGenerator");
+    generateGlobalAccountabilityPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",
