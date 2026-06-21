@@ -258,7 +258,8 @@ export const updateChairsRepo = async (id: string, payload: any) => {
                       $match: {
                         $expr: { $eq: ["$patient", "$$patientId"] },
                         status: "pending",
-                        isActive: true
+                        isActive: true,
+                        complaintType: { $ne: "EXISTING FINDING" }
                       }
                     },
                     {
@@ -277,7 +278,8 @@ export const updateChairsRepo = async (id: string, payload: any) => {
                       $match: {
                         $expr: { $eq: ["$patient", "$$patientId"] },
                         status: "incomplete",
-                        isActive: true
+                        isActive: true,
+                        complaintType: { $ne: "EXISTING FINDING" }
                       }
                     },
                     {
@@ -327,7 +329,8 @@ export const updateChairsRepo = async (id: string, payload: any) => {
                       $match: {
                         $expr: { $eq: ["$patient", "$$patientId"] },
                         status: "pending",
-                        isActive: true
+                        isActive: true,
+                        complaintType: { $ne: "EXISTING FINDING" }
                       }
                     },
                     {
@@ -346,7 +349,8 @@ export const updateChairsRepo = async (id: string, payload: any) => {
                       $match: {
                         $expr: { $eq: ["$patient", "$$patientId"] },
                         status: "incomplete",
-                        isActive: true
+                        isActive: true,
+                        complaintType: { $ne: "EXISTING FINDING" }
                       }
                     },
                     {
