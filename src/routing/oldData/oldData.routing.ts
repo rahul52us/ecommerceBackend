@@ -5,6 +5,7 @@ import {
   getOldToothWorkService,
   getOldTransactionService,
   getOldWorkFeeService,
+  getLegacyRecordDetailsService
 } from "../../services/oldData/oldData.service";
 
 const oldData = express.Router();
@@ -13,5 +14,6 @@ oldData.get("/work-comp", authenticate, getOldWorkCompService);
 oldData.get("/tooth-work", authenticate, getOldToothWorkService);
 oldData.get("/transactions", authenticate, getOldTransactionService);
 oldData.get("/work-fees", authenticate, getOldWorkFeeService);
+oldData.get("/legacy-record-details/:legacyWrkDoneId", authenticate, getLegacyRecordDetailsService);
 
 export default oldData;

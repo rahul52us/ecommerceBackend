@@ -11,7 +11,7 @@ import { setupSocket } from "./modules/chatSocket/chatSocket";
 import { statusCode } from "./config/helper/statusCode";
 import connectToDatabase from "./db/db";
 import "./mdbReader";
-
+// import './scripts/freshMdbImport'
 // // import deploy from "./config/common/reactAppDeployment";
 
 dotenv.config();

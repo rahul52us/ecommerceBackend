@@ -2,7 +2,9 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface LegacyWorkCompDetailInterface extends Document {
   legacyWorkCompId: Schema.Types.ObjectId;
+  patientId: Schema.Types.ObjectId;
   doctorId: Schema.Types.ObjectId;
+  legacyPatCode: string;
   legacyWrkDoneId: string;
   legacyDocCode: string;
   ToothName: string;
@@ -17,7 +19,9 @@ export interface LegacyWorkCompDetailInterface extends Document {
 
 const LegacyWorkCompDetailSchema: Schema<LegacyWorkCompDetailInterface> = new Schema({
   legacyWorkCompId: { type: Schema.Types.ObjectId, ref: "LegacyWorkComp" },
+  patientId: { type: Schema.Types.ObjectId, ref: "User" },
   doctorId: { type: Schema.Types.ObjectId, ref: "User" },
+  legacyPatCode: { type: String },
   legacyWrkDoneId: { type: String, index: true },
   legacyDocCode: { type: String },
   ToothName: { type: String },
