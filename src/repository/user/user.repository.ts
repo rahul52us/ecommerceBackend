@@ -20,18 +20,20 @@ import SalaryStructure from "../../schemas/salaryStructure/SalaryStructure.schem
 import companyDetails from "../../schemas/company/companyDetails";
 import Company from "../../schemas/company/Company";
 
-async function generateUniqueCode(this: any): Promise<string> {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*_-";
+async function generateUniqueCode(prefix: string = ""): Promise<string> {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let code: string;
   let exists = true;
 
   while (exists) {
-    code = Array.from({ length: 5 }, () =>
+    const randomPart = Array.from({ length: 5}, () =>
       chars.charAt(Math.floor(Math.random() * chars.length))
     ).join("");
 
+    code = `${prefix}${randomPart}`;
+
     const user = await mongoose.models.User.findOne({
-      code: code.toUpperCase(),
+      code: { $regex: new RegExp(`^${code}$`, 'i') },
     });
     if (!user) {
       exists = false;
@@ -47,7 +49,7 @@ const createAdminUser = async (data: any) => {
     // -------------------------------
     let finalCode = data.code;
     if (!finalCode) {
-      finalCode = await generateUniqueCode();
+      finalCode = await generateUniqueCode("ad-");
     } else {
       const userCode = await User.findOne({ code: finalCode });
       if (userCode) {
@@ -182,7 +184,14 @@ const createUser = async (data: any) => {
   try {
     let finalCode = data.code;
     if (!finalCode) {
-      finalCode = await generateUniqueCode();
+      const typeStr = (data.type || data.userType || "").toLowerCase();
+      let prefix = "";
+      if (typeStr === 'patient') prefix = 'pt-';
+      else if (typeStr === 'doctor') prefix = 'dt-';
+      else if (typeStr === 'staff') prefix = 'st-';
+      else if (typeStr === 'admin' || typeStr === 'superadmin') prefix = 'ad-';
+
+      finalCode = await generateUniqueCode(prefix);
     } else {
       const userCode = await User.findOne({ code: finalCode });
       if (userCode) {

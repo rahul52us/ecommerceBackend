@@ -732,7 +732,11 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   console.log('the patient are', patient)
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
-  doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For  ${patient?.profile_details?.personalInfo?.title ? (patient?.profile_details?.personalInfo?.title?.label || patient?.profile_details?.personalInfo?.title) : ""}  ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
+  const tObj1 = patient?.profile_details?.personalInfo?.title;
+  const tVal1 = tObj1 ? (tObj1.label || tObj1) : "";
+  const tStr1 = tVal1 && tVal1.trim() !== "" ? `${tVal1} ` : "";
+  const nStr1 = patient?.name?.toUpperCase() || "N/A";
+  doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For  ${tStr1}${nStr1}`, MARGIN, y);
 
   y += 18; // Extra padding between the two lines
 
@@ -910,7 +914,11 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
   const titleDate = safeRecords.length > 0 ? new Date(safeRecords[0].createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-  doc.text(`Work Done on  ${titleDate}  For  ${patient?.profile_details?.personalInfo?.title ? (patient?.profile_details?.personalInfo?.title?.label || patient?.profile_details?.personalInfo?.title) : ""}  ${patient?.name?.toUpperCase() || "N/A"}`, MARGIN, y);
+  const tObj2 = patient?.profile_details?.personalInfo?.title;
+  const tVal2 = tObj2 ? (tObj2.label || tObj2) : "";
+  const tStr2 = tVal2 && tVal2.trim() !== "" ? `${tVal2} ` : "";
+  const nStr2 = patient?.name?.toUpperCase() || "N/A";
+  doc.text(`Work Done on  ${titleDate}  For  ${tStr2}${nStr2}`, MARGIN, y);
 
   y += 18; // Extra padding between the two lines
 
@@ -979,6 +987,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${doctorName}`, MARGIN, y);
     y += 18;
 
+    let lastDateStr = "";
     recordsByDoctor[doctorName].forEach((record: any, recIndex: number) => {
       // Add Date for this record
       const recordDate = new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -995,8 +1004,10 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
         }
       }
 
+      const showDate = recordDate !== lastDateStr;
+
       // Estimate height needed for this record
-      let recordHeight = 14 + 10; // Date height + bottom padding
+      let recordHeight = (showDate ? 14 : 0) + 10; // Date height (if shown) + bottom padding
       if (noteText && toothDesc) recordHeight += doc.heightOfString(`${toothDesc}    ${noteText}`, { width: CONTENT_WIDTH });
       else if (noteText) recordHeight += doc.heightOfString(noteText, { width: CONTENT_WIDTH });
       else if (toothDesc) recordHeight += doc.heightOfString(toothDesc, { width: CONTENT_WIDTH });
@@ -1012,8 +1023,11 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
         y += 5; // Spacing between records of the same doctor
       }
 
-      doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMuted).text(recordDate, MARGIN, y);
-      y += 14;
+      if (showDate) {
+        doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMuted).text(recordDate, MARGIN, y);
+        y += 14;
+        lastDateStr = recordDate;
+      }
 
       doc.fillColor(COLORS.textMain); // Reset color to main text color for following fields
 
@@ -1150,7 +1164,10 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
 
     // Patient Info Row
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text("Patient:", MARGIN, y, { continued: true });
-    doc.font("Helvetica").text(` ${patientToUse?.title ? (patientToUse?.title?.label || patientToUse?.title) : ""} ${patientToUse?.name || "N/A"}`, { continued: true });
+    const tObj3 = patientToUse?.title;
+    const tVal3 = tObj3 ? (tObj3.label || tObj3) : "";
+    const tStr3 = tVal3 && tVal3.trim() !== "" ? `${tVal3} ` : "";
+    doc.font("Helvetica").text(` ${tStr3}${patientToUse?.name || "N/A"}`, { continued: true });
     doc.font("Helvetica-Bold").text("    Age/Sex:", { continued: true });
     doc.font("Helvetica").text(` ${calculateAge(patientToUse?.profile_details?.personalInfo?.dob) || "N/A"} / ${patientToUse?.profile_details?.personalInfo?.gender ? patientToUse?.profile_details?.personalInfo?.gender === 1 ? "Male" : "Female" : "N/A"}`, { continued: true });
     doc.font("Helvetica-Bold").text("    Date:", { continued: true });

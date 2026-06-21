@@ -31,8 +31,7 @@ export interface UserInterface extends Document {
 
 const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   title: {
-    type: String,
-    default : "Mr."
+    type: String
   },
   name: { type: String, trim: true },
   username: { type: String },
