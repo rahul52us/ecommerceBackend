@@ -33,6 +33,10 @@ const ReceiptSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
+    type: {
+      type: String,
+      default: "receipt",
+    },
     isActive: {
       type: Boolean,
       default: true,

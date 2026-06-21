@@ -212,6 +212,33 @@ export const deleteWorkDone = async (data: any) => {
   }
 };
 
+export const updateWorkDoneAmount = async (data: any) => {
+  try {
+    const { id, amount, user } = data;
+
+    const workDone: any = await WorkDoneSchema.findById(id);
+    if (!workDone) {
+      return { success: "error", message: "Work done record not found.", statusCode: 404 };
+    }
+
+    // Update WorkDone amount
+    workDone.amount = amount;
+    workDone.updatedBy = user;
+    const updatedWorkDone = await workDone.save();
+
+    // Also update accountability totalAmount if it exists
+    const accountability = await AccountabilityModel.findOne({ workDone: id });
+    if (accountability) {
+      accountability.totalAmount = amount - (workDone.discount || 0); // Assuming total amount is bill amount (amount - discount)
+      await accountability.save();
+    }
+
+    return { success: "success", message: "Work done amount updated successfully.", data: updatedWorkDone, statusCode: 200 };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
 export const assignWorkDoneSittingNo = async (data: any) => {
   try {
     const { workDoneId, sittingNo, user } = data;
@@ -864,6 +891,83 @@ export const getWorkDoneCountByDate = async (query: any) => {
       error: error.message,
       statusCode: 500,
     };
+  }
+};
+
+/**
+ * FETCH RECEIPTS LOG DATA FOR PDF
+ */
+export const getReceiptsLogData = async (query: any) => {
+  try {
+    const { patientId, company, startDate, endDate, doctorId } = query;
+    const patId = toObjectId(patientId);
+    const compId = toObjectId(company);
+
+    if (!patId || !compId) {
+      return { success: "error", message: "Patient and Company ID required", statusCode: 400 };
+    }
+
+    const matchStage: any = {
+      patient: patId,
+      company: compId,
+      isActive: { $ne: false },
+    };
+
+    if (startDate || endDate) {
+      matchStage.createdAt = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        matchStage.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = end;
+      }
+    }
+
+    // Since receipt numbers are strictly tracked here, query the ReceiptModel.
+    const ReceiptModel = require("../../schemas/receipt/receipt.schema").default;
+    
+    // We populate workDone to filter by doctor if needed and to get doctor name
+    const receipts = await ReceiptModel.find(matchStage)
+      .populate("patient")
+      .populate({
+        path: "workDone",
+        populate: { path: "doctor" }
+      })
+      .populate("company")
+      .sort({ createdAt: -1 });
+
+    let filteredReceipts = receipts;
+    if (doctorId && doctorId !== "all") {
+      filteredReceipts = receipts.filter((r: any) => 
+        r.workDone && r.workDone.doctor && String(r.workDone.doctor._id) === String(doctorId)
+      );
+    }
+
+    let patientObj = filteredReceipts.length > 0 ? filteredReceipts[0].patient : null;
+    if (!patientObj && patientId) {
+      patientObj = await UserModel.findById(patientId).select("name mobileNumber code profile_details").populate({
+        path: "profile_details",
+        model: "ProfileDetails"
+      });
+    }
+
+    const clinic = await CompanyModel.findById(compId);
+
+    return {
+      success: "success",
+      data: {
+        patient: patientObj,
+        clinic,
+        records: filteredReceipts
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };
 

@@ -62,11 +62,11 @@ export const generateStatementPDF = (data: any, stream: any) => {
 
   // --- COMPACT HEADER ---
   const headerHeight = 110;
-  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
+  // doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
 
   // Clinic Info (Left Side) - Using company_name from schema
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .font("Helvetica-Bold")
     .fontSize(20)
     .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25)
@@ -94,7 +94,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
   if (sexStr) metaArr.push(sexStr);
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .font("Helvetica-Bold")
     .fontSize(13)
     .text("ACCOUNT STATEMENT", rightAlignX, 25, { align: "right", width: 250 })
@@ -128,7 +128,9 @@ export const generateStatementPDF = (data: any, stream: any) => {
   const headerH = 26;
 
   doc.save();
-  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+  // doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, tableTop).lineTo(MARGIN + CONTENT_WIDTH, tableTop).stroke();
+  doc.moveTo(MARGIN, tableTop + headerH).lineTo(MARGIN + CONTENT_WIDTH, tableTop + headerH).stroke();
 
   // Rebalanced Column Widths
   const colX = {
@@ -142,7 +144,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
   };
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .fontSize(8)
     .font("Helvetica-Bold")
     .text("DATE", colX.date, tableTop + 9)
@@ -228,7 +230,129 @@ export const generateStatementPDF = (data: any, stream: any) => {
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(i);
-    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, 815, { align: "center", width: PAGE_WIDTH });
+    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, footerY + 10, { align: "center", width: PAGE_WIDTH });
+  }
+
+  doc.end();
+};
+
+/**
+ * GENERATE RECEIPTS LOG PDF
+ */
+export const generateReceiptsLogPDF = (data: any, stream: any) => {
+  const { clinic, patient, records } = data;
+  const doc = new PDFDocument({ margin: 0, size: "A4", bufferPages: true });
+
+  doc.pipe(stream);
+
+  const COLORS = {
+    brand: "#0f172a",
+    textMain: "#1e293b",
+    textMuted: "#64748b",
+    bgLight: "#f8fafc",
+    zebra: "#f1f5f9",
+    border: "#e2e8f0",
+    success: "#10b981",
+    danger: "#ef4444",
+    white: "#ffffff"
+  };
+
+  const PAGE_WIDTH = 595.28;
+  const MARGIN = 30;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  // --- HEADER ---
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(18).text("RECEIPTS LOG", MARGIN, 35);
+  doc.fontSize(10).opacity(0.7).font("Helvetica").text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, MARGIN, 60);
+
+  // Clinic & Patient Info (Top Right)
+  doc.opacity(1).fontSize(14).font("Helvetica-Bold").text(`${patient?.name || "N/A"}`, PAGE_WIDTH - MARGIN - 250, 35, { align: "right", width: 250 });
+  doc.fontSize(9).font("Helvetica").opacity(0.8).text(clinic?.company_name || "DENTAL CLINIC", PAGE_WIDTH - MARGIN - 250, 55, { align: "right", width: 250 });
+
+  let y = 110;
+  const tableHeaderH = 24;
+  const rowH = 24;
+  const colX = { 
+    date: MARGIN + 5, 
+    receipt: MARGIN + 70, 
+    patient: MARGIN + 160, 
+    module: MARGIN + 280, 
+    bill: MARGIN + 380, 
+    paid: MARGIN + 460 
+  };
+
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
+  doc.moveTo(MARGIN, y + tableHeaderH).lineTo(MARGIN + CONTENT_WIDTH, y + tableHeaderH).stroke();
+  
+  doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
+    .text("DATE", colX.date, y + 8)
+    .text("RECEIPT NO.", colX.receipt, y + 8)
+    .text("PATIENT", colX.patient, y + 8)
+    .text("MODULE", colX.module, y + 8)
+    .text("BILL", colX.bill, y + 8, { width: 60, align: "right" })
+    .text("PAID", colX.paid, y + 8, { width: 60, align: "right" });
+
+  y += tableHeaderH + 5;
+  let count = 0;
+
+  records.forEach((record: any) => {
+    if (count % 2 !== 0) doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
+    doc.lineWidth(0.1).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
+
+    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const receiptNo = record.receiptNumber || "N/A";
+    const patientName = (record.patient as any)?.name || "N/A";
+    
+    let moduleStr = (record.type || "Receipt").toUpperCase();
+    if (moduleStr === "WORKDONE") moduleStr = "STATEMENT";
+    else if (moduleStr === "ACCOUNTABILITY" || moduleStr === "RECEIPT") moduleStr = "PAYMENT";
+
+    const workdone = record.workDone as any;
+    let billStr = "-";
+    let paidStr = "-";
+    if (workdone) {
+       billStr = `₹${(workdone.amount - (workdone.discount || 0)).toLocaleString()}`;
+       if (workdone.receivedAmount > 0) {
+         paidStr = `₹${workdone.receivedAmount.toLocaleString()}`;
+       }
+    }
+
+    doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica")
+      .text(date, colX.date, y + 8)
+      .font("Helvetica-Bold").text(receiptNo, colX.receipt, y + 8)
+      .font("Helvetica").text(patientName, colX.patient, y + 8, { width: 110, ellipsis: true })
+      .fillColor(COLORS.textMuted).text(moduleStr, colX.module, y + 8)
+      .fillColor(COLORS.textMain).text(billStr, colX.bill, y + 8, { width: 60, align: "right" })
+      .fillColor(COLORS.success).text(paidStr, colX.paid, y + 8, { width: 60, align: "right" });
+
+    y += rowH;
+    count++;
+
+    if (y > 750) {
+      doc.addPage({ margin: 0 });
+      y = 40;
+      doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
+      doc.moveTo(MARGIN, y + tableHeaderH).lineTo(MARGIN + CONTENT_WIDTH, y + tableHeaderH).stroke();
+      doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
+        .text("DATE", colX.date, y + 8)
+        .text("RECEIPT NO.", colX.receipt, y + 8)
+        .text("PATIENT", colX.patient, y + 8)
+        .text("MODULE", colX.module, y + 8)
+        .text("BILL", colX.bill, y + 8, { width: 60, align: "right" })
+        .text("PAID", colX.paid, y + 8, { width: 60, align: "right" });
+      y += tableHeaderH + 5;
+    }
+  });
+
+  const footerY = 795;
+  doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
+  doc.fillColor(COLORS.textMuted).fontSize(7).font("Helvetica")
+    .text(`Generated by ${clinic?.company_name || "Clinic System"}`, MARGIN, footerY + 10);
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, footerY + 10, { align: "center", width: PAGE_WIDTH });
   }
 
   doc.end();
@@ -267,8 +391,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 
   // --- HEADER ---
-  doc.rect(0, 0, PAGE_WIDTH, 140).fill(COLORS.brand);
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(24).text("TREATMENT RECEIPT", MARGIN, 35);
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(24).text("TREATMENT RECEIPT", MARGIN, 35);
   doc.fontSize(10).opacity(0.8).text(`Date: ${new Date().toLocaleDateString()}`, MARGIN, 65);
   doc.fontSize(10).text(`Receipt No: ${data.receiptNumber || "N/A"}`, MARGIN, 80);
 
@@ -333,8 +456,9 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   y += 15;
 
   const colX = { date: MARGIN + 10, method: MARGIN + 120, amount: MARGIN + 250 };
-  doc.fillColor(COLORS.brand).rect(MARGIN, y, CONTENT_WIDTH, 20).fill();
-  doc.fillColor(COLORS.white).fontSize(8).text("DATE", colX.date, y + 6).text("METHOD", colX.method, y + 6).text("AMOUNT", colX.amount, y + 6, { width: 100, align: "right" });
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
+  doc.moveTo(MARGIN, y + 20).lineTo(MARGIN + CONTENT_WIDTH, y + 20).stroke();
+  doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold").text("DATE", colX.date, y + 6).text("METHOD", colX.method, y + 6).text("AMOUNT", colX.amount, y + 6, { width: 100, align: "right" });
   y += 20;
 
   const payments = record.paymentHistory || [];
@@ -363,7 +487,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   };
 
   drawRow("Gross Amount:", `Rs. ${record.amount.toLocaleString()}`);
-  drawRow("Discount:", `Rs. ${(record.discount || 0).toLocaleString()}`);
+  drawRow("", `Rs. ${(record.discount || 0).toLocaleString()}`);
   doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(summaryX, y).lineTo(summaryX + 200, y).stroke();
   y += 10;
   drawRow("Total Billed:", `Rs. ${bill.toLocaleString()}`, true);
@@ -406,8 +530,8 @@ export const generateDoctorWorkDonePDF = (data: any, stream: any) => {
   const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 
   // --- HEADER ---
-  doc.rect(0, 0, PAGE_WIDTH, 120).fill(COLORS.brand);
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(18).text("DOCTOR PERFORMANCE REPORT", MARGIN, 35);
+  // doc.rect(0, 0, PAGE_WIDTH, 120).fill(COLORS.brand);
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(18).text("DOCTOR PERFORMANCE REPORT", MARGIN, 35);
   doc.fontSize(10).opacity(0.7).font("Helvetica").text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, MARGIN, 60);
 
   // Doctor & Clinic Info (Top Right)
@@ -439,8 +563,10 @@ export const generateDoctorWorkDonePDF = (data: any, stream: any) => {
   const rowH = 24;
   const colX = { date: MARGIN + 10, patient: MARGIN + 80, treatment: MARGIN + 230, amount: MARGIN + 400, status: MARGIN + 470 };
 
-  doc.fillColor(COLORS.brandLight).roundedRect(MARGIN, y, CONTENT_WIDTH, tableHeaderH, 4).fill();
-  doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold")
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
+  doc.moveTo(MARGIN, y + tableHeaderH).lineTo(MARGIN + CONTENT_WIDTH, y + tableHeaderH).stroke();
+  
+  doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
     .text("DATE", colX.date, y + 8)
     .text("PATIENT", colX.patient, y + 8)
     .text("TREATMENT", colX.treatment, y + 8)

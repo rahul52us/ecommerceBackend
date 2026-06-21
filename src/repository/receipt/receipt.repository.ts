@@ -31,30 +31,64 @@ const generateReceiptNumber = async (companyId: any) => {
  */
 export const createReceipt = async (data: any) => {
   try {
-    const { patient, workDone, accountability, company, generatedBy } = data;
+    const { patient, workDone, accountability, company, generatedBy, type = "receipt" } = data;
 
+    // Check if an existing receipt was already generated TODAY for this exact criteria
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const matchCriteria: any = {
+      patient: toObjectId(patient),
+      company: toObjectId(company),
+      type: type,
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    };
+
+    const exactMatchCriteria = { ...matchCriteria };
+    if (workDone) exactMatchCriteria.workDone = toObjectId(workDone);
+    if (accountability) exactMatchCriteria.accountability = toObjectId(accountability);
+
+    // 1. Check if we already generated a receipt for this EXACT data today
+    const exactExistingReceipt = await ReceiptModel.findOne(exactMatchCriteria);
+
+    if (exactExistingReceipt) {
+      return {
+        success: "success",
+        message: "Existing exact receipt found for today",
+        data: exactExistingReceipt,
+        statusCode: 200,
+      };
+    }
+
+    // 2. Since it's a completely new record or different type, generate a brand new receipt number
     const receiptNumber = await generateReceiptNumber(company);
 
     const newReceipt = new ReceiptModel({
-      receiptNumber,
       patient: toObjectId(patient),
-      workDone: toObjectId(workDone),
-      accountability: toObjectId(accountability) || undefined,
+      workDone: workDone ? toObjectId(workDone) : null,
+      accountability: accountability ? toObjectId(accountability) : null,
       company: toObjectId(company),
-      generatedBy: toObjectId(generatedBy) || undefined,
+      generatedBy: toObjectId(generatedBy),
+      type: type,
+      receiptNumber
     });
 
-    const saved = await newReceipt.save();
+    await newReceipt.save();
 
     return {
       success: "success",
-      message: "Receipt created",
-      data: saved,
+      message: "Receipt generated successfully",
+      data: newReceipt,
       statusCode: 201,
     };
   } catch (error: any) {
-    console.error("createReceipt error:", error);
-    return { success: "error", message: error.message, statusCode: 500 };
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
   }
 };
 

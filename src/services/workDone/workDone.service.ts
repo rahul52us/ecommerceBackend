@@ -13,7 +13,9 @@ import {
   getDailyWorkDoneData,
   getWorkDoneCountByDate,
   assignWorkDoneSittingNo,
+  updateWorkDoneAmount,
   getFilteredTablePDFData,
+  getReceiptsLogData,
 } from "../../repository/workDone/workDone";
 import { createReceipt } from "../../repository/receipt/receipt.repository";
 import {
@@ -148,6 +150,27 @@ export const updateWorkDoneService = async (req: any, res: any) => {
     });
   }
 };
+
+export const updateWorkDoneAmountService = async (req: any, res: any) => {
+  try {
+    const { status, statusCode, message, data }: any = await updateWorkDoneAmount({
+      amount: req.body.amount,
+      id: req.params.id,
+      user: req.userId,
+    });
+
+    return res.status(statusCode).send({
+      status,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
 export const assignWorkDoneSittingNoService = async (req: any, res: any) => {
   try {
     const { status, statusCode, message, data }: any = await assignWorkDoneSittingNo({
@@ -212,6 +235,17 @@ export const generatePatientStatementService = async (req: any, res: any) => {
       });
     });
 
+    const receiptResult = await createReceipt({
+      patient: data.patient?._id,
+      company: req.query.company,
+      generatedBy: req.userId,
+      type: "statement",
+    });
+    
+    if (receiptResult.success === "success") {
+      data.receiptNumber = receiptResult.data?.receiptNumber;
+    }
+
     generateStatementPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
@@ -242,6 +276,7 @@ export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
       workDone: record._id,
       company: req.query.company,
       generatedBy: req.userId,
+      type: req.query.type || "workdone",
     });
 
     // Attach receipt number to data for PDF
@@ -330,6 +365,7 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
       workDone: data.record._id,
       company: req.query.company,
       generatedBy: req.userId,
+      type: req.query.type || "accountability",
     });
 
     // Attach receipt number to data for PDF
@@ -621,4 +657,37 @@ export const generateFilteredTablePDFService = async (req: any, res: any) => {
   }
 };
 
+export const generateReceiptsLogPDFService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getReceiptsLogData({
+      ...req.query,
+      patientId: req.params.patientId
+    });
 
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Receipts Log PDF generated successfully",
+        data: base64
+      });
+    });
+
+    const { generateReceiptsLogPDF } = require("../../modules/config/pdfGenerator");
+    generateReceiptsLogPDF(data, stream);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
