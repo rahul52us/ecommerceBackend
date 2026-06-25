@@ -777,6 +777,61 @@ const getUserByName = async (data: any) => {
   }
 };
 
+export const linkMissingProfileDetails = async () => {
+  try {
+
+    console.log('called')
+    const allProfiles = await ProfileDetails.find({});
+    let linkedCount = 0;
+    let alreadyLinkedCount = 0;
+    let userNotFoundCount = 0;
+
+    for (const profile of allProfiles) {
+
+      if (!profile.user) {
+        continue;
+      }
+
+      console.log(profile?.user)
+
+      const user = await User.findById(profile.user);
+      if (!user) {
+        userNotFoundCount++;
+        continue;
+      }
+
+      if (user.profile_details && user.profile_details.toString() === profile._id.toString()) {
+        alreadyLinkedCount++;
+        continue;
+      }
+
+      console.log(linkedCount)
+      user.profile_details = profile._id as any;
+      await user.save();
+      linkedCount++;
+    }
+
+    return {
+      status: "success",
+      data: {
+        profilesProcessed: allProfiles.length,
+        alreadyLinked: alreadyLinkedCount,
+        newlyLinked: linkedCount,
+        userNotFound: userNotFoundCount
+      },
+      message: `Successfully linked ${linkedCount} profiles.`,
+      statusCode: 200
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: err?.message,
+      message: err?.message,
+      statusCode: 500
+    };
+  }
+};
+
 const getCountDesignationStatus = async (data: any) => {
   try {
     const designationCount = await User.aggregate([

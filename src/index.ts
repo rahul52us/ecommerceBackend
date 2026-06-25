@@ -10,6 +10,7 @@ import * as path from "path";
 import { setupSocket } from "./modules/chatSocket/chatSocket";
 import { statusCode } from "./config/helper/statusCode";
 import connectToDatabase from "./db/db";
+import { linkMissingProfileDetails } from "./repository/user/user.repository";
 // import "./mdbReader";
 // import './scripts/freshMdbImport'
 // // import deploy from "./config/common/reactAppDeployment";
@@ -49,6 +50,8 @@ app.use(errorMiddleware);
 const startServer = async () => {
   await connectToDatabase(); // ⬅️ WAIT FOR DB CONNECTION FIRST
 
+  // const linkResult = await linkMissingProfileDetails();
+  // console.log("Profile Linking Result:", linkResult);
   const PORT = process.env.PORT || 5000;
 
   server.listen(PORT, () => {
