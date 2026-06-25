@@ -13,6 +13,7 @@ import connectToDatabase from "./db/db";
 // import "./mdbReader";
 // import './scripts/freshMdbImport'
 // // import deploy from "./config/common/reactAppDeployment";
+// import './routing/doctor'
 
 dotenv.config();
 
