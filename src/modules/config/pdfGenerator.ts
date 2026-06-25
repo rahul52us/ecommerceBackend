@@ -1810,7 +1810,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
 
 
 
-export const generateGlobalAccountabilityPDF = (data: any, stream: any) => {
+export const generateGlobalAccountabilityPDF = (data: any, stream: any, selectedColumns?: string[]) => {
   const PDFDocument = require("pdfkit");
   const { summary, records } = data;
   const doc = new PDFDocument({
@@ -1842,116 +1842,156 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any) => {
   const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 
   // --- COMPACT HEADER ---
-  const headerHeight = 110;
-  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
+  const headerHeight = 85;
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.brand)
     .font("Helvetica-Bold")
     .fontSize(20)
     .text("CLINICAL AUDIT", MARGIN, 25)
+    .fillColor(COLORS.textMuted)
     .fontSize(10)
     .font("Helvetica")
-    .opacity(0.8)
+    .opacity(1)
     .text("Global Accountability Report", MARGIN, 52);
 
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.brand)
     .font("Helvetica-Bold")
     .fontSize(13)
     .text("SUMMARY", rightAlignX, 25, { align: "right", width: 250 })
-    .opacity(0.8)
+    .fillColor(COLORS.textMuted)
+    .opacity(1)
     .fontSize(10)
-    .text(`Billed: Rs. ${summary.totalBilled}`, rightAlignX, 48, { align: "right", width: 250 })
-    .text(`Paid: Rs. ${summary.totalPaid}`, rightAlignX, 60, { align: "right", width: 250 })
-    .text(`Due: Rs. ${summary.totalDue}`, rightAlignX, 72, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 84, { align: "right", width: 250 });
+    .text(`Billed: Rs. ${summary.totalBilled}`, rightAlignX, 45, { align: "right", width: 250 })
+    .text(`Paid: Rs. ${summary.totalPaid}`, rightAlignX, 57, { align: "right", width: 250 })
+    .text(`Due: Rs. ${summary.totalDue}`, rightAlignX, 69, { align: "right", width: 250 })
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 81, { align: "right", width: 250 });
+
+  // --- DYNAMIC COLUMNS SETUP ---
+  const allColumns = [
+    { key: "date", label: "DATE", width: 45 },
+    { key: "patient", label: "PATIENT", width: 60 },
+    { key: "tooth", label: "TOOTH", width: 30 },
+    { key: "treatmentCode", label: "CODE", width: 90 },
+    { key: "treatment", label: "TREATMENT", width: 90 },
+    { key: "doctor", label: "DOCTOR", width: 60 },
+    { key: "fees", label: "FEES", width: 35 },
+    { key: "paid", label: "PAID", width: 35 },
+    { key: "due", label: "DUE", width: 35 },
+    { key: "paymentMode", label: "MODE", width: 35 },
+    { key: "status", label: "STATUS", width: 35 }
+  ];
+
+  const columnsToRender = selectedColumns && selectedColumns.length > 0 
+    ? allColumns.filter(c => selectedColumns.includes(c.key))
+    : allColumns;
+
+  const colX: Record<string, number> = {};
+  const colW: Record<string, number> = {};
+  let currentX = MARGIN + 5;
+  
+  const totalDefaultWidth = columnsToRender.reduce((sum, c) => sum + c.width, 0);
+  const extraSpace = Math.max(0, CONTENT_WIDTH - 10 - totalDefaultWidth);
+  
+  const expandableKeys = ["treatmentCode", "treatment", "patient"];
+  const presentExpandable = columnsToRender.filter(c => expandableKeys.includes(c.key));
+  const expandBy = presentExpandable.length > 0 ? extraSpace / presentExpandable.length : 0;
+
+  columnsToRender.forEach(c => {
+    colX[c.key] = currentX;
+    colW[c.key] = c.width + (expandableKeys.includes(c.key) ? expandBy : 0);
+    currentX += colW[c.key];
+  });
 
   // --- PREMIUM TABLE SECTION ---
-  const tableTop = 135;
+  const tableTop = 110;
   const rowH = 28;
   const headerH = 26;
 
   doc.save();
   doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
 
-  const colX = {
-    date: MARGIN + 5,
-    patient: MARGIN + 60,
-    tooth: MARGIN + 140,
-    treatment: MARGIN + 180,
-    doctor: MARGIN + 280,
-    fees: MARGIN + 360,
-    paid: MARGIN + 410,
-    due: MARGIN + 460,
-    status: MARGIN + 510
-  };
-
   doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
-  doc.text("DATE", colX.date, tableTop + 8);
-  doc.text("PATIENT", colX.patient, tableTop + 8);
-  doc.text("TOOTH", colX.tooth, tableTop + 8);
-  doc.text("TREATMENT", colX.treatment, tableTop + 8);
-  doc.text("DOCTOR", colX.doctor, tableTop + 8);
-  doc.text("FEES", colX.fees, tableTop + 8);
-  doc.text("PAID", colX.paid, tableTop + 8);
-  doc.text("DUE", colX.due, tableTop + 8);
-  doc.text("STATUS", colX.status, tableTop + 8);
+  columnsToRender.forEach(c => {
+    doc.text(c.label, colX[c.key], tableTop + 8);
+  });
   doc.restore();
 
   let y = tableTop + headerH + 5;
   let rowCount = 0;
 
+  const drawHeaders = (currentY: number) => {
+    doc.save();
+    doc.fillColor(COLORS.brand).roundedRect(MARGIN, currentY, CONTENT_WIDTH, headerH, 6).fill();
+    doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
+    columnsToRender.forEach(c => {
+      doc.text(c.label, colX[c.key], currentY + 8);
+    });
+    doc.restore();
+  };
+
   records.forEach((row: any) => {
-    if (y + rowH > PAGE_HEIGHT - 60) {
-      doc.addPage();
-      y = MARGIN;
-      doc.save();
-      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, headerH, 6).fill();
-      doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
-      doc.text("DATE", colX.date, y + 8);
-      doc.text("PATIENT", colX.patient, y + 8);
-      doc.text("TOOTH", colX.tooth, y + 8);
-      doc.text("TREATMENT", colX.treatment, y + 8);
-      doc.text("DOCTOR", colX.doctor, y + 8);
-      doc.text("FEES", colX.fees, y + 8);
-      doc.text("PAID", colX.paid, y + 8);
-      doc.text("DUE", colX.due, y + 8);
-      doc.text("STATUS", colX.status, y + 8);
-      doc.restore();
-      y += headerH + 5;
-    }
-
-    if (rowCount % 2 !== 0) {
-      doc.save().fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill().restore();
-    }
-
     const patientName = row.patientInfo?.name || "Unknown";
     const docName = row.doctorInfo?.name || "Unknown";
     const treatName = row.treatmentInfo?.name || row.workDoneNote || "-";
+    const treatCode = row.treatmentCode || "-";
     const balDue = row.balanceDue || 0;
     const statusText = balDue <= 0 ? "Settled" : "Due";
     const statusColor = balDue <= 0 ? COLORS.success : COLORS.danger;
 
+    // Calculate dynamic row height based on text wrapping
+    doc.font("Helvetica").fontSize(8);
+    let maxH = 12; // Minimum approx 1 line
+    if (colX.patient) {
+      doc.font("Helvetica-Bold");
+      maxH = Math.max(maxH, doc.heightOfString(patientName, { width: colW.patient - 5 }));
+      doc.font("Helvetica");
+    }
+    if (colX.treatmentCode) maxH = Math.max(maxH, doc.heightOfString(treatCode, { width: colW.treatmentCode - 5 }));
+    if (colX.treatment) maxH = Math.max(maxH, doc.heightOfString(treatName, { width: colW.treatment - 5 }));
+    
+    const currentDynamicRowH = Math.max(28, maxH + 16);
+
+    if (y + currentDynamicRowH > PAGE_HEIGHT - 60) {
+      doc.addPage();
+      y = MARGIN;
+      drawHeaders(y);
+      y += headerH + 5;
+    }
+
+    if (rowCount % 2 !== 0) {
+      doc.save().fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, currentDynamicRowH).fill().restore();
+    }
+
     doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(8);
     
-    doc.text(new Date(row.createdAt).toLocaleDateString("en-GB"), colX.date, y + 8);
-    doc.font("Helvetica-Bold").text(patientName.slice(0, 15), colX.patient, y + 8).font("Helvetica");
-    doc.text((row.tooth || "-").slice(0, 10), colX.tooth, y + 8);
-    doc.text(treatName.slice(0, 20), colX.treatment, y + 8);
-    doc.text(docName.slice(0, 15), colX.doctor, y + 8);
+    if (colX.date) doc.text(new Date(row.createdAt).toLocaleDateString("en-GB"), colX.date, y + 8);
+    if (colX.patient) doc.font("Helvetica-Bold").text(patientName, colX.patient, y + 8, { width: colW.patient - 5 }).font("Helvetica");
+    if (colX.tooth) doc.text((row.tooth || "-").slice(0, 10), colX.tooth, y + 8, { width: colW.tooth - 5, ellipsis: true });
     
-    doc.font("Helvetica-Bold").text((row.amount || 0).toString(), colX.fees, y + 8);
-    doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
-    doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
+    // These columns can now wrap dynamically to the next line
+    if (colX.treatmentCode) doc.text(treatCode, colX.treatmentCode, y + 8, { width: colW.treatmentCode - 5 });
+    if (colX.treatment) doc.text(treatName, colX.treatment, y + 8, { width: colW.treatment - 5 });
+    
+    if (colX.doctor) doc.text(docName.slice(0, 15), colX.doctor, y + 8, { width: colW.doctor - 5, ellipsis: true });
+    
+    if (colX.fees) doc.font("Helvetica-Bold").text((row.amount || 0).toString(), colX.fees, y + 8);
+    if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
+    if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
+    if (colX.paymentMode) doc.text((row.paymentMode || "-").slice(0, 10), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
 
-    doc.save();
-    doc.fillColor(statusColor).roundedRect(colX.status, y + 6, 35, 12, 3).fill();
-    doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(statusText.toUpperCase(), colX.status, y + 10, { width: 35, align: "center" });
-    doc.restore();
+    if (colX.status) {
+      doc.save();
+      // Center the status vertically in the dynamic row
+      const statusY = y + (currentDynamicRowH / 2) - 6; 
+      doc.fillColor(statusColor).roundedRect(colX.status, statusY, 35, 12, 3).fill();
+      doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(statusText.toUpperCase(), colX.status, statusY + 4, { width: 35, align: "center" });
+      doc.restore();
+    }
 
-    y += rowH;
+    y += currentDynamicRowH;
     rowCount++;
   });
 

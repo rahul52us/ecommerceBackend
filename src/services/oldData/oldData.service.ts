@@ -8,10 +8,19 @@ import mongoose from "mongoose";
 
 export const getOldWorkCompService = async (req: Request, res: Response) => {
   try {
-    const { patientId, legacyPatCode, search, page = 1, limit = 50 } = req.query;
+    const { patientId, legacyPatCode, search, page = 1, limit = 50, startDate, endDate } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     let query: any = {};
+    if (startDate || endDate) {
+      query.wrk_date = {};
+      if (startDate) query.wrk_date.$gte = new Date(startDate as string);
+      if (endDate) {
+         const end = new Date(endDate as string);
+         end.setHours(23, 59, 59, 999);
+         query.wrk_date.$lte = end;
+      }
+    }
     if (patientId) query.patientId = new mongoose.Types.ObjectId(patientId as string);
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
@@ -83,10 +92,19 @@ export const getLegacyRecordDetailsService = async (req: Request, res: Response)
 
 export const getOldToothWorkService = async (req: Request, res: Response) => {
   try {
-    const { patientId, legacyPatCode, search, page = 1, limit = 50 } = req.query;
+    const { patientId, legacyPatCode, search, page = 1, limit = 50, startDate, endDate } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     let query: any = {};
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate as string);
+      if (endDate) {
+         const end = new Date(endDate as string);
+         end.setHours(23, 59, 59, 999);
+         query.date.$lte = end;
+      }
+    }
     if (patientId) query.patientId = new mongoose.Types.ObjectId(patientId as string);
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
@@ -124,10 +142,19 @@ export const getOldToothWorkService = async (req: Request, res: Response) => {
 
 export const getOldTransactionService = async (req: Request, res: Response) => {
   try {
-    const { patientId, legacyPatCode, search, page = 1, limit = 50 } = req.query;
+    const { patientId, legacyPatCode, search, page = 1, limit = 50, startDate, endDate } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     let query: any = {};
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate as string);
+      if (endDate) {
+         const end = new Date(endDate as string);
+         end.setHours(23, 59, 59, 999);
+         query.date.$lte = end;
+      }
+    }
     if (patientId) query.patientId = new mongoose.Types.ObjectId(patientId as string);
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
@@ -165,10 +192,19 @@ export const getOldTransactionService = async (req: Request, res: Response) => {
 
 export const getOldWorkFeeService = async (req: Request, res: Response) => {
   try {
-    const { patientId, legacyPatCode, search, page = 1, limit = 50 } = req.query;
+    const { patientId, legacyPatCode, search, page = 1, limit = 50, startDate, endDate } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     let query: any = {};
+    if (startDate || endDate) {
+      query.wrk_date = {};
+      if (startDate) query.wrk_date.$gte = new Date(startDate as string);
+      if (endDate) {
+         const end = new Date(endDate as string);
+         end.setHours(23, 59, 59, 999);
+         query.wrk_date.$lte = end;
+      }
+    }
     if (patientId) query.patientId = new mongoose.Types.ObjectId(patientId as string);
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {

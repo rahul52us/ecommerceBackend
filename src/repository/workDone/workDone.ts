@@ -1030,6 +1030,15 @@ export const getGlobalAccountabilityData = async (payload: any) => {
 
     // Status filter is applied after balanceDue calculation
 
+    if (payload.paymentMode && payload.paymentMode !== "all" && payload.paymentMode !== "undefined") {
+      matchStage["paymentHistory.paymentMethod"] = { $regex: new RegExp(`^${payload.paymentMode}$`, 'i') };
+    }
+
+    if (payload.treatmentCode && payload.treatmentCode.trim() !== "") {
+      const escapedTreatmentCode = payload.treatmentCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      matchStage["treatmentCode"] = { $regex: new RegExp(escapedTreatmentCode, "i") };
+    }
+
     const pipeline: any[] = [
       { $match: matchStage },
       { $sort: { createdAt: -1 } },
@@ -1087,8 +1096,10 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           status: 1,
           amount: 1,
           workDoneNote: 1,
+          treatmentCode: 1,
           totalPaid: 1,
           balanceDue: 1,
+          paymentHistory: 1,
           "patientInfo.name": 1,
           "patientInfo.code": 1,
           "patientInfo.mobileNumber": 1,
