@@ -28,7 +28,8 @@ import {
   getUserByName,
   deleteUser,
   createAdminUser,
-  getReferredPatients
+  getReferredPatients,
+  updateAdminProfileDetails
 } from "../../repository/user/user.repository";
 import mongoose from "mongoose";
 import { getRoleUsersService } from "../auth/auth.service";
@@ -75,6 +76,7 @@ const createAdminUserservice = async (
   try {
     const { status, data } = await createAdminUser({
       ...req.body,
+      password: req.body.password || "Admin@123",
       company: req.bodyData?.company,
       createdBy: req.userId,
       userType: 'admin',
@@ -176,6 +178,32 @@ const updateUserProfileService = async (
 ) => {
   try {
     const { data, status } = await updateUserProfileDetails({
+      userId: new mongoose.Types.ObjectId(req.params.id),
+      ...req.body,
+    });
+    if (status === "success") {
+      res.status(200).send({
+        status: "success",
+        message: data,
+      });
+    } else {
+      res.status(400).send({
+        status: "error",
+        message: data,
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateAdminProfileService = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { data, status } = await updateAdminProfileDetails({
       userId: new mongoose.Types.ObjectId(req.params.id),
       ...req.body,
     });
@@ -793,5 +821,6 @@ export {
   getRoleCountOfCompanyService,
   getCompanyDetailsByUserIdService,
   createAdminUserservice,
-  getReferredPatientsService
+  getReferredPatientsService,
+  updateAdminProfileService
 };

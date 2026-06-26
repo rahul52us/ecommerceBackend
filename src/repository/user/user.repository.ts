@@ -62,7 +62,25 @@ const createAdminUser = async (data: any) => {
 
     let savedCompany: any = null
     // -------------------------------
-    // 2️⃣ COMPANY CHECK / CREATE
+    // 2️⃣ Check Username and Phone Number Uniqueness
+    // -------------------------------
+    if (data.username) {
+      const existUsername = await User.findOne({ username: data.username });
+      if (existUsername) {
+        throw generateError("Username is already registered", 400);
+      }
+    }
+
+    const phone = data.phoneNumber || data.mobileNumber;
+    if (phone) {
+      const existPhone = await User.findOne({ mobileNumber: phone });
+      if (existPhone) {
+        throw generateError("Phone number is already registered", 400);
+      }
+    }
+
+    // -------------------------------
+    // 3️⃣ COMPANY CHECK / CREATE
     // -------------------------------
     let companyId;
 
@@ -99,14 +117,14 @@ const createAdminUser = async (data: any) => {
     // 3️⃣ Create User
     // -------------------------------
     const { pic, ...rest } = data;
-    const hashedPassword = await hashBcrypt("Admin@123");
+    const hashedPassword = await hashBcrypt(data.password || "Admin@123");
 
     const createdUser = new User({
       username: data.username,
       company: companyId, // <-- COMPANY LINKED HERE
       name: data.name,
       code: finalCode,
-      mobileNumber: data.mobileNumber,
+      mobileNumber: data.phoneNumber || data.mobileNumber,
       userType: data.userType,
       password: hashedPassword,
       bio: data.bio,
@@ -2051,6 +2069,185 @@ const updateStaffPermissions = async (data: any) => {
   }
 };
 
+const updateAdminProfileDetails = async (data: any) => {
+  try {
+    const { pic, _id, ...rest } = data;
+
+    const existCode = await User.exists({
+      code: data.code,
+      _id: { $ne: data.userId },
+    });
+
+    if (existCode) {
+      return {
+        status: "error",
+        data: `${data.code} code is already registered`,
+      };
+    }
+
+    if (data.username) {
+      const existUsername = await User.findOne({
+        username: data.username,
+        _id: { $ne: data.userId },
+      });
+      if (existUsername) {
+        return {
+          status: "error",
+          data: "Username is already registered",
+        };
+      }
+    }
+
+    const phone = data.phoneNumber || data.mobileNumber || rest.phoneNumber || rest.mobileNumber;
+    if (phone) {
+      const existPhone = await User.findOne({
+        mobileNumber: phone,
+        _id: { $ne: data.userId },
+      });
+      if (existPhone) {
+        return {
+          status: "error",
+          data: "Phone number is already registered",
+        };
+      }
+    }
+
+    if (rest.phoneNumber && !rest.mobileNumber) {
+      rest.mobileNumber = rest.phoneNumber;
+    }
+
+    if (rest.references) {
+      rest.references = rest.references.map((ref: any) => ({
+        ...ref,
+        refrenceBy: ref.refrenceBy?._id || ref.refrenceBy?.value || ref.refrenceBy || undefined
+      }));
+    }
+
+    const users: any = await User.findByIdAndUpdate(data.userId, {
+      $set: { ...rest, updatedAt: new Date() },
+    });
+
+    if (!users) {
+      return {
+        status: "error",
+        data: "User does not exists",
+      };
+    }
+
+    // Update Company
+    if (users.company) {
+      const companyPayload: any = {};
+      if (rest.companyName) companyPayload.company_name = rest.companyName;
+      if (rest.companyCode) companyPayload.companyCode = rest.companyCode;
+      if (rest.companyType) companyPayload.companyType = rest.companyType;
+
+      if (Object.keys(companyPayload).length > 0) {
+        if (rest.companyName) {
+           const existCompany = await Company.findOne({
+             company_name: rest.companyName.trim(),
+             _id: { $ne: users.company },
+           });
+           if (existCompany) {
+             return {
+                status: "error",
+                data: "Company Already Registered With this Name",
+             };
+           }
+        }
+
+        const comp = await Company.findById(users.company);
+        if (comp) {
+          if (rest.companyName) comp.company_name = rest.companyName;
+          if (rest.companyCode) comp.companyCode = rest.companyCode;
+          if (rest.companyType) comp.companyType = rest.companyType;
+          await comp.save();
+        }
+      }
+    }
+
+    delete rest.pic;
+    delete rest?.profileDetails;
+    const pUsers = await ProfileDetails.findOneAndUpdate(
+      { user: data.userId },
+      { $set: { personalInfo: { ...rest } } }
+    );
+    if (!pUsers && !users) {
+      return {
+        status: "error",
+        data: "User does not exists",
+      };
+    }
+
+    if (pic?.isDeleted && users.pic?.url && users.pic?.name) {
+      await deleteFile(users.pic.name);
+      users.pic = {
+        name: undefined,
+        url: undefined,
+        type: undefined,
+      };
+      await users.save();
+
+      const comp = await Company.findById(users.company);
+      if (comp) {
+         comp.logo = {
+           name: undefined,
+           url: undefined,
+           type: undefined,
+         };
+         await comp.save();
+      }
+    }
+
+    if (pic?.filename && pic?.buffer && pic && pic?.isAdd) {
+      pic.filename = generateFileName(pic.filename);
+      const url = await uploadFile(pic);
+      users.pic = {
+        name: pic.filename,
+        url,
+        type: pic.type,
+      };
+      await users.save();
+
+      const comp = await Company.findById(users.company);
+      if (comp) {
+         comp.logo = {
+           name: pic.filename,
+           url: url,
+           type: pic.type,
+         };
+         await comp.save();
+      }
+    } else if (pic && pic.url && !pic.buffer) {
+      users.pic = {
+        name: pic.name || "profile_pic",
+        url: pic.url,
+        type: pic.type || "image/png"
+      };
+      await users.save();
+
+      const comp = await Company.findById(users.company);
+      if (comp) {
+         comp.logo = {
+           name: pic.name || "profile_pic",
+           url: pic.url,
+           type: pic.type || "image/png"
+         };
+         await comp.save();
+      }
+    }
+
+    return {
+      status: "success",
+      data: "Admin Profile has been updated successfully",
+    };
+  } catch (err) {
+    return {
+      status: "error",
+      data: err,
+    };
+  }
+};
+
 export const getReferredPatients = async (referredByUserId: string) => {
   try {
     const patients = await User.find({
@@ -2091,5 +2288,6 @@ export {
   getManagerUsersCounts,
   getManagersOfUser,
   deleteUser,
-  createAdminUser
+  createAdminUser,
+  updateAdminProfileDetails
 };
