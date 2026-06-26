@@ -239,3 +239,46 @@ export const getOldWorkFeeService = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getLegacyPatientHistoryService = async (req: Request, res: Response) => {
+  try {
+    const { legacyPatCode } = req.params;
+
+    if (!legacyPatCode) {
+      return res.status(400).json({ success: false, message: "legacyPatCode is required" });
+    }
+
+    const [workComp, details, transactions, workFees, toothWorks] = await Promise.all([
+      LegacyWorkComp.find({ legacyPatCode })
+        .populate("patientId", "name code mobileNumber")
+        .populate("doctorId", "name code")
+        .sort({ wrk_date: -1 })
+        .lean(),
+      LegacyWorkCompDetail.find({ legacyPatCode }).lean(),
+      LegacyTransaction.find({ legacyPatCode })
+        .sort({ date: -1 })
+        .lean(),
+      LegacyWorkFee.find({ legacyPatCode })
+        .sort({ wrk_date: -1 })
+        .lean(),
+      LegacyToothWork.find({ legacyPatCode })
+        .populate("patientId", "name code mobileNumber")
+        .populate("doctorId", "name code")
+        .sort({ date: -1 })
+        .lean()
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        workComp,
+        details,
+        transactions,
+        workFees,
+        toothWorks
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
