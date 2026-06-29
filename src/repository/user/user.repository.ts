@@ -107,6 +107,8 @@ const createAdminUser = async (data: any) => {
         activeUser: null,
         is_active: true,
         addressInfo: data.addressInfo || [],
+        subscriptionStartDate: data.subscriptionStartDate || undefined,
+        subscriptionEndDate: data.subscriptionEndDate || undefined,
       });
 
       savedCompany = await newCompany.save();
@@ -2140,6 +2142,8 @@ const updateAdminProfileDetails = async (data: any) => {
       if (rest.companyName) companyPayload.company_name = rest.companyName;
       if (rest.companyCode) companyPayload.companyCode = rest.companyCode;
       if (rest.companyType) companyPayload.companyType = rest.companyType;
+      if (rest.subscriptionStartDate !== undefined) companyPayload.subscriptionStartDate = rest.subscriptionStartDate;
+      if (rest.subscriptionEndDate !== undefined) companyPayload.subscriptionEndDate = rest.subscriptionEndDate;
 
       if (Object.keys(companyPayload).length > 0) {
         if (rest.companyName) {
@@ -2160,6 +2164,8 @@ const updateAdminProfileDetails = async (data: any) => {
           if (rest.companyName) comp.company_name = rest.companyName;
           if (rest.companyCode) comp.companyCode = rest.companyCode;
           if (rest.companyType) comp.companyType = rest.companyType;
+          if (rest.subscriptionStartDate !== undefined) comp.subscriptionStartDate = rest.subscriptionStartDate;
+          if (rest.subscriptionEndDate !== undefined) comp.subscriptionEndDate = rest.subscriptionEndDate;
           await comp.save();
         }
       }
@@ -2264,6 +2270,32 @@ export const getReferredPatients = async (referredByUserId: string) => {
       status: "error",
       message: err.message,
       data: err,
+    };
+  }
+};
+
+export const updateAdminStatus = async (userId: string, is_active: boolean) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { is_active: is_active, updatedAt: new Date() } },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return { status: "error", message: "User not found", statusCode: 404 };
+    }
+    return {
+      status: "success",
+      message: "Admin status updated successfully",
+      data: updatedUser,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      status: "error",
+      message: error.message,
+      data: error,
+      statusCode: 500,
     };
   }
 };

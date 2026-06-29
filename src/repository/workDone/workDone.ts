@@ -170,6 +170,24 @@ export const updateWorkDone = async (data: any) => {
       receivedAmount, paymentAmount, paymentMethod, paymentHistory, user
     } = data;
 
+    const currentRecord: any = await WorkDoneSchema.findById(id);
+    if (!currentRecord) {
+      throw new Error("Work done record not found.");
+    }
+
+    const currentBill = (amount !== undefined ? amount : currentRecord.amount || 0) - (discount !== undefined ? discount : currentRecord.discount || 0);
+    let proposedReceived = receivedAmount !== undefined ? receivedAmount : currentRecord.receivedAmount || 0;
+    
+    if (paymentHistory !== undefined) {
+      proposedReceived = paymentHistory.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+    } else if (paymentAmount) {
+      proposedReceived += Number(paymentAmount);
+    }
+
+    if (proposedReceived > currentBill) {
+      throw new Error(`Total payments (Rs. ${proposedReceived}) cannot exceed total bill (Rs. ${currentBill}).`);
+    }
+
     const updateQuery: any = {
       $set: {
         status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
@@ -192,6 +210,60 @@ export const updateWorkDone = async (data: any) => {
     }
 
     const updated = await WorkDoneSchema.findByIdAndUpdate(id, updateQuery, { new: true });
+    
+    if (updated) {
+      const bill = (updated.amount || 0) - (updated.discount || 0);
+      const alreadyPaid = updated.receivedAmount || 0;
+      const statusStr = alreadyPaid >= bill ? "PAID" : "PENDING";
+      let accountability: any = await AccountabilityModel.findOne({ workDone: id });
+
+      // Always sync core details in case amount/discount/doctor were changed via the edit form
+      if (accountability) {
+        accountability.totalAmount = bill;
+        accountability.doctor = updated.doctor;
+        accountability.patient = updated.patient;
+        accountability.tooth = updated.tooth;
+        accountability.treatmentName = updated.treatmentCode || updated.workDoneNote || "General Procedure";
+        accountability.payoutStatus = statusStr;
+        await accountability.save();
+      }
+
+      // Handle specific payment insertions/updates
+      if (paymentAmount || paymentHistory !== undefined || receivedAmount !== undefined) {
+        if (accountability) {
+          if (paymentHistory !== undefined) {
+             accountability.payoutHistory = paymentHistory;
+             const totalRec = paymentHistory.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+             accountability.doctorShareAmount = totalRec;
+          } else if (paymentAmount) {
+             accountability.payoutHistory.push({ amount: paymentAmount, date: new Date(), paymentMethod });
+             accountability.doctorShareAmount = (accountability.doctorShareAmount || 0) + paymentAmount;
+          } else if (receivedAmount !== undefined) {
+             accountability.doctorShareAmount = receivedAmount;
+          }
+          await accountability.save();
+        } else if (paymentAmount || (receivedAmount !== undefined && receivedAmount > 0)) {
+          // Create new accountability if one didn't exist but a payment was just made
+          const pMethod = paymentMethod || "Cash";
+          const pAmount = paymentAmount || receivedAmount;
+          const newAcc = new AccountabilityModel({
+            workDone: id,
+            doctor: updated.doctor,
+            patient: updated.patient,
+            company: updated.company,
+            tooth: updated.tooth,
+            treatmentName: updated.treatmentCode || updated.workDoneNote || "General Procedure",
+            totalAmount: bill,
+            doctorShareAmount: pAmount,
+            payoutHistory: paymentHistory !== undefined ? paymentHistory : [{ amount: pAmount, date: new Date(), paymentMethod: pMethod }],
+            payoutStatus: statusStr,
+            createdBy: user
+          });
+          await newAcc.save();
+        }
+      }
+    }
+
     return { success: "success", message: "Work done updated successfully.", data: updated, statusCode: 200 };
   } catch (error: any) {
     return { success: "error", message: error.message, statusCode: 500 };
@@ -219,6 +291,13 @@ export const updateWorkDoneAmount = async (data: any) => {
     const workDone: any = await WorkDoneSchema.findById(id);
     if (!workDone) {
       return { success: "error", message: "Work done record not found.", statusCode: 404 };
+    }
+
+    const newBill = amount - (workDone.discount || 0);
+    const alreadyPaid = workDone.receivedAmount || 0;
+    
+    if (newBill < alreadyPaid) {
+      return { success: "error", message: `New bill amount (Rs. ${newBill}) cannot be less than already received amount (Rs. ${alreadyPaid}).`, statusCode: 400 };
     }
 
     // Update WorkDone amount
@@ -929,7 +1008,7 @@ export const getReceiptsLogData = async (query: any) => {
 
     // Since receipt numbers are strictly tracked here, query the ReceiptModel.
     const ReceiptModel = require("../../schemas/receipt/receipt.schema").default;
-    
+
     // We populate workDone to filter by doctor if needed and to get doctor name
     const receipts = await ReceiptModel.find(matchStage)
       .populate("patient")
@@ -942,7 +1021,7 @@ export const getReceiptsLogData = async (query: any) => {
 
     let filteredReceipts = receipts;
     if (doctorId && doctorId !== "all") {
-      filteredReceipts = receipts.filter((r: any) => 
+      filteredReceipts = receipts.filter((r: any) =>
         r.workDone && r.workDone.doctor && String(r.workDone.doctor._id) === String(doctorId)
       );
     }
@@ -1077,7 +1156,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           totalPaid: "$receivedAmount",
           balanceDue: {
             $subtract: [
-              { $ifNull: ["$amount", 0] },
+              { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
               { $ifNull: ["$receivedAmount", 0] }
             ]
           }
@@ -1095,6 +1174,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           tooth: 1,
           status: 1,
           amount: 1,
+          discount: 1,
           workDoneNote: 1,
           treatmentCode: 1,
           totalPaid: 1,
@@ -1129,7 +1209,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
         $addFields: {
           balanceDue: {
             $subtract: [
-              { $ifNull: ["$amount", 0] },
+              { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
               { $ifNull: ["$receivedAmount", 0] }
             ]
           }
@@ -1143,7 +1223,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       {
         $group: {
           _id: null,
-          totalBilled: { $sum: { $ifNull: ["$amount", 0] } },
+          totalBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
           totalPaid: { $sum: { $ifNull: ["$receivedAmount", 0] } },
         },
       },

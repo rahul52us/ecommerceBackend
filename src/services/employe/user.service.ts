@@ -29,7 +29,8 @@ import {
   deleteUser,
   createAdminUser,
   getReferredPatients,
-  updateAdminProfileDetails
+  updateAdminProfileDetails,
+  updateAdminStatus
 } from "../../repository/user/user.repository";
 import mongoose from "mongoose";
 import { getRoleUsersService } from "../auth/auth.service";
@@ -216,6 +217,44 @@ const updateAdminProfileService = async (
       res.status(400).send({
         status: "error",
         message: data,
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateAdminStatusService = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.params.id;
+    const { is_active } = req.body;
+    
+    if (typeof is_active !== "boolean") {
+      return res.status(400).send({
+        status: "error",
+        message: "is_active must be a boolean",
+      });
+    }
+
+    const { data, status, message, statusCode }: any = await updateAdminStatus(
+      userId,
+      is_active
+    );
+
+    if (status === "success") {
+      res.status(statusCode || 200).send({
+        status: "success",
+        message: message,
+        data: data,
+      });
+    } else {
+      res.status(statusCode || 400).send({
+        status: "error",
+        message: message,
       });
     }
   } catch (err) {
@@ -822,5 +861,6 @@ export {
   getCompanyDetailsByUserIdService,
   createAdminUserservice,
   getReferredPatientsService,
-  updateAdminProfileService
+  updateAdminProfileService,
+  updateAdminStatusService
 };

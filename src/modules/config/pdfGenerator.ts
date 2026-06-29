@@ -729,54 +729,49 @@ export const generateAccountabilityPDF = (data: any, stream: any) => {
 };
 
 /**
- * GENERATE INDIVIDUAL PAYMENT RECEIPT PDF (Vibrant Receipt Only)
+ * GENERATE INDIVIDUAL PAYMENT RECEIPT PDF
  */
 export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   const { patient, clinic, record, payment } = data;
   const WIDTH = 340;
-  const HEIGHT = 720;
+  const HEIGHT = 450; // Reduced height to save space
   const doc = new PDFDocument({ margin: 0, size: [WIDTH, HEIGHT] });
 
   doc.pipe(stream);
 
   const COLORS = {
-    brand: "#059669",
-    textMain: "#1f2937",
+    textMain: "#111827",
     textMuted: "#6b7280",
-    border: "#e5e7eb",
+    border: "#d1d5db",
     white: "#ffffff"
   };
 
   // --- WHITE RECEIPT BODY ---
   doc.rect(0, 0, WIDTH, HEIGHT).fill(COLORS.white);
 
-  // Vibrant Header
-  doc.fillColor(COLORS.brand).rect(0, 0, WIDTH, 120).fill();
-
-  // --- SCALLOPED DECORATION ---
-  doc.fillColor(COLORS.white);
-  for (let i = 0; i <= WIDTH; i += 15) {
-    doc.circle(i, 0, 5).fill();
-    doc.circle(i, HEIGHT, 5).fill();
-  }
-
-  // --- CARD HEADER ---
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(24).text("RECEIPT", 0, 40, { align: "center", width: WIDTH });
-  doc.fontSize(8).font("Helvetica").opacity(0.8).text("OFFICIAL PAYMENT ACKNOWLEDGMENT", 0, 70, { align: "center", width: WIDTH });
-  doc.fontSize(9).font("Helvetica-Bold").opacity(0.9).text(`No: ${record.receiptNumber || "N/A"}`, 0, 85, { align: "center", width: WIDTH });
-
-  // Clinic Details
-  let y = 145;
-  doc.opacity(1).fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(16).text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", 0, y, { align: "center", width: WIDTH });
-  y += 20;
+  // --- CLINIC HEADER (TOP) ---
+  let y = 30;
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(16).text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", 0, y, { align: "center", width: WIDTH });
+  y += 18;
   doc.fontSize(9).font("Helvetica").fillColor(COLORS.textMuted).text(clinic?.addressInfo?.[0]?.address || "Clinic Address", 30, y, { align: "center", width: WIDTH - 60 });
 
-  y += 40;
+  y += 20;
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
+  y += 15;
+
+  // --- RECEIPT DETAILS ---
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(18).text("RECEIPT", 0, y, { align: "center", width: WIDTH });
+  y += 20;
+  doc.fontSize(8).font("Helvetica").fillColor(COLORS.textMuted).text("OFFICIAL PAYMENT ACKNOWLEDGMENT", 0, y, { align: "center", width: WIDTH });
+  y += 12;
+  doc.fontSize(9).font("Helvetica-Bold").fillColor(COLORS.textMain).text(`No: ${record.receiptNumber || "N/A"}`, 0, y, { align: "center", width: WIDTH });
+
+  y += 20;
   doc.lineWidth(1).dash(2, { space: 2 }).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
   doc.undash();
 
-  // --- RECEIPT CONTENT ---
-  y += 25;
+  // --- PATIENT INFO ---
+  y += 15;
   const drawRow = (label: string, value: string, currentY: number) => {
     doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text(label.toUpperCase(), 40, currentY);
     doc.fillColor(COLORS.textMain).fontSize(10).font("Helvetica-Bold").text(value, WIDTH - 160, currentY, { width: 120, align: "right" });
@@ -787,36 +782,35 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   y = drawRow("Patient ID", patient?.code || "N/A", y);
   y = drawRow("Date", new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), y);
 
-  y += 20;
+  y += 5;
   doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(40, y).lineTo(WIDTH - 40, y).stroke();
-  y += 25;
+  y += 15;
 
   // --- BILLING ITEM ---
   doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("ITEM DESCRIPTION", 40, y);
   doc.text("AMOUNT", WIDTH - 90, y, { width: 50, align: "right" });
   y += 20;
 
-  doc.fillColor(COLORS.textMain).fontSize(11).font("Helvetica-Bold").text(record.treatmentName, 40, y, { width: 180 });
-  doc.fillColor(COLORS.brand).fontSize(12).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 120, y, { width: 80, align: "right" });
+  const itemY = y;
+  doc.fillColor(COLORS.textMain).fontSize(12).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 120, itemY, { width: 80, align: "right" });
+  doc.fillColor(COLORS.textMain).fontSize(11).font("Helvetica-Bold").text(record.treatmentName, 40, itemY, { width: 180 });
 
-  y += 35;
+  y = doc.y + 8;
   doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica").text(`Dr. ${record.doctorName}  |  Tooth: ${record.tooth}`, 40, y);
 
   // --- TOTAL SECTION ---
-  y += 60;
-  doc.fillColor(COLORS.brand).rect(30, y, WIDTH - 60, 50).fill();
-  doc.fillColor(COLORS.white).fontSize(10).font("Helvetica-Bold").text("TOTAL PAID", 50, y + 20);
-  doc.fontSize(18).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 150, y + 15, { width: 100, align: "right" });
-
-  y += 75;
-  doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica-Bold").text(`METHOD: ${(payment.paymentMethod || "CASH").toUpperCase()}`, 40, y);
+  y = doc.y + 20;
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
+  y += 10;
+  doc.fillColor(COLORS.textMain).fontSize(11).font("Helvetica-Bold").text("TOTAL PAID", 40, y + 2);
+  doc.fontSize(16).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 150, y, { width: 110, align: "right" });
+  
+  y += 22;
+  doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text(`METHOD: ${(payment.paymentMethod || "CASH").toUpperCase()}`, 40, y);
   doc.text(`ID: ${String(payment._id || "TXN").toUpperCase().substring(0, 10)}`, WIDTH - 140, y, { width: 100, align: "right" });
-
-  // --- FOOTER ---
-  y += 80;
-  doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(14).text("Thank You!", 0, y, { align: "center", width: WIDTH });
-  y += 20;
-  doc.fontSize(8).font("Helvetica").fillColor(COLORS.textMuted).text("Professionally generated by Dental Clinic System", 0, y, { align: "center", width: WIDTH });
+  
+  y += 15;
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
 
   doc.end();
 };

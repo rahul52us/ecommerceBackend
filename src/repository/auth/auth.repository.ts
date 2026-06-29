@@ -38,7 +38,7 @@ const loginUser = async (data: any): Promise<any> => {
       query.username = { $regex: `^${data.username}$`, $options: 'i' };
     }
 
-    const existUser = await User.findOne(query);
+    const existUser: any = await User.findOne(query).populate('company');
     if (!existUser) {
       throw generateError(`${data.username} user does not exist`, 401);
     }
@@ -46,6 +46,17 @@ const loginUser = async (data: any): Promise<any> => {
     let checkPassword = await compareBcrypt(data.password,existUser.password)
     if (!checkPassword) {
       throw generateError(`Invalid username and password`, 400);
+    }
+
+    if (!existUser.is_active) {
+      throw generateError(`Your account is currently inactive. Please contact support.`, 403);
+    }
+
+    if (existUser.role !== 'superadmin' && existUser.company && existUser.company.subscriptionEndDate) {
+      const endDate = new Date(existUser.company.subscriptionEndDate);
+      if (endDate.getTime() < Date.now()) {
+        throw generateError(`Your company's subscription has expired. Please contact support.`, 403);
+      }
     }
 
     const responseUser = {

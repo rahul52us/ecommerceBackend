@@ -242,7 +242,7 @@ export const generatePatientStatementService = async (req: any, res: any) => {
       generatedBy: req.userId,
       type: "statement",
     });
-    
+
     if (receiptResult.success === "success") {
       data.receiptNumber = receiptResult.data?.receiptNumber;
     }
@@ -699,7 +699,7 @@ export const getGlobalAccountabilityDataService = async (req: any, res: any) => 
       ...req.body,
       company: req.body.company || req.bodyData?.company,
     };
-    
+
     const { statusCode, success, message, data }: any = await getGlobalAccountabilityData(payload);
 
     return res.status(statusCode).send({
@@ -723,7 +723,7 @@ export const generateGlobalAccountabilityReportService = async (req: any, res: a
       limit: 1000, // Limit to 1000 for PDF report to avoid extreme server load
       page: 1
     };
-    
+
     const { statusCode, success, message, data }: any = await getGlobalAccountabilityData(payload);
 
     if (success === "error") {

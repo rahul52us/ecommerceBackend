@@ -41,6 +41,8 @@ export interface CompanyI extends Document {
   addressInfo?: addressInfo[];
   operatingHours?: any[]
   sidebarColors?: any;
+  subscriptionStartDate?: Date;
+  subscriptionEndDate?: Date;
 }
 
 const companySchema = new mongoose.Schema<CompanyI>({
@@ -137,6 +139,12 @@ const companySchema = new mongoose.Schema<CompanyI>({
     default: new Date(),
   },
   updatedAt: {
+    type: Date,
+  },
+  subscriptionStartDate: {
+    type: Date,
+  },
+  subscriptionEndDate: {
     type: Date,
   },
 });

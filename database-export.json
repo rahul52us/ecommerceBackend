@@ -437548,6 +437548,78 @@
       "brand3": null,
       "createdAt": "2026-06-20T09:16:24.478Z",
       "updatedAt": "2026-06-20T09:16:24.478Z"
+    },
+    {
+      "id": "ff19ffee-5a77-47ca-abee-20ee51d3b7f5",
+      "userId": "7dd7757c-1f65-4551-b9c6-64d6d44eea42",
+      "prescriptionDoctorId": "e5fe36ae-55c3-4b63-a127-10b2b3d8066a",
+      "imageUrl": "/api/prescriptions/image/prescription-1782452387099-503906940.jpg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-26T05:39:47.250Z",
+      "updatedAt": "2026-06-26T05:39:47.250Z"
+    },
+    {
+      "id": "1cbf17ec-8b55-4411-9e25-774f1a175009",
+      "userId": "7dd7757c-1f65-4551-b9c6-64d6d44eea42",
+      "prescriptionDoctorId": "e5fe36ae-55c3-4b63-a127-10b2b3d8066a",
+      "imageUrl": "/api/prescriptions/image/prescription-1782452422218-783681551.jpg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-26T05:40:22.529Z",
+      "updatedAt": "2026-06-26T05:40:22.529Z"
+    },
+    {
+      "id": "29d3c641-e39b-4566-922a-e16af283f626",
+      "userId": "5d34dec5-714e-4187-b1d1-e456ee7737a6",
+      "prescriptionDoctorId": "43618d36-54e4-4a68-8472-033a63b4974b",
+      "imageUrl": "/api/prescriptions/image/prescription-1782576602426-872844051.jpg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-27T16:10:02.514Z",
+      "updatedAt": "2026-06-27T16:10:02.514Z"
+    },
+    {
+      "id": "7c42019e-6347-4e76-91a6-db2416f0cf6c",
+      "userId": "5d34dec5-714e-4187-b1d1-e456ee7737a6",
+      "prescriptionDoctorId": "43618d36-54e4-4a68-8472-033a63b4974b",
+      "imageUrl": "/api/prescriptions/image/prescription-1782576641239-742941339.jpg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-27T16:10:41.600Z",
+      "updatedAt": "2026-06-27T16:10:41.600Z"
+    },
+    {
+      "id": "f112ade5-0e26-4565-adb5-b66365d7a627",
+      "userId": "5d34dec5-714e-4187-b1d1-e456ee7737a6",
+      "prescriptionDoctorId": "43618d36-54e4-4a68-8472-033a63b4974b",
+      "imageUrl": "/api/prescriptions/image/prescription-1782576772251-567401044.jpg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-27T16:12:52.467Z",
+      "updatedAt": "2026-06-27T16:12:52.467Z"
+    },
+    {
+      "id": "4f80a1bd-5050-4d79-8dbd-1d3e9d9c9c25",
+      "userId": "5d34dec5-714e-4187-b1d1-e456ee7737a6",
+      "prescriptionDoctorId": "43618d36-54e4-4a68-8472-033a63b4974b",
+      "imageUrl": "/api/prescriptions/image/prescription-1782576805669-357997710.jpg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-27T16:13:25.835Z",
+      "updatedAt": "2026-06-27T16:13:25.835Z"
     }
   ],
   "public.users": [
@@ -442919,6 +442991,54 @@
       "userId": "c10845b8-ad57-45ad-a12f-96a2d246bbac",
       "createdAt": "2026-06-22T08:56:47.865Z",
       "updatedAt": "2026-06-22T08:56:47.865Z",
+      "fromVideoService": "bunny"
+    },
+    {
+      "id": "4d233a64-2b5e-4d7f-8a16-469126ef48bf",
+      "fileName": "Dr_Ashok_Agrawal_Akola_Consulting_Physician_20260622_171336_808696.heic",
+      "fileUrl": "https://iframe.mediadelivery.net/embed/641034/031edcc8-331d-4368-a1d0-53ce7fe4b038",
+      "fileSize": "2710701",
+      "key": "031edcc8-331d-4368-a1d0-53ce7fe4b038",
+      "doctorId": "4b656782-9c56-4e9c-a124-360c01606c62",
+      "userId": "c10845b8-ad57-45ad-a12f-96a2d246bbac",
+      "createdAt": "2026-06-23T05:24:29.704Z",
+      "updatedAt": "2026-06-23T05:24:29.704Z",
+      "fromVideoService": "bunny"
+    },
+    {
+      "id": "4a2a1bf2-ed9f-49f4-8a16-76294b1b74d2",
+      "fileName": "Dr_Ashok_Agrawal_Akola_Consulting_Physician_20260622_171308_857177.heic",
+      "fileUrl": "https://iframe.mediadelivery.net/embed/641034/e5dd9bf9-d4db-485a-8b07-eb216e7747f8",
+      "fileSize": "1961841",
+      "key": "e5dd9bf9-d4db-485a-8b07-eb216e7747f8",
+      "doctorId": "4b656782-9c56-4e9c-a124-360c01606c62",
+      "userId": "c10845b8-ad57-45ad-a12f-96a2d246bbac",
+      "createdAt": "2026-06-23T05:25:22.700Z",
+      "updatedAt": "2026-06-23T05:25:22.700Z",
+      "fromVideoService": "bunny"
+    },
+    {
+      "id": "a892610c-feff-4cb7-b0fa-70511be75548",
+      "fileName": "Dr_Ashok_Agrawal_Akola_Consulting_Physician_20260622_171249_391136.heic",
+      "fileUrl": "https://iframe.mediadelivery.net/embed/641034/7dd1ff98-4362-4c8b-816c-bca893362b55",
+      "fileSize": "1983178",
+      "key": "7dd1ff98-4362-4c8b-816c-bca893362b55",
+      "doctorId": "4b656782-9c56-4e9c-a124-360c01606c62",
+      "userId": "c10845b8-ad57-45ad-a12f-96a2d246bbac",
+      "createdAt": "2026-06-23T05:26:05.498Z",
+      "updatedAt": "2026-06-23T05:26:05.498Z",
+      "fromVideoService": "bunny"
+    },
+    {
+      "id": "ad1975fc-de60-4baa-a2cd-ed40673d8a48",
+      "fileName": "Dr_Ashok_Agrawal_Akola_Consulting_Physician_20260622_171120_193285.heic",
+      "fileUrl": "https://iframe.mediadelivery.net/embed/641034/def48d6b-7b2c-41d8-b81a-42caa2eb6cf8",
+      "fileSize": "2246429",
+      "key": "def48d6b-7b2c-41d8-b81a-42caa2eb6cf8",
+      "doctorId": "4b656782-9c56-4e9c-a124-360c01606c62",
+      "userId": "c10845b8-ad57-45ad-a12f-96a2d246bbac",
+      "createdAt": "2026-06-23T05:26:42.629Z",
+      "updatedAt": "2026-06-23T05:26:42.629Z",
       "fromVideoService": "bunny"
     }
   ]
