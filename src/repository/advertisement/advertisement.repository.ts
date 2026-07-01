@@ -1,7 +1,17 @@
 import Advertisement from "../../schemas/advertisement/advertisement.schema";
+import { uploadFile } from "../uploadDoc.repository";
 
 export const createAdvertisement = async (data: any, userId: string, companyId: string) => {
   try {
+    if (data.image && data.image.isAdd === 1) {
+      const url = await uploadFile(data.image);
+      data.image = {
+        name: data.image.filename,
+        url: url,
+        type: data.image.type,
+      };
+    }
+
     const advertisement = new Advertisement({
       ...data,
       createdBy: userId,
@@ -27,6 +37,15 @@ export const createAdvertisement = async (data: any, userId: string, companyId: 
 
 export const updateAdvertisement = async (id: string, data: any) => {
   try {
+    if (data.image && data.image.isAdd === 1) {
+      const url = await uploadFile(data.image);
+      data.image = {
+        name: data.image.filename,
+        url: url,
+        type: data.image.type,
+      };
+    }
+
     const updatedAdvertisement = await Advertisement.findByIdAndUpdate(
       id,
       { $set: data },
