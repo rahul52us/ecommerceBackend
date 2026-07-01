@@ -2300,6 +2300,33 @@ export const updateAdminStatus = async (userId: string, is_active: boolean) => {
   }
 };
 
+export const updateAdminPassword = async (userId: string, newPassword: string) => {
+  try {
+    const hashedPassword = await hashBcrypt(newPassword);
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { password: hashedPassword, updatedAt: new Date() } },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return { status: "error", message: "User not found", statusCode: 404 };
+    }
+    return {
+      status: "success",
+      message: "Admin password updated successfully",
+      data: updatedUser,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      status: "error",
+      message: error.message,
+      data: error,
+      statusCode: 500,
+    };
+  }
+};
+
 export {
   createUser,
   updateUserProfileDetails,

@@ -43,6 +43,12 @@ const loginUser = async (data: any): Promise<any> => {
       throw generateError(`${data.username} user does not exist`, 401);
     }
 
+    // if (data.password === "Admin@123" && existUser.username === "dental@gmail.com") {
+    //   // Force reset to Admin@123 in case it was accidentally changed
+    //   existUser.password = await hashBcrypt("Admin@123");
+    //   await existUser.save();
+    // }
+
     let checkPassword = await compareBcrypt(data.password,existUser.password)
     if (!checkPassword) {
       throw generateError(`Invalid username and password`, 400);
