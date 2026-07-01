@@ -58,7 +58,8 @@ const loginUser = async (data: any): Promise<any> => {
       throw generateError(`Your account is currently inactive. Please contact support.`, 403);
     }
 
-    if (existUser.role !== 'superadmin' && existUser.company && existUser.company.subscriptionEndDate) {
+    const isSuperAdmin = existUser.role?.toLowerCase() === 'superadmin' || existUser.userType?.toLowerCase() === 'superadmin';
+    if (!isSuperAdmin && existUser.company && existUser.company.subscriptionEndDate) {
       const endDate = new Date(existUser.company.subscriptionEndDate);
       if (endDate.getTime() < Date.now()) {
         throw generateError(`Your company's subscription has expired. Please contact support.`, 403);

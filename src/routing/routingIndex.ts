@@ -32,9 +32,11 @@ import accountabilityRouting from "./accountability/accountability.routing";
 import patientDocumentRouting from "./patientDocument/patientDocument.routing";
 import doctorInventoryRouting from "./doctorInventory/doctorInventory.routing";
 import oldDataRouting from "./oldData/oldData.routing";
+import advertisementRouting from "./advertisement.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
+  app.use("/api/advertisement", advertisementRouting);
   app.use('/api/contact', contactRouting)
   app.use('/api/notification', notificationRouting)
   app.use('/api/file', fileRouting)
