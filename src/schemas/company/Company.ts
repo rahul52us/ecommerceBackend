@@ -43,6 +43,12 @@ export interface CompanyI extends Document {
   sidebarColors?: any;
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
+  subscriptionHistory?: {
+    startDate: Date;
+    endDate: Date;
+    updatedAt: Date;
+    updatedBy: mongoose.Schema.Types.ObjectId;
+  }[];
 }
 
 const companySchema = new mongoose.Schema<CompanyI>({
@@ -146,6 +152,15 @@ const companySchema = new mongoose.Schema<CompanyI>({
   },
   subscriptionEndDate: {
     type: Date,
+  },
+  subscriptionHistory: {
+    type: [{
+      startDate: Date,
+      endDate: Date,
+      updatedAt: { type: Date, default: Date.now },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }],
+    default: []
   },
 });
 

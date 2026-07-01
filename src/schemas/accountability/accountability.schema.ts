@@ -64,6 +64,10 @@ const AccountabilitySchema = new Schema(
         paymentMethod: String
       }
     ],
+    lastAccountabilityAmountUpdated: {
+      type: Date,
+      default: Date.now,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

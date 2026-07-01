@@ -124,6 +124,7 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       {
         $match: {
           company: companyId,
+          userType: { $in: ["doctor", "staff", "patient", "dealer"] },
           createdAt: { $gte: sevenDaysAgo },
           ...query
         }
@@ -143,8 +144,13 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       return { _id: day, count: found ? found.count : 0 };
     });
 
+    console.log(companyId)
     // Get recent users
-    const recentUsers = await UserModel.find({ company: companyId, ...query })
+    const recentUsers = await UserModel.find({
+      company: companyId,
+      userType: { $in: ["doctor", "staff", "patient", "dealer"] },
+      ...query
+    })
       .sort({ createdAt: -1 })
       .limit(5)
       .select('name userType createdAt pic');

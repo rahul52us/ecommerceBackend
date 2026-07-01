@@ -415,6 +415,72 @@ export {
   updateOrganisationCompany,
 };
 
+// Get Company Subscription History
+export const getCompanySubscription = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params; // this is the admin's user ID
+    if (!id) {
+      throw generateError("User ID is required", 400);
+    }
+
+    // Find the company by its ID
+    const comp = await Company.findById(id).select('_id subscriptionStartDate subscriptionEndDate subscriptionHistory');
+    if (!comp) {
+      throw generateError("Company not found", 404);
+    }
+
+    res.status(200).send({
+      message: "Company subscription fetched successfully",
+      data: comp,
+      statusCode: 200,
+      success: true
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update Company Subscription
+export const updateCompanySubscription = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { companyId, subscriptionStartDate, subscriptionEndDate } = req.body;
+    if (!companyId || !subscriptionStartDate || !subscriptionEndDate) {
+      throw generateError("Company ID, Start Date, and End Date are required", 400);
+    }
+
+    const comp = await Company.findById(companyId);
+    if (!comp) {
+      throw generateError("Company not found", 404);
+    }
+
+    const updateQuery: any = {
+      $set: {
+        subscriptionStartDate: new Date(subscriptionStartDate),
+        subscriptionEndDate: new Date(subscriptionEndDate),
+      },
+      $push: {
+        subscriptionHistory: {
+          startDate: new Date(subscriptionStartDate),
+          endDate: new Date(subscriptionEndDate),
+          updatedBy: req.userId || comp.createdBy,
+          updatedAt: new Date(),
+        }
+      }
+    };
+
+    const updatedComp = await Company.findByIdAndUpdate(companyId, updateQuery, { new: true });
+
+    res.status(200).send({
+      message: "Company subscription updated successfully",
+      data: updatedComp,
+      statusCode: 200,
+      success: true
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Update CompanyDetails
 
 export const updatedCompanyDetails = async (req: any, res: Response, next: NextFunction) => {

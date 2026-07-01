@@ -8,6 +8,8 @@ import {
   updateCompanyPreferences,
   updateOrganisationCompany,
   updateCompanyLogo,
+  updateCompanySubscription,
+  getCompanySubscription,
 } from "../modules/organisation/Company";
 import { getCompanyCountService, getCompanyDetailsByNameService, getCompanyPoliciesService, getHolidayService, getIndividualPolicyService, getOrganisationsCompanyService, getWorkLocationservice, getWorkTimingService, updateCompanyPolicyService, updateHolidayExcelService, updateHolidayService, updateWorkLocationExcelService, updateWorkLocationService, updateWorkTimingService } from "../services/company/company.service";
 import authenticate from "../modules/config/authenticate";
@@ -21,6 +23,8 @@ router.post('/single/create', authenticate, createOrganisationCompany)
 router.put('/policy', authenticate, updateCompanyPolicyService)
 router.put('/logo', authenticate, updateCompanyLogo)
 router.put('/:id', authenticate, updateOrganisationCompany)
+router.put('/subscription/update', authenticate, updateCompanySubscription)
+router.get('/subscription/:id', authenticate, getCompanySubscription)
 router.get('/count', authenticate, getCompanyCountService)
 router.get('/policy', authenticate, getIndividualPolicyService)
 router.get('/companies', authenticate, getOrganisationsCompanyService)

@@ -335,9 +335,6 @@ export const getAppointments = async (query: any) => {
       matchStage.patient = new mongoose.Types.ObjectId(userId);
     }
 
-    if (userId && userType === "staff") {
-      matchStage.createdBy = new mongoose.Types.ObjectId(userId);
-    }
 
     const basePipeline: any = [
       { $match: matchStage },

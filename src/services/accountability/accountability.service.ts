@@ -13,7 +13,9 @@ export const createAccountability = async (data: any) => {
 
 export const updateAccountability = async (id: string, data: any) => {
   try {
+    data.lastAccountabilityAmountUpdated = new Date();
     const accountability = await Accountability.findByIdAndUpdate(id, { $set: data }, { new: true });
+    
     return { status: "success", data: accountability };
   } catch (err: any) {
     throw new Error(err.message);
@@ -30,7 +32,7 @@ export const getAccountabilityList = async (query: any) => {
     if (payoutStatus) filter.payoutStatus = payoutStatus;
     
     if (startDate && endDate) {
-      filter.createdAt = {
+      filter.lastAccountabilityAmountUpdated = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
@@ -41,7 +43,7 @@ export const getAccountabilityList = async (query: any) => {
       .populate("doctor", "name")
       .populate("patient", "name")
       .populate("workDone")
-      .sort({ createdAt: -1 })
+      .sort({ lastAccountabilityAmountUpdated: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
@@ -59,7 +61,7 @@ export const getAccountabilityList = async (query: any) => {
 
 export const updatePayoutStatus = async (id: string, status: string, note?: string, doctorShareAmount?: number, payoutAmount?: number, paymentMethod?: string) => {
   try {
-    const updateData: any = {};
+    const updateData: any = { lastAccountabilityAmountUpdated: new Date() };
     if (status) updateData.payoutStatus = status;
     if (status === "PAID") {
       updateData.payoutDate = new Date();
@@ -78,6 +80,7 @@ export const updatePayoutStatus = async (id: string, status: string, note?: stri
     }
 
     const accountability = await Accountability.findByIdAndUpdate(id, query, { new: true });
+
     return { status: "success", data: accountability };
   } catch (err: any) {
     throw new Error(err.message);
@@ -104,7 +107,7 @@ export const generateAccountabilityReportService = async (query: any) => {
     if (payoutStatus) filter.payoutStatus = payoutStatus;
     
     if (startDate && endDate) {
-      filter.createdAt = {
+      filter.lastAccountabilityAmountUpdated = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
@@ -113,7 +116,7 @@ export const generateAccountabilityReportService = async (query: any) => {
     const records = await Accountability.find(filter)
       .populate("doctor", "name")
       .populate("patient", "name")
-      .sort({ createdAt: -1 });
+      .sort({ lastAccountabilityAmountUpdated: -1 });
 
     const CompanyModel = require("../../schemas/company/Company.ts").default;
     const UserModel = require("../../schemas/User/User").default;

@@ -84,7 +84,7 @@ export const getAdvertisements = async (
 ) => {
   try {
     const skip = (page - 1) * limit;
-    const query: any = { company: companyId };
+    const query: any = { };
 
     if (search) {
       query.title = { $regex: search, $options: "i" };

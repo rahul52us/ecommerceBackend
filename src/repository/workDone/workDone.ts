@@ -225,6 +225,7 @@ export const updateWorkDone = async (data: any) => {
         accountability.tooth = updated.tooth;
         accountability.treatmentName = updated.treatmentCode || updated.workDoneNote || "General Procedure";
         accountability.payoutStatus = statusStr;
+        accountability.lastAccountabilityAmountUpdated = new Date();
         await accountability.save();
       }
 
@@ -241,6 +242,7 @@ export const updateWorkDone = async (data: any) => {
           } else if (receivedAmount !== undefined) {
              accountability.doctorShareAmount = receivedAmount;
           }
+          accountability.lastAccountabilityAmountUpdated = new Date();
           await accountability.save();
         } else if (paymentAmount || (receivedAmount !== undefined && receivedAmount > 0)) {
           // Create new accountability if one didn't exist but a payment was just made
@@ -257,6 +259,7 @@ export const updateWorkDone = async (data: any) => {
             doctorShareAmount: pAmount,
             payoutHistory: paymentHistory !== undefined ? paymentHistory : [{ amount: pAmount, date: new Date(), paymentMethod: pMethod }],
             payoutStatus: statusStr,
+            lastAccountabilityAmountUpdated: new Date(),
             createdBy: user
           });
           await newAcc.save();
@@ -309,6 +312,7 @@ export const updateWorkDoneAmount = async (data: any) => {
     const accountability = await AccountabilityModel.findOne({ workDone: id });
     if (accountability) {
       accountability.totalAmount = amount - (workDone.discount || 0); // Assuming total amount is bill amount (amount - discount)
+      accountability.lastAccountabilityAmountUpdated = new Date();
       await accountability.save();
     }
 

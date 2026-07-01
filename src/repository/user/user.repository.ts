@@ -2125,6 +2125,8 @@ const updateAdminProfileDetails = async (data: any) => {
       }));
     }
 
+    delete rest.company
+
     const users: any = await User.findByIdAndUpdate(data.userId, {
       $set: { ...rest, updatedAt: new Date() },
     });
