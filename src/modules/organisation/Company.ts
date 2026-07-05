@@ -443,7 +443,7 @@ export const getCompanySubscription = async (req: any, res: Response, next: Next
 // Update Company Subscription
 export const updateCompanySubscription = async (req: any, res: Response, next: NextFunction) => {
   try {
-    const { companyId, subscriptionStartDate, subscriptionEndDate } = req.body;
+    const { companyId, subscriptionStartDate, subscriptionEndDate, amount, description } = req.body;
     if (!companyId || !subscriptionStartDate || !subscriptionEndDate) {
       throw generateError("Company ID, Start Date, and End Date are required", 400);
     }
@@ -462,6 +462,8 @@ export const updateCompanySubscription = async (req: any, res: Response, next: N
         subscriptionHistory: {
           startDate: new Date(subscriptionStartDate),
           endDate: new Date(subscriptionEndDate),
+          amount: amount,
+          description: description,
           updatedBy: req.userId || comp.createdBy,
           updatedAt: new Date(),
         }
@@ -470,11 +472,45 @@ export const updateCompanySubscription = async (req: any, res: Response, next: N
 
     const updatedComp = await Company.findByIdAndUpdate(companyId, updateQuery, { new: true });
 
-    res.status(200).send({
-      message: "Company subscription updated successfully",
+    return res.status(200).send({
+      message: "Subscription updated successfully",
+      status: "success",
       data: updatedComp,
       statusCode: 200,
-      success: true
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update specific Company Subscription History record
+export const updateCompanySubscriptionHistory = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { companyId, historyId, amount, description } = req.body;
+    if (!companyId || !historyId) {
+      throw generateError("Company ID and History ID are required", 400);
+    }
+
+    const comp = await Company.findOneAndUpdate(
+      { _id: companyId, "subscriptionHistory._id": historyId },
+      {
+        $set: {
+          "subscriptionHistory.$.amount": amount,
+          "subscriptionHistory.$.description": description,
+        }
+      },
+      { new: true }
+    );
+
+    if (!comp) {
+      throw generateError("Company or history record not found", 404);
+    }
+
+    return res.status(200).send({
+      message: "Subscription history updated successfully",
+      status: "success",
+      data: comp,
+      statusCode: 200,
     });
   } catch (err) {
     next(err);

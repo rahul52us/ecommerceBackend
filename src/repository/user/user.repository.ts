@@ -109,6 +109,14 @@ const createAdminUser = async (data: any) => {
         addressInfo: data.addressInfo || [],
         subscriptionStartDate: data.subscriptionStartDate || undefined,
         subscriptionEndDate: data.subscriptionEndDate || undefined,
+        subscriptionHistory: (data.subscriptionStartDate && data.subscriptionEndDate) ? [{
+          startDate: new Date(data.subscriptionStartDate),
+          endDate: new Date(data.subscriptionEndDate),
+          amount: data.amount,
+          description: data.description,
+          updatedBy: data.createdBy || null,
+          updatedAt: new Date(),
+        }] : []
       });
 
       savedCompany = await newCompany.save();

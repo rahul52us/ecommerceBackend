@@ -46,6 +46,8 @@ export interface CompanyI extends Document {
   subscriptionHistory?: {
     startDate: Date;
     endDate: Date;
+    amount?: number;
+    description?: string;
     updatedAt: Date;
     updatedBy: mongoose.Schema.Types.ObjectId;
   }[];
@@ -157,6 +159,8 @@ const companySchema = new mongoose.Schema<CompanyI>({
     type: [{
       startDate: Date,
       endDate: Date,
+      amount: Number,
+      description: String,
       updatedAt: { type: Date, default: Date.now },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     }],
