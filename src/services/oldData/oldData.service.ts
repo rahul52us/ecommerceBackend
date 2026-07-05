@@ -5,6 +5,7 @@ import LegacyTransaction from "../../schemas/legacy/LegacyTransaction";
 import LegacyWorkFee from "../../schemas/legacy/LegacyWorkFee";
 import LegacyWorkCompDetail from "../../schemas/legacy/LegacyWorkCompDetail";
 import mongoose from "mongoose";
+import UserModel from "../../schemas/User/User";
 
 export const getOldWorkCompService = async (req: Request, res: Response) => {
   try {
@@ -25,12 +26,21 @@ export const getOldWorkCompService = async (req: Request, res: Response) => {
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
       const searchStr = search as string;
+      const matchedUsers = await UserModel.find({ name: { $regex: searchStr, $options: "i" } }).select("_id").lean();
+      const matchedUserIds = matchedUsers.map(u => u._id);
+      
       if (/^\d{1,2}$/.test(searchStr.trim())) {
-        query.legacyDocCode = searchStr.trim();
+        query.$or = [
+          { legacyDocCode: searchStr.trim() },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
+        ];
       } else {
         query.$or = [
           { legacyPatCode: { $regex: searchStr, $options: "i" } },
-          { legacyDocCode: { $regex: searchStr, $options: "i" } }
+          { legacyDocCode: { $regex: searchStr, $options: "i" } },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
         ];
       }
     }
@@ -109,12 +119,21 @@ export const getOldToothWorkService = async (req: Request, res: Response) => {
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
       const searchStr = search as string;
+      const matchedUsers = await UserModel.find({ name: { $regex: searchStr, $options: "i" } }).select("_id").lean();
+      const matchedUserIds = matchedUsers.map(u => u._id);
+      
       if (/^\d{1,2}$/.test(searchStr.trim())) {
-        query.legacyDocCode = searchStr.trim();
+        query.$or = [
+          { legacyDocCode: searchStr.trim() },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
+        ];
       } else {
         query.$or = [
           { legacyPatCode: { $regex: searchStr, $options: "i" } },
-          { legacyDocCode: { $regex: searchStr, $options: "i" } }
+          { legacyDocCode: { $regex: searchStr, $options: "i" } },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
         ];
       }
     }
@@ -159,12 +178,21 @@ export const getOldTransactionService = async (req: Request, res: Response) => {
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
       const searchStr = search as string;
+      const matchedUsers = await UserModel.find({ name: { $regex: searchStr, $options: "i" } }).select("_id").lean();
+      const matchedUserIds = matchedUsers.map(u => u._id);
+      
       if (/^\d{1,2}$/.test(searchStr.trim())) {
-        query.legacyDocCode = searchStr.trim();
+        query.$or = [
+          { legacyDocCode: searchStr.trim() },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
+        ];
       } else {
         query.$or = [
           { legacyPatCode: { $regex: searchStr, $options: "i" } },
-          { legacyDocCode: { $regex: searchStr, $options: "i" } }
+          { legacyDocCode: { $regex: searchStr, $options: "i" } },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
         ];
       }
     }
@@ -209,12 +237,21 @@ export const getOldWorkFeeService = async (req: Request, res: Response) => {
     if (legacyPatCode) query.legacyPatCode = legacyPatCode;
     if (search) {
       const searchStr = search as string;
+      const matchedUsers = await UserModel.find({ name: { $regex: searchStr, $options: "i" } }).select("_id").lean();
+      const matchedUserIds = matchedUsers.map(u => u._id);
+      
       if (/^\d{1,2}$/.test(searchStr.trim())) {
-        query.legacyDocCode = searchStr.trim();
+        query.$or = [
+          { legacyDocCode: searchStr.trim() },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
+        ];
       } else {
         query.$or = [
           { legacyPatCode: { $regex: searchStr, $options: "i" } },
-          { legacyDocCode: { $regex: searchStr, $options: "i" } }
+          { legacyDocCode: { $regex: searchStr, $options: "i" } },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
         ];
       }
     }
