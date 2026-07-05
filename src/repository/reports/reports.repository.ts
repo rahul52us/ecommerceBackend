@@ -529,7 +529,7 @@ export async function downloadReport(data: any) {
           }
         }
 
-        columns = [
+        const defaultLabWorkCols = [
           { header: "Patient", key: "patientName", width: 25 },
           { header: "Doctor", key: "doctorName", width: 25 },
           { header: "Work Type", key: "workType", width: 15 },
@@ -543,6 +543,16 @@ export async function downloadReport(data: any) {
           { header: "Selected Works", key: "works", width: 50 },
           { header: "Warranty Card", key: "warrantyCardNumber", width: 20 },
         ];
+
+        if (filters.selectedColumns && Array.isArray(filters.selectedColumns) && filters.selectedColumns.length > 0) {
+          columns = [];
+          filters.selectedColumns.forEach((colKey: string) => {
+            const found = defaultLabWorkCols.find((c) => c.key === colKey);
+            if (found) columns.push(found);
+          });
+        } else {
+          columns = defaultLabWorkCols;
+        }
 
         const labWorks = await LabWork.aggregate([
           { $match: matchStage },
