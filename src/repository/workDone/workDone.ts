@@ -196,6 +196,10 @@ export const updateWorkDone = async (data: any) => {
       }
     };
 
+    if (paymentHistory !== undefined || paymentAmount || receivedAmount !== undefined) {
+      updateQuery.$set.updateLastAccountbilityDate = new Date();
+    }
+
     if (paymentHistory !== undefined) {
       // Full paymentHistory replacement (e.g. editing an existing payment entry)
       updateQuery.$set.paymentHistory = paymentHistory;
@@ -306,6 +310,7 @@ export const updateWorkDoneAmount = async (data: any) => {
     // Update WorkDone amount
     workDone.amount = amount;
     workDone.updatedBy = user;
+    workDone.updateLastAccountbilityDate = new Date();
     const updatedWorkDone = await workDone.save();
 
     // Also update accountability totalAmount if it exists
@@ -1093,16 +1098,16 @@ export const getGlobalAccountabilityData = async (payload: any) => {
 
     // Date range
     if (fromDate || toDate) {
-      matchStage.createdAt = {};
+      matchStage.updateLastAccountbilityDate = {};
       if (fromDate) {
         const start = new Date(fromDate);
         start.setHours(0, 0, 0, 0);
-        matchStage.createdAt.$gte = start;
+        matchStage.updateLastAccountbilityDate.$gte = start;
       }
       if (toDate) {
         const end = new Date(toDate);
         end.setHours(23, 59, 59, 999);
-        matchStage.createdAt.$lte = end;
+        matchStage.updateLastAccountbilityDate.$lte = end;
       }
     }
 
@@ -1124,7 +1129,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
 
     const pipeline: any[] = [
       { $match: matchStage },
-      { $sort: { createdAt: -1 } },
+      { $sort: { updateLastAccountbilityDate: -1, createdAt: -1 } },
       {
         $lookup: {
           from: "users",
@@ -1175,6 +1180,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
         $project: {
           _id: 1,
           createdAt: 1,
+          updateLastAccountbilityDate: 1,
           tooth: 1,
           status: 1,
           amount: 1,

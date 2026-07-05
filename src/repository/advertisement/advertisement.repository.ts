@@ -117,12 +117,15 @@ export const getAdvertisements = async (
 
 export const getActiveAdvertisements = async (companyId: string) => {
   try {
-    const currentDate = new Date();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
     const query: any = {
-      company: companyId,
       status: true,
-      validFrom: { $lte: currentDate },
-      validTo: { $gte: currentDate }
+      validFrom: { $lte: todayEnd },
+      validTo: { $gte: todayStart }
     };
 
     const advertisements = await Advertisement.find(query).sort({ createdAt: -1 });

@@ -1865,15 +1865,16 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
   // --- DYNAMIC COLUMNS SETUP ---
   const allColumns = [
-    { key: "date", label: "DATE", width: 45 },
+    { key: "date", label: "DATE", width: 40 },
     { key: "patient", label: "PATIENT", width: 60 },
     { key: "tooth", label: "TOOTH", width: 30 },
-    { key: "treatmentCode", label: "CODE", width: 90 },
-    { key: "treatment", label: "TREATMENT", width: 90 },
+    { key: "treatmentCode", label: "CODE", width: 65 },
+    { key: "treatment", label: "TREATMENT", width: 65 },
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
-    { key: "paid", label: "PAID", width: 35 },
-    { key: "due", label: "DUE", width: 35 },
+    { key: "paid", label: "PAID", width: 30 },
+    { key: "lastPaid", label: "LAST PAID", width: 50 },
+    { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
   ];
@@ -1889,13 +1890,11 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   const totalDefaultWidth = columnsToRender.reduce((sum, c) => sum + c.width, 0);
   const extraSpace = Math.max(0, CONTENT_WIDTH - 10 - totalDefaultWidth);
   
-  const expandableKeys = ["treatmentCode", "treatment", "patient"];
-  const presentExpandable = columnsToRender.filter(c => expandableKeys.includes(c.key));
-  const expandBy = presentExpandable.length > 0 ? extraSpace / presentExpandable.length : 0;
+  const expandBy = columnsToRender.length > 0 ? extraSpace / columnsToRender.length : 0;
 
   columnsToRender.forEach(c => {
     colX[c.key] = currentX;
-    colW[c.key] = c.width + (expandableKeys.includes(c.key) ? expandBy : 0);
+    colW[c.key] = c.width + expandBy;
     currentX += colW[c.key];
   });
 
@@ -1961,7 +1960,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
     doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(8);
     
-    if (colX.date) doc.text(new Date(row.createdAt).toLocaleDateString("en-GB"), colX.date, y + 8);
+    if (colX.date) doc.text(new Date(row.updateLastAccountbilityDate || row.createdAt).toLocaleDateString("en-GB"), colX.date, y + 8);
     if (colX.patient) doc.font("Helvetica-Bold").text(patientName, colX.patient, y + 8, { width: colW.patient - 5 }).font("Helvetica");
     if (colX.tooth) doc.text((row.tooth || "-").slice(0, 10), colX.tooth, y + 8, { width: colW.tooth - 5, ellipsis: true });
     
@@ -1973,6 +1972,10 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     
     if (colX.fees) doc.font("Helvetica-Bold").text((row.amount || 0).toString(), colX.fees, y + 8);
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
+    if (colX.lastPaid) {
+      const lastPay = row.paymentHistory && row.paymentHistory.length > 0 ? row.paymentHistory[row.paymentHistory.length - 1].amount : "-";
+      doc.fillColor(COLORS.textMain).text(lastPay.toString(), colX.lastPaid, y + 8);
+    }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
     if (colX.paymentMode) doc.text((row.paymentMode || "-").slice(0, 10), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
 

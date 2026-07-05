@@ -5,6 +5,13 @@ export const createAccountability = async (data: any) => {
   try {
     const accountability = new Accountability(data);
     await accountability.save();
+    
+    if (accountability.workDone) {
+      await WorkDone.findByIdAndUpdate(accountability.workDone, {
+        $set: { updateLastAccountbilityDate: new Date() }
+      });
+    }
+
     return { status: "success", data: accountability };
   } catch (err: any) {
     throw new Error(err.message);
@@ -16,6 +23,12 @@ export const updateAccountability = async (id: string, data: any) => {
     data.lastAccountabilityAmountUpdated = new Date();
     const accountability = await Accountability.findByIdAndUpdate(id, { $set: data }, { new: true });
     
+    if (accountability && accountability.workDone) {
+      await WorkDone.findByIdAndUpdate(accountability.workDone, {
+        $set: { updateLastAccountbilityDate: new Date() }
+      });
+    }
+
     return { status: "success", data: accountability };
   } catch (err: any) {
     throw new Error(err.message);
@@ -80,6 +93,12 @@ export const updatePayoutStatus = async (id: string, status: string, note?: stri
     }
 
     const accountability = await Accountability.findByIdAndUpdate(id, query, { new: true });
+
+    if (accountability && accountability.workDone) {
+      await WorkDone.findByIdAndUpdate(accountability.workDone, {
+        $set: { updateLastAccountbilityDate: new Date() }
+      });
+    }
 
     return { status: "success", data: accountability };
   } catch (err: any) {

@@ -101,6 +101,10 @@ const WorkDoneSchema = new Schema(
       type: Number,
       index: true,
     },
+    updateLastAccountbilityDate: {
+      type: Date,
+      index: true,
+    },
     deletedAt: {
       type: Date,
     },
