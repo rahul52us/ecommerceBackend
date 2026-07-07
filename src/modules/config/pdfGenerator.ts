@@ -1865,7 +1865,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
   // --- DYNAMIC COLUMNS SETUP ---
   const allColumns = [
-    { key: "date", label: "DATE", width: 40 },
+    { key: "date", label: "BILLING DATE", width: 55 },
     { key: "patient", label: "PATIENT", width: 60 },
     { key: "tooth", label: "TOOTH", width: 30 },
     { key: "treatmentCode", label: "CODE", width: 65 },
@@ -1873,7 +1873,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
     { key: "paid", label: "PAID", width: 30 },
-    { key: "lastPaid", label: "TODAY PAID", width: 50 },
+    { key: "lastPaid", label: "TODAY RECEIVED", width: 50 },
     { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }

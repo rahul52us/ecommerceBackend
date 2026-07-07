@@ -541,6 +541,8 @@ export async function downloadReport(data: any) {
           { header: "Status", key: "status", width: 15 },
           { header: "Price", key: "price", width: 12 },
           { header: "Selected Works", key: "works", width: 50 },
+          { header: "Teeth Number", key: "teethNumber", width: 15 },
+          { header: "Shade", key: "shade", width: 15 },
           { header: "Warranty Card", key: "warrantyCardNumber", width: 20 },
         ];
 
@@ -640,6 +642,14 @@ export async function downloadReport(data: any) {
               return hierarchyMap[sel] || sel;
             }).join(" > ");
           }).join(" | ") || "-",
+          teethNumber: lw.selectedWorks?.map((w: any) => w.teethNumbers?.join(", ") || "").filter(Boolean).join(" | ") || "-",
+          shade: lw.selectedWorks?.map((w: any) => {
+            const sys = w.shadeSystem;
+            const val = w.shadeValue;
+            if (sys && val) return `${sys} - ${val}`;
+            if (val) return val;
+            return "";
+          }).filter(Boolean).join(" | ") || "-",
           warrantyCardNumber: lw.warrantyCardNumber || "-",
         }));
         break;
