@@ -17,6 +17,7 @@ import {
   getFilteredTablePDFData,
   getReceiptsLogData,
   getGlobalAccountabilityData,
+  getTodayGlobalAccountabilityStats,
 } from "../../repository/workDone/workDone";
 import { createReceipt } from "../../repository/receipt/receipt.repository";
 import {
@@ -746,6 +747,28 @@ export const generateGlobalAccountabilityReportService = async (req: any, res: a
 
     const { generateGlobalAccountabilityPDF } = require("../../modules/config/pdfGenerator");
     generateGlobalAccountabilityPDF(data, stream, req.body.columns);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+export const getTodayGlobalAccountabilityStatsService = async (req: any, res: any) => {
+  try {
+    const payload = {
+      ...req.body,
+      company: req.body.company || req.bodyData?.company,
+    };
+
+    const { statusCode, success, message, data }: any = await getTodayGlobalAccountabilityStats(payload);
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+    });
   } catch (err: any) {
     return res.status(500).send({
       status: "error",

@@ -1263,3 +1263,96 @@ export const getGlobalAccountabilityData = async (payload: any) => {
     return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
+export const getTodayGlobalAccountabilityStats = async (payload: any) => {
+  try {
+    const {
+      company,
+      patientIds,
+      doctorIds,
+      status,
+      tooth,
+    } = payload;
+
+    const compId = toObjectId(company);
+    const matchStage: any = {
+      isActive: { $ne: false },
+    };
+
+    if (compId) {
+      matchStage.company = compId;
+    }
+
+    if (Array.isArray(patientIds) && patientIds.length > 0) {
+      const pIds = patientIds.map((id: string) => toObjectId(id)).filter(Boolean);
+      if (pIds.length > 0) matchStage.patient = { $in: pIds };
+    }
+
+    if (Array.isArray(doctorIds) && doctorIds.length > 0) {
+      const dIds = doctorIds.map((id: string) => toObjectId(id)).filter(Boolean);
+      if (dIds.length > 0) matchStage.doctor = { $in: dIds };
+    }
+
+    // Force date range to Today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    matchStage.updateLastAccountbilityDate = {
+      $gte: todayStart,
+      $lte: todayEnd
+    };
+
+    if (tooth) {
+      matchStage.tooth = { $regex: tooth, $options: "i" };
+    }
+
+    if (payload.paymentMode && payload.paymentMode !== "all" && payload.paymentMode !== "undefined") {
+      matchStage["paymentHistory.paymentMethod"] = { $regex: new RegExp(`^${payload.paymentMode}$`, 'i') };
+    }
+
+    if (payload.treatmentCode && payload.treatmentCode.trim() !== "") {
+      const escapedTreatmentCode = payload.treatmentCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      matchStage["treatmentCode"] = { $regex: new RegExp(escapedTreatmentCode, "i") };
+    }
+
+    const summaryPipeline: any[] = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          balanceDue: {
+            $subtract: [
+              { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
+              { $ifNull: ["$receivedAmount", 0] }
+            ]
+          }
+        }
+      },
+      ...(status && status !== "all" ? [{
+        $match: {
+          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : { $lte: 0 }
+        }
+      }] : []),
+      {
+        $group: {
+          _id: null,
+          todayBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
+          todayPaid: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+        },
+      }
+    ];
+
+    const summaryResult = await WorkDoneSchema.aggregate(summaryPipeline);
+    const summary = summaryResult[0] || { todayBilled: 0, todayPaid: 0 };
+
+    return {
+      success: "success",
+      message: "Today global accountability stats fetched successfully.",
+      data: summary,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};

@@ -1873,7 +1873,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
     { key: "paid", label: "PAID", width: 30 },
-    { key: "lastPaid", label: "LAST PAID", width: 50 },
+    { key: "lastPaid", label: "TODAY PAID", width: 50 },
     { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
@@ -1970,11 +1970,26 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     
     if (colX.doctor) doc.text(docName.slice(0, 15), colX.doctor, y + 8, { width: colW.doctor - 5, ellipsis: true });
     
-    if (colX.fees) doc.font("Helvetica-Bold").text((row.amount || 0).toString(), colX.fees, y + 8);
+    if (colX.fees) {
+      const feesAmount = (row.amount || 0) - (row.discount || 0);
+      doc.font("Helvetica-Bold").text(feesAmount.toString(), colX.fees, y + 8);
+    }
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
     if (colX.lastPaid) {
-      const lastPay = row.paymentHistory && row.paymentHistory.length > 0 ? row.paymentHistory[row.paymentHistory.length - 1].amount : "-";
-      doc.fillColor(COLORS.textMain).text(lastPay.toString(), colX.lastPaid, y + 8);
+      let todaySum = 0;
+      if (row.paymentHistory && row.paymentHistory.length > 0) {
+        todaySum = row.paymentHistory.reduce((acc: number, curr: any) => {
+          if (!curr.date) return acc;
+          const d = new Date(curr.date);
+          const today = new Date();
+          if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) {
+            return acc + (Number(curr.amount) || 0);
+          }
+          return acc;
+        }, 0);
+      }
+      const todayPayStr = todaySum > 0 ? todaySum.toString() : "-";
+      doc.fillColor(COLORS.textMain).text(todayPayStr, colX.lastPaid, y + 8);
     }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
     if (colX.paymentMode) doc.text((row.paymentMode || "-").slice(0, 10), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });

@@ -516,6 +516,17 @@
       "createdAt": "2026-06-22T08:58:18.678Z",
       "updatedAt": "2026-06-22T08:58:18.678Z",
       "mobile": "+91 98231 69268"
+    },
+    {
+      "id": "357c3dc0-82b7-42c1-8632-e490a0427e9c",
+      "name": "Dr Haresh Jumani",
+      "email": "hkjumani@gmail.com",
+      "designation": "Diabetologist",
+      "city": "Mumbai",
+      "userId": "b87bc10f-073a-43e9-be07-99c9cd1242ad",
+      "createdAt": "2026-06-30T05:29:02.158Z",
+      "updatedAt": "2026-06-30T05:29:02.158Z",
+      "mobile": "+91 99306 84164"
     }
   ],
   "public.prescription_doctors": [
@@ -437620,6 +437631,90 @@
       "brand3": null,
       "createdAt": "2026-06-27T16:13:25.835Z",
       "updatedAt": "2026-06-27T16:13:25.835Z"
+    },
+    {
+      "id": "763d8013-122a-49b6-a0d1-ded75fb3de8d",
+      "userId": "e2734200-b8ac-4192-b5ba-e69d7e2c387a",
+      "prescriptionDoctorId": "a24f561f-5ad7-45a7-a17e-6dcb8cc1089f",
+      "imageUrl": "/api/prescriptions/image/prescription-1782798195965-998926784.jpeg",
+      "notes": null,
+      "brand1": "temsan",
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-06-30T05:43:16.136Z",
+      "updatedAt": "2026-06-30T05:43:16.136Z"
+    },
+    {
+      "id": "b8ee7513-d170-42f7-8d6e-5442dcc887cf",
+      "userId": "70b9cc45-9d0d-420a-8717-5b5fc8e9dbb9",
+      "prescriptionDoctorId": "d8fa576c-2659-463a-95f4-5d8b75b54741",
+      "imageUrl": "/api/prescriptions/image/prescription-1783149832415-877073439.jpg",
+      "notes": null,
+      "brand1": null,
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-07-04T07:23:52.505Z",
+      "updatedAt": "2026-07-04T07:23:52.505Z"
+    },
+    {
+      "id": "3deb1f6c-b1b7-4163-a828-14e2b95fca4c",
+      "userId": "70b9cc45-9d0d-420a-8717-5b5fc8e9dbb9",
+      "prescriptionDoctorId": "d8fa576c-2659-463a-95f4-5d8b75b54741",
+      "imageUrl": "/api/prescriptions/image/prescription-1783149927488-102192762.jpg",
+      "notes": null,
+      "brand1": null,
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-07-04T07:25:27.720Z",
+      "updatedAt": "2026-07-04T07:25:27.720Z"
+    },
+    {
+      "id": "c0e5df8a-f6c4-45d2-a3bd-319ce2bbfd93",
+      "userId": "70b9cc45-9d0d-420a-8717-5b5fc8e9dbb9",
+      "prescriptionDoctorId": "d8fa576c-2659-463a-95f4-5d8b75b54741",
+      "imageUrl": "/api/prescriptions/image/prescription-1783149971189-88510742.jpg",
+      "notes": null,
+      "brand1": null,
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-07-04T07:26:17.124Z",
+      "updatedAt": "2026-07-04T07:26:17.124Z"
+    },
+    {
+      "id": "daa3c193-164d-458a-b7ab-288473a515a6",
+      "userId": "70b9cc45-9d0d-420a-8717-5b5fc8e9dbb9",
+      "prescriptionDoctorId": "d8fa576c-2659-463a-95f4-5d8b75b54741",
+      "imageUrl": "/api/prescriptions/image/prescription-1783150065649-715673534.jpg",
+      "notes": null,
+      "brand1": null,
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-07-04T07:27:45.812Z",
+      "updatedAt": "2026-07-04T07:27:45.812Z"
+    },
+    {
+      "id": "81cf5b5a-e43a-4088-95ac-e2315eb4ab28",
+      "userId": "70b9cc45-9d0d-420a-8717-5b5fc8e9dbb9",
+      "prescriptionDoctorId": "d8fa576c-2659-463a-95f4-5d8b75b54741",
+      "imageUrl": "/api/prescriptions/image/prescription-1783150107475-349620219.jpg",
+      "notes": null,
+      "brand1": null,
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-07-04T07:28:27.581Z",
+      "updatedAt": "2026-07-04T07:28:27.581Z"
+    },
+    {
+      "id": "b3f8dbe0-64af-42c6-9703-d9926aadaeb2",
+      "userId": "70b9cc45-9d0d-420a-8717-5b5fc8e9dbb9",
+      "prescriptionDoctorId": "d8fa576c-2659-463a-95f4-5d8b75b54741",
+      "imageUrl": "/api/prescriptions/image/prescription-1783151563797-711714428.jpg",
+      "notes": null,
+      "brand1": null,
+      "brand2": null,
+      "brand3": null,
+      "createdAt": "2026-07-04T07:52:43.967Z",
+      "updatedAt": "2026-07-04T07:52:43.967Z"
     }
   ],
   "public.users": [
