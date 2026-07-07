@@ -229,7 +229,6 @@ export const updateWorkDone = async (data: any) => {
         accountability.tooth = updated.tooth;
         accountability.treatmentName = updated.treatmentCode || updated.workDoneNote || "General Procedure";
         accountability.payoutStatus = statusStr;
-        accountability.lastAccountabilityAmountUpdated = new Date();
         await accountability.save();
       }
 
@@ -310,14 +309,12 @@ export const updateWorkDoneAmount = async (data: any) => {
     // Update WorkDone amount
     workDone.amount = amount;
     workDone.updatedBy = user;
-    workDone.updateLastAccountbilityDate = new Date();
     const updatedWorkDone = await workDone.save();
 
     // Also update accountability totalAmount if it exists
     const accountability = await AccountabilityModel.findOne({ workDone: id });
     if (accountability) {
       accountability.totalAmount = amount - (workDone.discount || 0); // Assuming total amount is bill amount (amount - discount)
-      accountability.lastAccountabilityAmountUpdated = new Date();
       await accountability.save();
     }
 
