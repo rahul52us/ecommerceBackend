@@ -1296,10 +1296,20 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
     
-    matchStage.updateLastAccountbilityDate = {
-      $gte: todayStart,
-      $lte: todayEnd
-    };
+    matchStage.$or = [
+      {
+        updateLastAccountbilityDate: {
+          $gte: todayStart,
+          $lte: todayEnd
+        }
+      },
+      {
+        createdAt: {
+          $gte: todayStart,
+          $lte: todayEnd
+        }
+      }
+    ];
 
     if (tooth) {
       matchStage.tooth = { $regex: tooth, $options: "i" };
@@ -1323,6 +1333,31 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
               { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
               { $ifNull: ["$receivedAmount", 0] }
             ]
+          },
+          paymentsToday: {
+            $filter: {
+              input: { $ifNull: ["$paymentHistory", []] },
+              as: "payment",
+              cond: {
+                $and: [
+                  { $gte: [{ $toDate: "$$payment.date" }, todayStart] },
+                  { $lte: [{ $toDate: "$$payment.date" }, todayEnd] }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          amountPaidToday: { 
+            $sum: {
+              $map: {
+                input: "$paymentsToday",
+                as: "pt",
+                in: { $convert: { input: "$$pt.amount", to: "double", onError: 0, onNull: 0 } }
+              }
+            }
           }
         }
       },
@@ -1334,8 +1369,21 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
       {
         $group: {
           _id: null,
-          todayBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
-          todayPaid: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+          todayBilled: { 
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gte: ["$createdAt", todayStart] },
+                    { $lte: ["$createdAt", todayEnd] }
+                  ]
+                },
+                { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
+                0
+              ]
+            }
+          },
+          todayPaid: { $sum: "$amountPaidToday" },
         },
       }
     ];
