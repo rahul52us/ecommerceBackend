@@ -753,7 +753,7 @@ export const generateGlobalAccountabilityReportService = async (req: any, res: a
     });
 
     const { generateGlobalAccountabilityPDF } = require("../../modules/config/pdfGenerator");
-    generateGlobalAccountabilityPDF(data, stream, req.body.columns);
+    generateGlobalAccountabilityPDF(data, stream, req.body.columns, req.body.fromDate, req.body.toDate);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",

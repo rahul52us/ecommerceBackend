@@ -1109,20 +1109,31 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       if (dIds.length > 0) matchStage.doctor = { $in: dIds };
     }
 
+    let start: Date | null = null;
+    let end: Date | null = null;
+
     // Date range
     if (fromDate || toDate) {
       matchStage.updateLastAccountbilityDate = {};
       if (fromDate) {
-        const start = new Date(fromDate);
+        start = new Date(fromDate);
         start.setHours(0, 0, 0, 0);
         matchStage.updateLastAccountbilityDate.$gte = start;
       }
       if (toDate) {
-        const end = new Date(toDate);
+        end = new Date(toDate);
         end.setHours(23, 59, 59, 999);
         matchStage.updateLastAccountbilityDate.$lte = end;
       }
     }
+
+    const paymentDateConditions: any[] = [];
+    if (start) paymentDateConditions.push({ $gte: ["$$payment.date", start] });
+    if (end) paymentDateConditions.push({ $lte: ["$$payment.date", end] });
+    
+    const paymentFilterLogic = paymentDateConditions.length > 0 
+      ? { $and: paymentDateConditions } 
+      : { $literal: true };
 
     // Tooth filter
     if (tooth) {
@@ -1175,7 +1186,24 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       { $unwind: { path: "$treatmentInfo", preserveNullAndEmptyArrays: true } },
       {
         $addFields: {
-          totalPaid: "$receivedAmount",
+          periodReceivedAmount: {
+            $reduce: {
+              input: {
+                $filter: {
+                  input: { $ifNull: ["$paymentHistory", []] },
+                  as: "payment",
+                  cond: paymentFilterLogic
+                }
+              },
+              initialValue: 0,
+              in: { $add: ["$$value", { $ifNull: ["$$this.amount", 0] }] }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          totalPaid: "$periodReceivedAmount",
           balanceDue: {
             $subtract: [
               { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
@@ -1230,6 +1258,19 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       { $match: matchStage },
       {
         $addFields: {
+          periodReceivedAmount: {
+            $reduce: {
+              input: {
+                $filter: {
+                  input: { $ifNull: ["$paymentHistory", []] },
+                  as: "payment",
+                  cond: paymentFilterLogic
+                }
+              },
+              initialValue: 0,
+              in: { $add: ["$$value", { $ifNull: ["$$this.amount", 0] }] }
+            }
+          },
           balanceDue: {
             $subtract: [
               { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
@@ -1247,7 +1288,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
         $group: {
           _id: null,
           totalBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
-          totalPaid: { $sum: { $ifNull: ["$receivedAmount", 0] } },
+          totalPaid: { $sum: { $ifNull: ["$periodReceivedAmount", 0] } },
         },
       },
       {

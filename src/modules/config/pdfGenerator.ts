@@ -1827,7 +1827,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
 
 
 
-export const generateGlobalAccountabilityPDF = (data: any, stream: any, selectedColumns?: string[]) => {
+export const generateGlobalAccountabilityPDF = (data: any, stream: any, selectedColumns?: string[], fromDate?: string, toDate?: string) => {
   const PDFDocument = require("pdfkit");
   const { summary, records } = data;
   const doc = new PDFDocument({
@@ -1896,7 +1896,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
     { key: "paid", label: "PAID", width: 30 },
-    { key: "lastPaid", label: "TODAY RECEIVED", width: 50 },
+    { key: "lastPaid", label: "PERIOD RECEIVED", width: 55 },
     { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
@@ -1999,20 +1999,23 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     }
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
     if (colX.lastPaid) {
-      let todaySum = 0;
+      let periodSum = 0;
       if (row.paymentHistory && row.paymentHistory.length > 0) {
-        todaySum = row.paymentHistory.reduce((acc: number, curr: any) => {
+        periodSum = row.paymentHistory.reduce((acc: number, curr: any) => {
           if (!curr.date) return acc;
           const d = new Date(curr.date);
-          const today = new Date();
-          if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) {
+          const rangeStart = fromDate ? new Date(fromDate + "T00:00:00") : null;
+          const rangeEnd = toDate ? new Date(toDate + "T23:59:59") : null;
+          const afterStart = rangeStart ? d >= rangeStart : true;
+          const beforeEnd = rangeEnd ? d <= rangeEnd : true;
+          if (afterStart && beforeEnd) {
             return acc + (Number(curr.amount) || 0);
           }
           return acc;
         }, 0);
       }
-      const todayPayStr = todaySum > 0 ? todaySum.toString() : "-";
-      doc.fillColor(COLORS.textMain).text(todayPayStr, colX.lastPaid, y + 8);
+      const periodPayStr = periodSum > 0 ? periodSum.toString() : "-";
+      doc.fillColor(COLORS.textMain).text(periodPayStr, colX.lastPaid, y + 8);
     }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
     if (colX.paymentMode) {
