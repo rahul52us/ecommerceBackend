@@ -271,19 +271,8 @@ export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
       return res.status(statusCode).send({ status: success, message });
     }
 
-    // Create Receipt document
-    const record = data.records[0];
-    const receiptResult = await createReceipt({
-      patient: (record.patient as any)?._id || record.patient,
-      workDone: record._id,
-      company: req.query.company,
-      generatedBy: req.userId,
-      type: req.query.type || "workdone",
-    });
-
-    // Attach receipt number to data for PDF
-    const receiptNumber = receiptResult?.data?.receiptNumber || "N/A";
-    data.receiptNumber = receiptNumber;
+    // Attach empty receipt number to data for PDF since we are moving it to the table rows
+    data.receiptNumber = "N/A";
 
     const chunks: any[] = [];
     const stream = new (require("stream").PassThrough)();
@@ -296,7 +285,7 @@ export const generateSingleWorkDonePDFService = async (req: any, res: any) => {
         status: "success",
         message: "Single Record PDF generated successfully",
         data: base64,
-        receiptNumber,
+        receiptNumber: "N/A",
       });
     });
 
@@ -361,17 +350,43 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
       return res.status(statusCode).send({ status: success, message });
     }
 
-    // Create Receipt document
-    const receiptResult = await createReceipt({
-      patient: (data.patient as any)?._id || data.patient,
-      workDone: data.record._id,
-      company: req.query.company,
-      generatedBy: req.userId,
-      type: req.query.type || "accountability",
-    });
+    // Check if the payment already has a receipt number
+    let receiptNumber = data.payment?.receiptNumber;
+    
+    // Fallback: Create Receipt document if it doesn't have one (for older legacy payments)
+    if (!receiptNumber) {
+      const receiptResult = await createReceipt({
+        patient: (data.patient as any)?._id || data.patient,
+        workDone: data.record._id,
+        company: req.query.company,
+        generatedBy: req.userId,
+        type: "payment", // explicitly use payment to guarantee unique sequence
+      });
+      receiptNumber = receiptResult?.data?.receiptNumber || "N/A";
+      
+      // Permanently save this newly generated receipt number back to the database for this specific transaction
+      if (receiptNumber !== "N/A") {
+        const pIndex = parseInt(req.params.paymentIndex, 10);
+        
+        // 1. Update WorkDone
+        const workDoneRecord = await require("../../schemas/workDone/workDone.schema").default.findById(data.record._id);
+        if (workDoneRecord && workDoneRecord.paymentHistory && workDoneRecord.paymentHistory[pIndex]) {
+          workDoneRecord.paymentHistory[pIndex].receiptNumber = receiptNumber;
+          workDoneRecord.markModified('paymentHistory');
+          await workDoneRecord.save();
+        }
+        
+        // 2. Update Accountability
+        const accountability = await require("../../schemas/accountability/accountability.schema").default.findOne({ workDone: data.record._id });
+        if (accountability && accountability.payoutHistory && accountability.payoutHistory[pIndex]) {
+          accountability.payoutHistory[pIndex].receiptNumber = receiptNumber;
+          accountability.markModified('payoutHistory');
+          await accountability.save();
+        }
+      }
+    }
 
     // Attach receipt number to data for PDF
-    const receiptNumber = receiptResult?.data?.receiptNumber || "N/A";
     data.record.receiptNumber = receiptNumber;
 
     const chunks: any[] = [];

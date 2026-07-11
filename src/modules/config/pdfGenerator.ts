@@ -308,19 +308,27 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
     else if (moduleStr === "ACCOUNTABILITY" || moduleStr === "RECEIPT") moduleStr = "PAYMENT";
 
     const workdone = record.workDone as any;
+    const accountability = record.accountability as any;
+
     let billStr = "-";
     let paidStr = "-";
+
     if (workdone) {
-       billStr = `₹${(workdone.amount - (workdone.discount || 0)).toLocaleString()}`;
-       if (workdone.receivedAmount > 0) {
-         paidStr = `₹${workdone.receivedAmount.toLocaleString()}`;
+       billStr = `Rs. ${(workdone.amount - (workdone.discount || 0)).toLocaleString()}`;
+       
+       if (moduleStr === "PAYMENT" && accountability && accountability.amount) {
+         // Show exact amount paid for this specific receipt transaction
+         paidStr = `Rs. ${accountability.amount.toLocaleString()}`;
+       } else if (workdone.receivedAmount > 0) {
+         // Fallback for statements
+         paidStr = `Rs. ${workdone.receivedAmount.toLocaleString()}`;
        }
     }
 
     doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica")
       .text(date, colX.date, y + 8)
-      .font("Helvetica-Bold").text(receiptNo, colX.receipt, y + 8)
-      .font("Helvetica").text(patientName, colX.patient, y + 8, { width: 110, ellipsis: true })
+      .font("Helvetica-Bold").text(receiptNo, colX.receipt, y + 8).font("Helvetica")
+      .text(patientName, colX.patient, y + 8, { width: 110, ellipsis: true })
       .fillColor(COLORS.textMuted).text(moduleStr, colX.module, y + 8)
       .fillColor(COLORS.textMain).text(billStr, colX.bill, y + 8, { width: 60, align: "right" })
       .fillColor(COLORS.success).text(paidStr, colX.paid, y + 8, { width: 60, align: "right" });
@@ -393,7 +401,6 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   // --- HEADER ---
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(24).text("TREATMENT RECEIPT", MARGIN, 35);
   doc.fontSize(10).opacity(0.8).text(`Date: ${new Date().toLocaleDateString()}`, MARGIN, 65);
-  doc.fontSize(10).text(`Receipt No: ${data.receiptNumber || "N/A"}`, MARGIN, 80);
 
   // Clinic Info (Top Right)
   doc.opacity(1).fontSize(14).text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", PAGE_WIDTH - MARGIN - 200, 40, { align: "right", width: 200 });
@@ -455,10 +462,14 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("PAYMENT TIMELINE", MARGIN, y);
   y += 15;
 
-  const colX = { date: MARGIN + 10, method: MARGIN + 120, amount: MARGIN + 250 };
+  const colX = { date: MARGIN + 10, receipt: MARGIN + 90, method: MARGIN + 180, amount: MARGIN + 250 };
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
   doc.moveTo(MARGIN, y + 20).lineTo(MARGIN + CONTENT_WIDTH, y + 20).stroke();
-  doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold").text("DATE", colX.date, y + 6).text("METHOD", colX.method, y + 6).text("AMOUNT", colX.amount, y + 6, { width: 100, align: "right" });
+  doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
+    .text("DATE", colX.date, y + 6)
+    .text("RECEIPT NO", colX.receipt, y + 6)
+    .text("METHOD", colX.method, y + 6)
+    .text("AMOUNT", colX.amount, y + 6, { width: 100, align: "right" });
   y += 20;
 
   const payments = record.paymentHistory || [];
@@ -466,6 +477,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
     if (idx % 2 !== 0) doc.fillColor(COLORS.bgLight).rect(MARGIN, y, CONTENT_WIDTH, 20).fill();
     doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica")
       .text(new Date(p.date).toLocaleDateString(), colX.date, y + 6)
+      .text(p.receiptNumber || "-", colX.receipt, y + 6)
       .text(p.paymentMethod || "Cash", colX.method, y + 6)
       .font("Helvetica-Bold").text(`Rs. ${p.amount.toLocaleString()}`, colX.amount, y + 6, { width: 100, align: "right" });
     y += 20;
@@ -1992,7 +2004,17 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
       doc.fillColor(COLORS.textMain).text(todayPayStr, colX.lastPaid, y + 8);
     }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
-    if (colX.paymentMode) doc.text((row.paymentMode || "-").slice(0, 10), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
+    if (colX.paymentMode) {
+      let paymentModeStr = "-";
+      if (row.paymentHistory && row.paymentHistory.length > 0) {
+        // Get the payment method from the absolute last transaction in the history array
+        const lastPayment = row.paymentHistory[row.paymentHistory.length - 1];
+        if (lastPayment && lastPayment.paymentMethod) {
+          paymentModeStr = String(lastPayment.paymentMethod).toUpperCase();
+        }
+      }
+      doc.text(paymentModeStr.slice(0, 15), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
+    }
 
     if (colX.status) {
       doc.save();

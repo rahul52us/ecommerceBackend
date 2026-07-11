@@ -3,6 +3,7 @@ import WorkDoneSchema from "../../schemas/workDone/workDone.schema";
 import UserModel from "../../schemas/User/User";
 import CompanyModel from "../../schemas/company/Company";
 import AccountabilityModel from "../../schemas/accountability/accountability.schema";
+import { createReceipt } from "../receipt/receipt.repository";
 
 const toObjectId = (id: any) => {
   if (!id) return null;
@@ -207,7 +208,16 @@ export const updateWorkDone = async (data: any) => {
       const totalReceived = paymentHistory.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
       updateQuery.$set.receivedAmount = receivedAmount !== undefined ? receivedAmount : totalReceived;
     } else if (paymentAmount) {
-      updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date(), paymentMethod } };
+      const pMethod = paymentMethod || "Cash";
+      const receiptRes = await createReceipt({
+        patient: currentRecord.patient,
+        workDone: id,
+        company: currentRecord.company,
+        generatedBy: user,
+        type: "payment"
+      });
+      const receiptNumber = receiptRes.data?.receiptNumber || null;
+      updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date(), paymentMethod: pMethod, receiptNumber } };
       updateQuery.$inc = { receivedAmount: paymentAmount };
     } else if (receivedAmount !== undefined) {
       updateQuery.$set.receivedAmount = receivedAmount;
@@ -240,7 +250,8 @@ export const updateWorkDone = async (data: any) => {
              const totalRec = paymentHistory.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
              accountability.doctorShareAmount = totalRec;
           } else if (paymentAmount) {
-             accountability.payoutHistory.push({ amount: paymentAmount, date: new Date(), paymentMethod });
+             const addedPayment = updateQuery.$push.paymentHistory;
+             accountability.payoutHistory.push({ amount: paymentAmount, date: addedPayment.date, paymentMethod: addedPayment.paymentMethod, receiptNumber: addedPayment.receiptNumber });
              accountability.doctorShareAmount = (accountability.doctorShareAmount || 0) + paymentAmount;
           } else if (receivedAmount !== undefined) {
              accountability.doctorShareAmount = receivedAmount;
@@ -251,6 +262,10 @@ export const updateWorkDone = async (data: any) => {
           // Create new accountability if one didn't exist but a payment was just made
           const pMethod = paymentMethod || "Cash";
           const pAmount = paymentAmount || receivedAmount;
+          const addedPayment = updateQuery.$push?.paymentHistory;
+          const initialHistory = paymentHistory !== undefined ? paymentHistory : 
+            (addedPayment ? [addedPayment] : [{ amount: pAmount, date: new Date(), paymentMethod: pMethod }]);
+
           const newAcc = new AccountabilityModel({
             workDone: id,
             doctor: updated.doctor,
@@ -260,7 +275,7 @@ export const updateWorkDone = async (data: any) => {
             treatmentName: updated.treatmentCode || updated.workDoneNote || "General Procedure",
             totalAmount: bill,
             doctorShareAmount: pAmount,
-            payoutHistory: paymentHistory !== undefined ? paymentHistory : [{ amount: pAmount, date: new Date(), paymentMethod: pMethod }],
+            payoutHistory: initialHistory,
             payoutStatus: statusStr,
             lastAccountabilityAmountUpdated: new Date(),
             createdBy: user

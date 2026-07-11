@@ -81,6 +81,7 @@ const WorkDoneSchema = new Schema(
         date: { type: Date, default: Date.now },
         note: String,
         paymentMethod: String,
+        receiptNumber: String,
       }
     ],
     treatmentCode: {

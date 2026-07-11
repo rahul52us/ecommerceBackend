@@ -61,7 +61,8 @@ const AccountabilitySchema = new Schema(
       {
         amount: Number,
         date: { type: Date, default: Date.now },
-        paymentMethod: String
+        paymentMethod: String,
+        receiptNumber: String,
       }
     ],
     lastAccountabilityAmountUpdated: {
