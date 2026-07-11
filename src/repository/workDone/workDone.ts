@@ -1038,6 +1038,7 @@ export const getReceiptsLogData = async (query: any) => {
         populate: { path: "doctor" }
       })
       .populate("company")
+      .populate("accountability")
       .sort({ createdAt: -1 });
 
     let filteredReceipts = receipts;

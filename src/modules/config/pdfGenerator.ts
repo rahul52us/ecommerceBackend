@@ -105,8 +105,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .font("Helvetica")
     .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
     .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
-    .text(`Receipt No: ${data.receiptNumber || `STM-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 96, { align: "right", width: 250 });
+    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 84, { align: "right", width: 250 });
 
   // --- SUMMARY CARDS ---
   const contentY = 125;
@@ -275,8 +274,8 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
   const colX = { 
     date: MARGIN + 5, 
     receipt: MARGIN + 70, 
-    patient: MARGIN + 160, 
-    module: MARGIN + 280, 
+    treatment: MARGIN + 140, 
+    mode: MARGIN + 290, 
     bill: MARGIN + 380, 
     paid: MARGIN + 460 
   };
@@ -287,8 +286,8 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
   doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
     .text("DATE", colX.date, y + 8)
     .text("RECEIPT NO.", colX.receipt, y + 8)
-    .text("PATIENT", colX.patient, y + 8)
-    .text("MODULE", colX.module, y + 8)
+    .text("TREATMENT", colX.treatment, y + 8)
+    .text("MODE", colX.mode, y + 8)
     .text("BILL", colX.bill, y + 8, { width: 60, align: "right" })
     .text("PAID", colX.paid, y + 8, { width: 60, align: "right" });
 
@@ -301,7 +300,6 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
 
     const date = new Date(record.createdAt).toLocaleDateString('en-IN');
     const receiptNo = record.receiptNumber || "N/A";
-    const patientName = (record.patient as any)?.name || "N/A";
     
     let moduleStr = (record.type || "Receipt").toUpperCase();
     if (moduleStr === "WORKDONE") moduleStr = "STATEMENT";
@@ -312,24 +310,37 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
 
     let billStr = "-";
     let paidStr = "-";
+    let paymentModeStr = "-";
+    let treatmentStr = "-";
 
     if (workdone) {
+       treatmentStr = (workdone.treatment as any)?.treatmentName || workdone.workDoneNote || workdone.treatmentCode || "General Procedure";
        billStr = `Rs. ${(workdone.amount - (workdone.discount || 0)).toLocaleString()}`;
        
-       if (moduleStr === "PAYMENT" && accountability && accountability.amount) {
-         // Show exact amount paid for this specific receipt transaction
-         paidStr = `Rs. ${accountability.amount.toLocaleString()}`;
+       if (moduleStr === "PAYMENT" && workdone.paymentHistory && workdone.paymentHistory.length > 0) {
+         // Find the specific payment in the history array that matches this receipt number
+         const specificPayment = workdone.paymentHistory.find((p: any) => p.receiptNumber === receiptNo);
+         
+         if (specificPayment) {
+           paidStr = `Rs. ${specificPayment.amount.toLocaleString()}`;
+           paymentModeStr = specificPayment.paymentMethod || "Cash";
+         } else {
+           // Fallback if matching receipt number isn't found (e.g. legacy data)
+           paidStr = `Rs. ${workdone.receivedAmount.toLocaleString()}`;
+           paymentModeStr = "Multiple / Mixed";
+         }
        } else if (workdone.receivedAmount > 0) {
          // Fallback for statements
          paidStr = `Rs. ${workdone.receivedAmount.toLocaleString()}`;
+         paymentModeStr = "Multiple / Mixed";
        }
     }
 
     doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica")
       .text(date, colX.date, y + 8)
       .font("Helvetica-Bold").text(receiptNo, colX.receipt, y + 8).font("Helvetica")
-      .text(patientName, colX.patient, y + 8, { width: 110, ellipsis: true })
-      .fillColor(COLORS.textMuted).text(moduleStr, colX.module, y + 8)
+      .text(treatmentStr, colX.treatment, y + 8, { width: 140, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMuted).text(paymentModeStr, colX.mode, y + 8)
       .fillColor(COLORS.textMain).text(billStr, colX.bill, y + 8, { width: 60, align: "right" })
       .fillColor(COLORS.success).text(paidStr, colX.paid, y + 8, { width: 60, align: "right" });
 
@@ -344,8 +355,8 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
       doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
         .text("DATE", colX.date, y + 8)
         .text("RECEIPT NO.", colX.receipt, y + 8)
-        .text("PATIENT", colX.patient, y + 8)
-        .text("MODULE", colX.module, y + 8)
+        .text("TREATMENT", colX.treatment, y + 8)
+        .text("MODE", colX.mode, y + 8)
         .text("BILL", colX.bill, y + 8, { width: 60, align: "right" })
         .text("PAID", colX.paid, y + 8, { width: 60, align: "right" });
       y += tableHeaderH + 5;

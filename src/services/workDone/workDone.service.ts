@@ -237,16 +237,8 @@ export const generatePatientStatementService = async (req: any, res: any) => {
       });
     });
 
-    const receiptResult = await createReceipt({
-      patient: data.patient?._id,
-      company: req.query.company,
-      generatedBy: req.userId,
-      type: "statement",
-    });
-
-    if (receiptResult.success === "success") {
-      data.receiptNumber = receiptResult.data?.receiptNumber;
-    }
+    // We no longer create a new receipt number for statements
+    data.receiptNumber = "N/A";
 
     generateStatementPDF(data, stream);
   } catch (err: any) {
