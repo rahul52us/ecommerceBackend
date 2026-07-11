@@ -31,7 +31,8 @@ import {
   getReferredPatientsService,
   updateAdminProfileService,
   updateAdminStatusService,
-  updateAdminPasswordService
+  updateAdminPasswordService,
+  updateUserPasswordService
 } from "../services/employe/user.service";
 
 const router = express.Router();
@@ -41,6 +42,7 @@ router.post("/admin/create", authenticate, createAdminUserservice);
 router.put("/admin/profile/:id", authenticate, updateAdminProfileService);
 router.put("/admin/status/:id", authenticate, updateAdminStatusService);
 router.put("/admin/password/:id", authenticate, updateAdminPasswordService);
+router.put("/password/:id", authenticate, updateUserPasswordService);
 router.put("/profile/:id", authenticate, updateUserProfileService);
 router.delete("/profile/:id", authenticate, deleteUserService);
 router.get('/details/:id',authenticate,getCompanyDetailsByIdService)

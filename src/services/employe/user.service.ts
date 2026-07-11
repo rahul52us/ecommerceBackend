@@ -31,7 +31,8 @@ import {
   getReferredPatients,
   updateAdminProfileDetails,
   updateAdminStatus,
-  updateAdminPassword
+  updateAdminPassword,
+  updateUserPassword
 } from "../../repository/user/user.repository";
 import mongoose from "mongoose";
 import { getRoleUsersService } from "../auth/auth.service";
@@ -865,6 +866,34 @@ const updateAdminPasswordService = async (
   }
 };
 
+const updateUserPasswordService = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { data, status, message, statusCode }: any = await updateUserPassword(
+      req.params.id,
+      req.body.password
+    );
+
+    if (status === "success") {
+      res.status(statusCode || 200).send({
+        status: "success",
+        message: message,
+        data: data,
+      });
+    } else {
+      res.status(statusCode || 400).send({
+        status: "error",
+        message: message,
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
 export {
   createUserservice,
   deleteUserService,
@@ -892,5 +921,6 @@ export {
   getReferredPatientsService,
   updateAdminProfileService,
   updateAdminStatusService,
-  updateAdminPasswordService
+  updateAdminPasswordService,
+  updateUserPasswordService
 };

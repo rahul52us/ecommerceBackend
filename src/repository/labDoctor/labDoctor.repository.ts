@@ -77,11 +77,6 @@ export const getLabDoctors = async (
       ];
     }
 
-    if (userId && userType === "staff") {
-      query.createdBy = userId;
-    }
-
-
     const labDoctors = await LabDoctorModel.find(query)
       .skip(skip)
       .limit(limit)
