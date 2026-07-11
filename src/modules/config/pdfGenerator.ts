@@ -318,12 +318,14 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
        billStr = `Rs. ${(workdone.amount - (workdone.discount || 0)).toLocaleString()}`;
        
        if (moduleStr === "PAYMENT" && workdone.paymentHistory && workdone.paymentHistory.length > 0) {
-         // Find the specific payment in the history array that matches this receipt number
-         const specificPayment = workdone.paymentHistory.find((p: any) => p.receiptNumber === receiptNo);
+         // Find all specific payments in the history array that match this receipt number
+         const specificPayments = workdone.paymentHistory.filter((p: any) => p.receiptNumber === receiptNo);
          
-         if (specificPayment) {
-           paidStr = `Rs. ${specificPayment.amount.toLocaleString()}`;
-           paymentModeStr = specificPayment.paymentMethod || "Cash";
+         if (specificPayments && specificPayments.length > 0) {
+           const totalForReceipt = specificPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+           paidStr = `Rs. ${totalForReceipt.toLocaleString()}`;
+           const modes = [...new Set(specificPayments.map((p: any) => p.paymentMethod || "Cash"))];
+           paymentModeStr = modes.join(", ");
          } else {
            // Fallback if matching receipt number isn't found (e.g. legacy data)
            paidStr = `Rs. ${workdone.receivedAmount.toLocaleString()}`;

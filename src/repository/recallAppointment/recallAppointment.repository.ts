@@ -200,10 +200,6 @@ export const getRecallAppointments = async (query: any) => {
       if (toDate) matchStage.recallDate.$lte = new Date(toDate);
     }
 
-    if (id && userType == "staff") {
-      matchStage.createdBy = new mongoose.Types.ObjectId(id);
-    }
-
     const pipeline: any[] = [
       { $match: matchStage },
 
@@ -296,6 +292,92 @@ export const getRecallAppointments = async (query: any) => {
         },
       }
     );
+
+    const records = await RecallAppointmentSchema.aggregate(pipeline);
+
+    return {
+      success: "success",
+      count: records.length,
+      data: records,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return {
+      success: "error",
+      message: error.message,
+      statusCode: 500,
+    };
+  }
+};
+
+/* =====================================================
+   4.5️⃣ GET TODAY'S PENDING RECALL APPOINTMENTS
+===================================================== */
+export const getTodayPendingRecallAppointments = async (query: any) => {
+  try {
+    const { company, userType, id } = query;
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Also support UTC boundary to be safe
+    const utcStartOfDay = new Date();
+    utcStartOfDay.setUTCHours(0, 0, 0, 0);
+    
+    const utcEndOfDay = new Date();
+    utcEndOfDay.setUTCHours(23, 59, 59, 999);
+
+    const matchStage: any = {
+      status: { $regex: /^pending$/i },
+      recallDate: {
+        $gte: new Date(Math.min(startOfDay.getTime(), utcStartOfDay.getTime())),
+        $lte: new Date(Math.max(endOfDay.getTime(), utcEndOfDay.getTime()))
+      }
+    };
+
+    if (company) matchStage.company = new mongoose.Types.ObjectId(company);
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patient",
+        },
+      },
+      { $unwind: "$patient" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "doctor",
+          foreignField: "_id",
+          as: "doctor",
+        },
+      },
+      { $unwind: { path: "$doctor", preserveNullAndEmptyArrays: true } },
+      { $sort: { createdAt: -1 } },
+      {
+        $project: {
+          recallDate: 1,
+          reason: 1,
+          status: 1,
+          createdAt: 1,
+          appointmentDate: 1,
+          "patient._id": 1,
+          "patient.name": 1,
+          "patient.code": 1,
+          "patient.mobileNumber": 1,
+          "doctor._id": 1,
+          "doctor.name": 1,
+          "doctor.code": 1,
+        },
+      }
+    ];
 
     const records = await RecallAppointmentSchema.aggregate(pipeline);
 

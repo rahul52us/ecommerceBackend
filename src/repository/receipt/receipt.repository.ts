@@ -50,22 +50,31 @@ export const createReceipt = async (data: any) => {
     if (workDone) exactMatchCriteria.workDone = toObjectId(workDone);
     if (accountability) exactMatchCriteria.accountability = toObjectId(accountability);
 
-    // 1. Check if we already generated a receipt for this EXACT data today (skip for payments to ensure unique sequence)
-    if (type !== "payment") {
-      const exactExistingReceipt = await ReceiptModel.findOne(exactMatchCriteria);
+    // 1. Check if we already generated a receipt for this EXACT data today
+    const exactExistingReceipt = await ReceiptModel.findOne(exactMatchCriteria);
 
-      if (exactExistingReceipt) {
-        return {
-          success: "success",
-          message: "Existing exact receipt found for today",
-          data: exactExistingReceipt,
-          statusCode: 200,
-        };
-      }
+    if (exactExistingReceipt) {
+      return {
+        success: "success",
+        message: "Existing exact receipt found for today",
+        data: exactExistingReceipt,
+        statusCode: 200,
+      };
     }
 
-    // 2. Since it's a completely new record or different type, generate a brand new receipt number
-    const receiptNumber = await generateReceiptNumber(company);
+    // 2. Since it's a completely new record or different treatment, determine the receipt number
+    let receiptNumber: string;
+
+    // Check if the patient already has ANY receipt today
+    const existingPatientReceiptToday = await ReceiptModel.findOne(matchCriteria).sort({ createdAt: -1 });
+
+    if (existingPatientReceiptToday && existingPatientReceiptToday.receiptNumber) {
+      // Reuse the receipt number from the patient's earlier receipt today
+      receiptNumber = existingPatientReceiptToday.receiptNumber;
+    } else {
+      // Generate a brand new receipt number
+      receiptNumber = await generateReceiptNumber(company);
+    }
 
     const newReceipt = new ReceiptModel({
       patient: toObjectId(patient),

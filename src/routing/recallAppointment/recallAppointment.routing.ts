@@ -7,6 +7,7 @@ import {
   updateRecallAppointmentService,
   deleteRecallAppointmentService,
   updateRecallAppointmentStatusService,
+  getTodayPendingRecallAppointmentsService
 } from "../../services/recallAppointment/recallAppointment.service";
 
 const recallAppointmentRouting = express.Router();
@@ -21,6 +22,12 @@ recallAppointmentRouting.post(
   "/get",
   authenticate,
   getRecallAppointmentsService
+);
+
+recallAppointmentRouting.post(
+  "/today-pending",
+  authenticate,
+  getTodayPendingRecallAppointmentsService
 );
 
 recallAppointmentRouting.post(

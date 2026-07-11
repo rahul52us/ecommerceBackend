@@ -5,7 +5,8 @@ import {
   getRecallAppointments,
   getRecallAppointmentById,
   deleteRecallAppointment,
-  createRecallAppointment
+  createRecallAppointment,
+  getTodayPendingRecallAppointments
 } from "../../repository/recallAppointment/recallAppointment.repository";
 
 /* =====================================================
@@ -38,6 +39,34 @@ export const getRecallAppointmentsService = async (req: any, res: any) => {
   try {
     const { success, message, data, count, statusCode }: any =
       await getRecallAppointments({
+        ...req.body,
+        ...req.query,
+        company: req.body?.company || req.query?.company,
+        id: req.userId,
+        userType: req.bodyData?.userType
+      });
+
+    return res.status(statusCode).send({
+      status: success,
+      message,
+      data,
+      totalRecords: count,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+/* =====================================================
+   GET TODAY'S PENDING RECALL APPOINTMENTS
+===================================================== */
+export const getTodayPendingRecallAppointmentsService = async (req: any, res: any) => {
+  try {
+    const { success, message, data, count, statusCode }: any =
+      await getTodayPendingRecallAppointments({
         ...req.body,
         ...req.query,
         company: req.body?.company || req.query?.company,
