@@ -47,8 +47,13 @@ app.use('/', (req: Request, res: Response) => {
 
 app.use(errorMiddleware);
 
+import { initCronJobs } from "./scripts/cronJobs";
+
 const startServer = async () => {
   await connectToDatabase(); // ⬅️ WAIT FOR DB CONNECTION FIRST
+
+  // Start cron jobs
+  // initCronJobs();
 
   // const linkResult = await linkMissingProfileDetails();
   // console.log("Profile Linking Result:", linkResult);
@@ -58,6 +63,7 @@ const startServer = async () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
 };
+
 
 startServer();
 
