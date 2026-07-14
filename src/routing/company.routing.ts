@@ -11,6 +11,7 @@ import {
   updateCompanySubscription,
   updateCompanySubscriptionHistory,
   getCompanySubscription,
+  updateCompanyName,
 } from "../modules/organisation/Company";
 import { getCompanyCountService, getCompanyDetailsByNameService, getCompanyPoliciesService, getHolidayService, getIndividualPolicyService, getOrganisationsCompanyService, getWorkLocationservice, getWorkTimingService, updateCompanyPolicyService, updateHolidayExcelService, updateHolidayService, updateWorkLocationExcelService, updateWorkLocationService, updateWorkTimingService } from "../services/company/company.service";
 import authenticate from "../modules/config/authenticate";
@@ -23,6 +24,7 @@ router.get('/:company', getCompanyDetails)
 router.post('/single/create', authenticate, createOrganisationCompany)
 router.put('/policy', authenticate, updateCompanyPolicyService)
 router.put('/logo', authenticate, updateCompanyLogo)
+router.put('/updateName', authenticate, updateCompanyName)
 router.put('/:id', authenticate, updateOrganisationCompany)
 router.put('/subscription/update', authenticate, updateCompanySubscription)
 router.put('/subscription/history/update', authenticate, updateCompanySubscriptionHistory)

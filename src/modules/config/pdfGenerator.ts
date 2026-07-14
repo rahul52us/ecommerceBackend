@@ -135,9 +135,10 @@ export const generateStatementPDF = (data: any, stream: any) => {
   // Rebalanced Column Widths
   const colX = {
     date: MARGIN + 10,
-    tooth: MARGIN + 70,
-    treatment: MARGIN + 110,
-    doctor: MARGIN + 280,
+    receipt: MARGIN + 60,
+    tooth: MARGIN + 120,
+    treatment: MARGIN + 155,
+    doctor: MARGIN + 295,
     fees: MARGIN + 385,
     paid: MARGIN + 445,
     status: MARGIN + 500
@@ -148,6 +149,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .fontSize(8)
     .font("Helvetica-Bold")
     .text("DATE", colX.date, tableTop + 9)
+    .text("RCPT NO.", colX.receipt, tableTop + 9)
     .text("TOOTH", colX.tooth, tableTop + 9)
     .text("TREATMENT / PROCEDURE", colX.treatment, tableTop + 9)
     .text("DOCTOR", colX.doctor, tableTop + 9)
@@ -169,6 +171,10 @@ export const generateStatementPDF = (data: any, stream: any) => {
     doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
 
     const date = moment(record.createdAt).format('DD/MM/YYYY');
+    const receiptNo = (record.paymentHistory || [])
+      .map((p: any) => p.receiptNumber)
+      .filter(Boolean)
+      .join(", ") || "-";
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
     const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
@@ -183,10 +189,11 @@ export const generateStatementPDF = (data: any, stream: any) => {
       .font("Helvetica-Bold")
       .text(date, colX.date, y + 9)
       .font("Helvetica")
-      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
-      .text(treatment, colX.treatment, y + 9, { width: 160, height: 12, ellipsis: true })
+      .text(receiptNo, colX.receipt, y + 9, { width: 55, height: 12, ellipsis: true })
+      .text(toothStr, colX.tooth, y + 9, { width: 30, height: 12, ellipsis: true })
+      .text(treatment, colX.treatment, y + 9, { width: 135, height: 12, ellipsis: true })
       .fillColor(COLORS.textMuted)
-      .text(doctor, colX.doctor, y + 9, { width: 100, height: 12, ellipsis: true })
+      .text(doctor, colX.doctor, y + 9, { width: 85, height: 12, ellipsis: true })
       .fillColor(COLORS.textMain)
       .font("Helvetica-Bold")
       .text(bill.toLocaleString(), colX.fees, y + 9, { width: 50, align: "right" })

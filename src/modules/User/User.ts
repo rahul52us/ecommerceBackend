@@ -334,6 +334,7 @@ const getUsersByCompany = async (
           { name: { $regex: searchValue, $options: "i" } },
           { username: { $regex: searchValue, $options: "i" } },
           { code: { $regex: searchValue, $options: "i" } },
+          { mobileNumber: { $regex: searchValue, $options: "i" } },
         ];
       }
 
@@ -354,6 +355,7 @@ const getUsersByCompany = async (
             username: { $ifNull: ["$name", "$username"] },
             code: 1,
             type: 1, // include type in response if needed
+            mobileNumber: 1,
           },
         },
       ];

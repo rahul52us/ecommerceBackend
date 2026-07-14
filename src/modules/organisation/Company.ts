@@ -620,3 +620,48 @@ export const updateCompanyLogo = async (req: any, res: Response, next: NextFunct
     next(err);
   }
 };
+
+export const updateCompanyName = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { companyId, newCompanyName } = req.body;
+    
+    if (!companyId || !newCompanyName) {
+      throw generateError("Company ID and new company name are required", 400);
+    }
+    
+    const user = await User.findById(req.userId);
+    if (!user || user.role !== "admin") {
+      throw generateError("Only admins can update the company name", 403);
+    }
+
+    if (user.company?.toString() !== companyId) {
+      throw generateError("You do not have permission to update this company's name", 403);
+    }
+
+    const trimmedName = newCompanyName.trim();
+    const existsComp = await Company.findOne({
+      company_name: new RegExp(`^${trimmedName}$`, "i"),
+      _id: { $ne: companyId }
+    });
+
+    if (existsComp) {
+      throw generateError(`${trimmedName} company already exists. Please choose a unique name.`, 400);
+    }
+
+    const updatedComp = await Company.findByIdAndUpdate(
+      companyId,
+      { $set: { company_name: trimmedName } },
+      { new: true, runValidators: false }
+    );
+
+    res.status(200).send({
+      message: "Company name updated successfully",
+      data: updatedComp,
+      statusCode: 200,
+      success: true
+    });
+
+  } catch(err: any) {
+    next(err);
+  }
+};
