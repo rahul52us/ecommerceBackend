@@ -388,12 +388,36 @@ const updateUserProfile = async (
   session.startTransaction();
 
   try {
-    const userDataToUpdate = {
+    if (req.body.username) {
+      const existUsername = await User.exists({
+        username: { $regex: new RegExp(`^${req.body.username}$`, 'i') },
+        _id: { $ne: req.userId },
+      });
+      if (existUsername) {
+        throw generateError("Username is already registered", 400);
+      }
+    }
+
+    if (req.body.mobileNo) {
+      const existPhone = await User.exists({
+        mobileNumber: req.body.mobileNo,
+        _id: { $ne: req.userId },
+      });
+      if (existPhone) {
+        throw generateError("Mobile number is already registered", 400);
+      }
+    }
+
+    const userDataToUpdate: any = {
       name: req.body.firstName + " " + req.body.lastName,
       username: req.body.username,
       pic: req.body.pic,
       bio: req.body.bio,
     };
+    
+    if (req.body.mobileNo) {
+      userDataToUpdate.mobileNumber = req.body.mobileNo;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,

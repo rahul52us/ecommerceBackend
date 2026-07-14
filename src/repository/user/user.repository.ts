@@ -65,7 +65,7 @@ const createAdminUser = async (data: any) => {
     // 2️⃣ Check Username and Phone Number Uniqueness
     // -------------------------------
     if (data.username) {
-      const existUsername = await User.findOne({ username: data.username });
+      const existUsername = await User.findOne({ username: { $regex: new RegExp(`^${data.username}$`, 'i') } });
       if (existUsername) {
         throw generateError("Username is already registered", 400);
       }
@@ -230,9 +230,23 @@ const createUser = async (data: any) => {
       }
     }
 
+    if (data.username) {
+      const existUsername = await User.findOne({ username: { $regex: new RegExp(`^${data.username}$`, 'i') } });
+      if (existUsername) {
+        throw generateError("Username is already registered", 400);
+      }
+    }
+
+    const phone = data.phoneNumber || data.mobileNumber;
+    if (phone) {
+      const existPhone = await User.findOne({ mobileNumber: phone });
+      if (existPhone) {
+        throw generateError("Phone number is already registered", 400);
+      }
+    }
+
     const { pic, ...rest } = data;
 
-    console.log(data);
     const hashedPassword = await hashBcrypt("Admin@123");
     const createdUser = new User({
       username: data.username,
@@ -435,16 +449,32 @@ const updateUserProfileDetails = async (data: any) => {
   try {
     const { pic, _id, ...rest } = data;
 
-    // const existUsername = await User.exists({
-    //   username: data.username,
-    //   _id: { $ne: data.userId },
-    // });
-    // if (existUsername) {
-    //   return {
-    //     status: "error",
-    //     data: `${data.username} username is already registered`,
-    //   };
-    // }
+    if (data.username) {
+      const existUsername = await User.exists({
+        username: { $regex: new RegExp(`^${data.username}$`, 'i') },
+        _id: { $ne: data.userId },
+      });
+      if (existUsername) {
+        return {
+          status: "error",
+          data: `${data.username} username is already registered`,
+        };
+      }
+    }
+
+    const phone = data.phoneNumber || data.mobileNumber || data.mobileNo;
+    if (phone) {
+      const existPhone = await User.exists({
+        mobileNumber: phone,
+        _id: { $ne: data.userId },
+      });
+      if (existPhone) {
+        return {
+          status: "error",
+          data: `Mobile number ${phone} is already registered`,
+        };
+      }
+    }
 
     const existCode = await User.exists({
       code: data.code,
@@ -2097,7 +2127,7 @@ const updateAdminProfileDetails = async (data: any) => {
 
     if (data.username) {
       const existUsername = await User.findOne({
-        username: data.username,
+        username: { $regex: new RegExp(`^${data.username}$`, 'i') },
         _id: { $ne: data.userId },
       });
       if (existUsername) {
