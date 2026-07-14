@@ -205,3 +205,78 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
     next(err);
   }
 };
+
+export const getTimeSlotAnalytics = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const companyId = new mongoose.Types.ObjectId(req.bodyData.company);
+    
+    // Date filters: default to today if not provided
+    let query: any = { company: companyId, isActive: true };
+    
+    const start = req.query.startDate ? new Date(req.query.startDate) : new Date();
+    start.setHours(0, 0, 0, 0);
+    
+    const end = req.query.endDate ? new Date(req.query.endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    query.appointmentDate = {
+      $gte: start,
+      $lte: end
+    };
+
+    const appointments = await appointmentsSchema.find(query).select('startTime patient primaryDoctor additionalDoctors');
+
+    const slots = [
+      { id: "7-10", label: "7 AM - 10 AM", start: 7, end: 10, appointments: 0, patients: new Set(), doctors: new Set(), exactTimes: [] as string[] },
+      { id: "10-13", label: "10 AM - 1 PM", start: 10, end: 13, appointments: 0, patients: new Set(), doctors: new Set(), exactTimes: [] as string[] },
+      { id: "13-16", label: "1 PM - 4 PM", start: 13, end: 16, appointments: 0, patients: new Set(), doctors: new Set(), exactTimes: [] as string[] },
+      { id: "16-19", label: "4 PM - 7 PM", start: 16, end: 19, appointments: 0, patients: new Set(), doctors: new Set(), exactTimes: [] as string[] },
+      { id: "19-22", label: "7 PM - 10 PM", start: 19, end: 22, appointments: 0, patients: new Set(), doctors: new Set(), exactTimes: [] as string[] }
+    ];
+
+    appointments.forEach((app: any) => {
+      if (!app.startTime) return;
+      
+      // Parse "10:00 AM" to hours (0-23)
+      let hours = 0;
+      try {
+        const timeParts = app.startTime.match(/(\d+):(\d+)\s*(AM|PM|am|pm)?/i);
+        if (timeParts) {
+          let h = parseInt(timeParts[1]);
+          const isPM = timeParts[3] && timeParts[3].toUpperCase() === 'PM';
+          if (isPM && h !== 12) h += 12;
+          if (!isPM && h === 12) h = 0;
+          hours = h;
+        }
+      } catch (e) { return; }
+
+      // Find the slot
+      const slot = slots.find(s => hours >= s.start && hours < s.end);
+      if (slot) {
+        slot.appointments++;
+        slot.exactTimes.push(app.startTime);
+        if (app.patient) slot.patients.add(app.patient.toString());
+        if (app.primaryDoctor) slot.doctors.add(app.primaryDoctor.toString());
+        if (app.additionalDoctors) {
+          app.additionalDoctors.forEach((d: any) => slot.doctors.add(d.toString()));
+        }
+      }
+    });
+
+    const result = slots.map(s => ({
+      slot: s.label,
+      appointmentsCount: s.appointments,
+      patientsCount: s.patients.size,
+      doctorsCount: s.doctors.size,
+      exactTimes: s.exactTimes
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Time slot analytics fetched successfully",
+      data: result
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
