@@ -361,7 +361,37 @@ export const updateChairsRepo = async (id: string, payload: any) => {
                 }
               },
               {
+                $lookup: {
+                  from: "labworks",
+                  let: { patientId: "$patient._id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$patient", "$$patientId"] },
+                        workType: "in-house",
+                        isActive: true,
+                        $or: [
+                          { receivedDate: { $exists: false } },
+                          { receivedDate: null },
+                          { receivedDate: "" }
+                        ]
+                      }
+                    },
+                    {
+                      $count: "count"
+                    }
+                  ],
+                  as: "pendingInHouseLabData"
+                }
+              },
+              {
     $addFields: {
+      "patient.pendingInHouseLabCount": {
+        $ifNull: [
+          { $arrayElemAt: ["$pendingInHouseLabData.count", 0] },
+          0
+        ]
+      },
       "patient.pendingTreatmentCount": {
         $ifNull: [
           { $arrayElemAt: ["$pendingTreatmentsData.count", 0] },
