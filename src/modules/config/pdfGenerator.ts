@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import moment from "moment";
 import { adultTeeth, childTeeth } from "./teethData";
 
 const calculateAge = (dob: any) => {
@@ -105,7 +106,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .font("Helvetica")
     .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
     .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 84, { align: "right", width: 250 });
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 84, { align: "right", width: 250 });
 
   // --- SUMMARY CARDS ---
   const contentY = 125;
@@ -167,7 +168,7 @@ export const generateStatementPDF = (data: any, stream: any) => {
     // Bottom Border
     doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
 
-    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const date = moment(record.createdAt).format('DD/MM/YYYY');
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
     const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
@@ -262,7 +263,7 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
 
   // --- HEADER ---
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(18).text("RECEIPTS LOG", MARGIN, 35);
-  doc.fontSize(10).opacity(0.7).font("Helvetica").text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, MARGIN, 60);
+  doc.fontSize(10).opacity(0.7).font("Helvetica").text(`Generated on: ${moment().format('DD/MM/YYYY')}`, MARGIN, 60);
 
   // Clinic & Patient Info (Top Right)
   doc.opacity(1).fontSize(14).font("Helvetica-Bold").text(`${patient?.name || "N/A"}`, PAGE_WIDTH - MARGIN - 250, 35, { align: "right", width: 250 });
@@ -298,7 +299,7 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
     if (count % 2 !== 0) doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
     doc.lineWidth(0.1).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
 
-    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const date = moment(record.createdAt).format('DD/MM/YYYY');
     const receiptNo = record.receiptNumber || "N/A";
     
     let moduleStr = (record.type || "Receipt").toUpperCase();
@@ -413,7 +414,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
 
   // --- HEADER ---
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(24).text("TREATMENT RECEIPT", MARGIN, 35);
-  doc.fontSize(10).opacity(0.8).text(`Date: ${new Date().toLocaleDateString()}`, MARGIN, 65);
+  doc.fontSize(10).opacity(0.8).text(`Date: ${moment().format('DD/MM/YYYY')}`, MARGIN, 65);
 
   // Clinic Info (Top Right)
   doc.opacity(1).fontSize(14).text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", PAGE_WIDTH - MARGIN - 200, 40, { align: "right", width: 200 });
@@ -489,7 +490,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   payments.forEach((p: any, idx: number) => {
     if (idx % 2 !== 0) doc.fillColor(COLORS.bgLight).rect(MARGIN, y, CONTENT_WIDTH, 20).fill();
     doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica")
-      .text(new Date(p.date).toLocaleDateString(), colX.date, y + 6)
+      .text(moment(p.date).format('DD/MM/YYYY'), colX.date, y + 6)
       .text(p.receiptNumber || "-", colX.receipt, y + 6)
       .text(p.paymentMethod || "Cash", colX.method, y + 6)
       .font("Helvetica-Bold").text(`Rs. ${p.amount.toLocaleString()}`, colX.amount, y + 6, { width: 100, align: "right" });
@@ -557,7 +558,7 @@ export const generateDoctorWorkDonePDF = (data: any, stream: any) => {
   // --- HEADER ---
   // doc.rect(0, 0, PAGE_WIDTH, 120).fill(COLORS.brand);
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(18).text("DOCTOR PERFORMANCE REPORT", MARGIN, 35);
-  doc.fontSize(10).opacity(0.7).font("Helvetica").text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, MARGIN, 60);
+  doc.fontSize(10).opacity(0.7).font("Helvetica").text(`Generated on: ${moment().format('DD/MM/YYYY')}`, MARGIN, 60);
 
   // Doctor & Clinic Info (Top Right)
   doc.opacity(1).fontSize(14).font("Helvetica-Bold").text(`Dr. ${doctor?.name || "N/A"}`, PAGE_WIDTH - MARGIN - 250, 35, { align: "right", width: 250 });
@@ -605,7 +606,7 @@ export const generateDoctorWorkDonePDF = (data: any, stream: any) => {
     if (count % 2 !== 0) doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
     doc.lineWidth(0.1).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
 
-    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const date = moment(record.createdAt).format('DD/MM/YYYY');
     const patName = (record.patient as any)?.name || "Unknown";
     const treatment = (record.treatment as any)?.treatmentPlan || record.workDoneNote || "General";
     const bill = record.amount - (record.discount || 0);
@@ -671,7 +672,7 @@ export const generateAccountabilityPDF = (data: any, stream: any) => {
   // --- HEADER ---
   doc.rect(0, 0, PAGE_WIDTH, 120).fill(COLORS.brand);
   doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(18).text("COMMISSION LEDGER & PAYOUTS", MARGIN, 35);
-  doc.fontSize(10).opacity(0.8).font("Helvetica").text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, MARGIN, 60);
+  doc.fontSize(10).opacity(0.8).font("Helvetica").text(`Generated on: ${moment().format('DD/MM/YYYY')}`, MARGIN, 60);
 
   // Doctor & Clinic Info
   doc.opacity(1).fontSize(14).font("Helvetica-Bold").text(`Dr. ${doctor?.name || "N/A"}`, PAGE_WIDTH - MARGIN - 250, 35, { align: "right", width: 250 });
@@ -717,7 +718,7 @@ export const generateAccountabilityPDF = (data: any, stream: any) => {
     if (count % 2 !== 0) doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
     doc.lineWidth(0.1).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
 
-    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const date = moment(record.createdAt).format('DD/MM/YYYY');
     const patName = (record.patient as any)?.name || "N/A";
     const treatment = record.treatmentName || "General";
     const bill = record.totalAmount || 0;
@@ -805,7 +806,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
 
   y = drawRow("Patient", patient?.name || "N/A", y);
   y = drawRow("Patient ID", patient?.code || "N/A", y);
-  y = drawRow("Date", new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), y);
+  y = drawRow("Date", moment(payment.date).format('DD/MM/YYYY'), y);
 
   y += 5;
   doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(40, y).lineTo(WIDTH - 40, y).stroke();
@@ -881,7 +882,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   const tVal1 = tObj1 ? (tObj1.label || tObj1) : "";
   const tStr1 = tVal1 && tVal1.trim() !== "" ? `${tVal1} ` : "";
   const nStr1 = patient?.name?.toUpperCase() || "N/A";
-  doc.text(`Work Done on  ${new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}  For  ${tStr1}${nStr1}`, MARGIN, y);
+  doc.text(`Work Done on  ${moment(record.createdAt || Date.now()).format('DD/MM/YYYY')}  For  ${tStr1}${nStr1}`, MARGIN, y);
 
   y += 18; // Extra padding between the two lines
 
@@ -1058,7 +1059,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
   y += 15; // Extra padding from top border
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
-  const titleDate = safeRecords.length > 0 ? new Date(safeRecords[0].createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+  const titleDate = safeRecords.length > 0 ? moment(safeRecords[0].createdAt || Date.now()).format('DD/MM/YYYY') : moment().format('DD/MM/YYYY');
   const tObj2 = patient?.profile_details?.personalInfo?.title;
   const tVal2 = tObj2 ? (tObj2.label || tObj2) : "";
   const tStr2 = tVal2 && tVal2.trim() !== "" ? `${tVal2} ` : "";
@@ -1135,7 +1136,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     let lastDateStr = "";
     recordsByDoctor[doctorName].forEach((record: any, recIndex: number) => {
       // Add Date for this record
-      const recordDate = new Date(record.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const recordDate = moment(record.createdAt || Date.now()).format('DD/MM/YYYY');
       
       let noteText = record.workDoneNote || "";
       let toothDesc = "";
@@ -1299,13 +1300,7 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   const patientToUse = patient || (records.length > 0 ? records[0].patient : null);
 
   if (patientToUse) {
-    const reportDate = reportDateParam ? new Date(reportDateParam).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'long', year: 'numeric'
-    }) : (records.length > 0 ? new Date(records[0].createdAt).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'long', year: 'numeric'
-    }) : new Date().toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'long', year: 'numeric'
-    }));
+    const reportDate = reportDateParam ? moment(reportDateParam).format('DD/MM/YYYY') : (records.length > 0 ? moment(records[0].createdAt).format('DD/MM/YYYY') : moment().format('DD/MM/YYYY'));
 
     // Patient Info Row
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text("Patient:", MARGIN, y, { continued: true });
@@ -1503,7 +1498,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
     .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
     .text(`Receipt No: ${data.receiptNumber || `WDR-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 96, { align: "right", width: 250 });
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 96, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
   const tableTop = 135;
@@ -1552,7 +1547,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
 
     const sitStr = record.sittingNo ? String(record.sittingNo) : "-";
-    const date = new Date(record.createdAt).toLocaleDateString('en-IN');
+    const date = moment(record.createdAt).format('DD/MM/YYYY');
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
     const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
@@ -1704,7 +1699,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
     .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
     .text(`Receipt No: ${data.receiptNumber || `TRM-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 96, { align: "right", width: 250 });
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 96, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
   const tableTop = 115;
@@ -1742,7 +1737,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
 
   records.forEach((record: any) => {
     const sitStr = record.sittingNo ? String(record.sittingNo) : "-";
-    const date = record.treatmentDate ? new Date(record.treatmentDate).toLocaleDateString('en-IN') : new Date(record.createdAt).toLocaleDateString('en-IN');
+    const date = record.treatmentDate ? moment(record.treatmentDate).format('DD/MM/YYYY') : moment(record.createdAt).format('DD/MM/YYYY');
     const notesStr = record.notes || "N/A";
     let estimateStr = "N/A";
     if (record.estimateMin || record.estimateMax) {
@@ -1886,7 +1881,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     .text(`Billed: Rs. ${summary.totalBilled}`, rightAlignX, 45, { align: "right", width: 250 })
     .text(`Paid: Rs. ${summary.totalPaid}`, rightAlignX, 57, { align: "right", width: 250 })
     .text(`Due: Rs. ${summary.totalDue}`, rightAlignX, 69, { align: "right", width: 250 })
-    .text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightAlignX, 81, { align: "right", width: 250 });
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 81, { align: "right", width: 250 });
 
   // --- DYNAMIC COLUMNS SETUP ---
   const allColumns = [
@@ -1985,7 +1980,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
     doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(8);
     
-    if (colX.date) doc.text(new Date(row.updateLastAccountbilityDate || row.createdAt).toLocaleDateString("en-GB"), colX.date, y + 8);
+    if (colX.date) doc.text(moment(row.updateLastAccountbilityDate || row.createdAt).format('DD/MM/YYYY'), colX.date, y + 8);
     if (colX.patient) doc.font("Helvetica-Bold").text(patientName, colX.patient, y + 8, { width: colW.patient - 5 }).font("Helvetica");
     if (colX.tooth) doc.text((row.tooth || "-").slice(0, 10), colX.tooth, y + 8, { width: colW.tooth - 5, ellipsis: true });
     
