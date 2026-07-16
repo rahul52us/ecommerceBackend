@@ -333,10 +333,9 @@ export const generateDoctorWorkDoneReportService = async (req: any, res: any) =>
 export const generateIndividualPaymentPDFService = async (req: any, res: any) => {
   try {
     const { statusCode, success, message, data }: any = await getPaymentReceiptData({
-      workDoneId: req.params.workDoneId,
-      paymentIndex: req.params.paymentIndex,
-      company: req.query.company
-    });
+      wId: req.params.workDoneId,
+      paymentId: req.params.paymentId
+    }, { company: req.query.company });
 
     if (success === "error") {
       return res.status(statusCode).send({ status: success, message });
@@ -358,23 +357,15 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
       
       // Permanently save this newly generated receipt number back to the database for this specific transaction
       if (receiptNumber !== "N/A") {
-        const pIndex = parseInt(req.params.paymentIndex, 10);
+        const PaymentModel = require("../../schemas/payment/payment.schema").default;
+        await PaymentModel.findByIdAndUpdate(req.params.paymentId, {
+          $set: { receiptNumber: receiptNumber }
+        });
         
-        // 1. Update WorkDone
-        const workDoneRecord = await require("../../schemas/workDone/workDone.schema").default.findById(data.record._id);
-        if (workDoneRecord && workDoneRecord.paymentHistory && workDoneRecord.paymentHistory[pIndex]) {
-          workDoneRecord.paymentHistory[pIndex].receiptNumber = receiptNumber;
-          workDoneRecord.markModified('paymentHistory');
-          await workDoneRecord.save();
-        }
-        
-        // 2. Update Accountability
-        const accountability = await require("../../schemas/accountability/accountability.schema").default.findOne({ workDone: data.record._id });
-        if (accountability && accountability.payoutHistory && accountability.payoutHistory[pIndex]) {
-          accountability.payoutHistory[pIndex].receiptNumber = receiptNumber;
-          accountability.markModified('payoutHistory');
-          await accountability.save();
-        }
+        // Inject into memory so PDF generator sees it
+        if (data.payment) data.payment.receiptNumber = receiptNumber;
+        const paymentInHistory = (data.record as any).paymentHistory?.find((p: any) => String(p._id) === String(req.params.paymentId));
+        if (paymentInHistory) paymentInHistory.receiptNumber = receiptNumber;
       }
     }
 

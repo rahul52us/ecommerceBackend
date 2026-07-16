@@ -33,6 +33,7 @@ import patientDocumentRouting from "./patientDocument/patientDocument.routing";
 import doctorInventoryRouting from "./doctorInventory/doctorInventory.routing";
 import oldDataRouting from "./oldData/oldData.routing";
 import advertisementRouting from "./advertisement.routing";
+import paymentRouting from "./payment/payment.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -71,6 +72,7 @@ const importRoutings = (app: any) => {
   app.use('/api/patient-documents', patientDocumentRouting)
   app.use('/api/doctor-inventory', doctorInventoryRouting)
   app.use('/api/old-data', oldDataRouting)
+  app.use('/api/payment', paymentRouting)
 };
 
 

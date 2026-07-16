@@ -57,14 +57,6 @@ const AccountabilitySchema = new Schema(
       type: String,
       trim: true,
     },
-    payoutHistory: [
-      {
-        amount: Number,
-        date: { type: Date, default: Date.now },
-        paymentMethod: String,
-        receiptNumber: String,
-      }
-    ],
     lastAccountabilityAmountUpdated: {
       type: Date,
       default: Date.now,

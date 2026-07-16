@@ -75,15 +75,6 @@ const WorkDoneSchema = new Schema(
       type: Number,
       default: 0,
     },
-    paymentHistory: [
-      {
-        amount: Number,
-        date: { type: Date, default: Date.now },
-        note: String,
-        paymentMethod: String,
-        receiptNumber: String,
-      }
-    ],
     treatmentCode: {
       type: String,
       trim: true,
@@ -117,7 +108,16 @@ const WorkDoneSchema = new Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+WorkDoneSchema.virtual('paymentHistory', {
+  ref: 'Payment',
+  localField: '_id',
+  foreignField: 'workDone',
+  options: { sort: { date: 1 } }
+});
 
 export default mongoose.model("WorkDone", WorkDoneSchema);

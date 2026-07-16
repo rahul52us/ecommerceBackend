@@ -88,7 +88,6 @@ export const updatePayoutStatus = async (id: string, status: string, note?: stri
     const query: any = { $set: updateData };
     
     if (payoutAmount) {
-      query.$push = { payoutHistory: { amount: payoutAmount, date: new Date(), paymentMethod } };
       query.$inc = { doctorShareAmount: payoutAmount };
     }
 

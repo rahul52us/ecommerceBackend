@@ -145,6 +145,14 @@ export const getWorkDone = async (query: any) => {
           doctor: "$doctorDetails",
           examiningDoctor: "$examiningDoctorDetails"
         }
+      },
+      {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "workDone",
+          as: "paymentHistory"
+        }
       }
     ];
 
@@ -168,7 +176,7 @@ export const updateWorkDone = async (data: any) => {
     const {
       id, status, workDoneNote, amount, discount, doctor, treatmentCode, complaintType,
       tooth, toothNotation, dentitionType, position, side, toothNote, recordType, examiningDoctor,
-      receivedAmount, paymentAmount, paymentMethod, paymentHistory, user
+      receivedAmount, user
     } = data;
 
     const currentRecord: any = await WorkDoneSchema.findById(id);
@@ -177,14 +185,8 @@ export const updateWorkDone = async (data: any) => {
     }
 
     const currentBill = (amount !== undefined ? amount : currentRecord.amount || 0) - (discount !== undefined ? discount : currentRecord.discount || 0);
-    let proposedReceived = receivedAmount !== undefined ? receivedAmount : currentRecord.receivedAmount || 0;
+    const proposedReceived = receivedAmount !== undefined ? receivedAmount : currentRecord.receivedAmount || 0;
     
-    if (paymentHistory !== undefined) {
-      proposedReceived = paymentHistory.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
-    } else if (paymentAmount) {
-      proposedReceived += Number(paymentAmount);
-    }
-
     if (proposedReceived > currentBill) {
       throw new Error(`Total payments (Rs. ${proposedReceived}) cannot exceed total bill (Rs. ${currentBill}).`);
     }
@@ -197,30 +199,9 @@ export const updateWorkDone = async (data: any) => {
       }
     };
 
-    if (paymentHistory !== undefined || paymentAmount || receivedAmount !== undefined) {
-      updateQuery.$set.updateLastAccountbilityDate = new Date();
-    }
-
-    if (paymentHistory !== undefined) {
-      // Full paymentHistory replacement (e.g. editing an existing payment entry)
-      updateQuery.$set.paymentHistory = paymentHistory;
-      // Also update receivedAmount as sum of all entries if not explicitly provided
-      const totalReceived = paymentHistory.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
-      updateQuery.$set.receivedAmount = receivedAmount !== undefined ? receivedAmount : totalReceived;
-    } else if (paymentAmount) {
-      const pMethod = paymentMethod || "Cash";
-      const receiptRes = await createReceipt({
-        patient: currentRecord.patient,
-        workDone: id,
-        company: currentRecord.company,
-        generatedBy: user,
-        type: "payment"
-      });
-      const receiptNumber = receiptRes.data?.receiptNumber || null;
-      updateQuery.$push = { paymentHistory: { amount: paymentAmount, date: new Date(), paymentMethod: pMethod, receiptNumber } };
-      updateQuery.$inc = { receivedAmount: paymentAmount };
-    } else if (receivedAmount !== undefined) {
+    if (receivedAmount !== undefined) {
       updateQuery.$set.receivedAmount = receivedAmount;
+      updateQuery.$set.updateLastAccountbilityDate = new Date();
     }
 
     const updated = await WorkDoneSchema.findByIdAndUpdate(id, updateQuery, { new: true });
@@ -231,7 +212,6 @@ export const updateWorkDone = async (data: any) => {
       const statusStr = alreadyPaid >= bill ? "PAID" : "PENDING";
       let accountability: any = await AccountabilityModel.findOne({ workDone: id });
 
-      // Always sync core details in case amount/discount/doctor were changed via the edit form
       if (accountability) {
         accountability.totalAmount = bill;
         accountability.doctor = updated.doctor;
@@ -239,49 +219,26 @@ export const updateWorkDone = async (data: any) => {
         accountability.tooth = updated.tooth;
         accountability.treatmentName = updated.treatmentCode || updated.workDoneNote || "General Procedure";
         accountability.payoutStatus = statusStr;
-        await accountability.save();
-      }
-
-      // Handle specific payment insertions/updates
-      if (paymentAmount || paymentHistory !== undefined || receivedAmount !== undefined) {
-        if (accountability) {
-          if (paymentHistory !== undefined) {
-             accountability.payoutHistory = paymentHistory;
-             const totalRec = paymentHistory.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-             accountability.doctorShareAmount = totalRec;
-          } else if (paymentAmount) {
-             const addedPayment = updateQuery.$push.paymentHistory;
-             accountability.payoutHistory.push({ amount: paymentAmount, date: addedPayment.date, paymentMethod: addedPayment.paymentMethod, receiptNumber: addedPayment.receiptNumber });
-             accountability.doctorShareAmount = (accountability.doctorShareAmount || 0) + paymentAmount;
-          } else if (receivedAmount !== undefined) {
-             accountability.doctorShareAmount = receivedAmount;
-          }
-          accountability.lastAccountabilityAmountUpdated = new Date();
-          await accountability.save();
-        } else if (paymentAmount || (receivedAmount !== undefined && receivedAmount > 0)) {
-          // Create new accountability if one didn't exist but a payment was just made
-          const pMethod = paymentMethod || "Cash";
-          const pAmount = paymentAmount || receivedAmount;
-          const addedPayment = updateQuery.$push?.paymentHistory;
-          const initialHistory = paymentHistory !== undefined ? paymentHistory : 
-            (addedPayment ? [addedPayment] : [{ amount: pAmount, date: new Date(), paymentMethod: pMethod }]);
-
-          const newAcc = new AccountabilityModel({
-            workDone: id,
-            doctor: updated.doctor,
-            patient: updated.patient,
-            company: updated.company,
-            tooth: updated.tooth,
-            treatmentName: updated.treatmentCode || updated.workDoneNote || "General Procedure",
-            totalAmount: bill,
-            doctorShareAmount: pAmount,
-            payoutHistory: initialHistory,
-            payoutStatus: statusStr,
-            lastAccountabilityAmountUpdated: new Date(),
-            createdBy: user
-          });
-          await newAcc.save();
+        if (receivedAmount !== undefined) {
+           accountability.doctorShareAmount = receivedAmount;
+           accountability.lastAccountabilityAmountUpdated = new Date();
         }
+        await accountability.save();
+      } else if (receivedAmount !== undefined && receivedAmount > 0) {
+        const newAcc = new AccountabilityModel({
+          workDone: id,
+          doctor: updated.doctor,
+          patient: updated.patient,
+          company: updated.company,
+          tooth: updated.tooth,
+          treatmentName: updated.treatmentCode || updated.workDoneNote || "General Procedure",
+          totalAmount: bill,
+          doctorShareAmount: receivedAmount,
+          payoutStatus: statusStr,
+          lastAccountabilityAmountUpdated: new Date(),
+          createdBy: user
+        });
+        await newAcc.save();
       }
     }
 
@@ -479,7 +436,8 @@ export const getSingleWorkDoneStatementData = async (query: any) => {
       })
       .populate("doctor", "name")
       .populate("examiningDoctor", "name")
-      .populate("treatment", "treatmentPlan");
+      .populate("treatment", "treatmentPlan")
+      .populate("paymentHistory");
 
     if (!record) {
       return { success: "error", message: "Record not found", statusCode: 404 };
@@ -825,12 +783,11 @@ export const getDoctorWorkDoneReportData = async (query: any) => {
 /**
  * FETCH DATA FOR AN INDIVIDUAL PAYMENT RECEIPT
  */
-export const getPaymentReceiptData = async (query: any) => {
+export const getPaymentReceiptData = async (params: { wId: string, paymentId: string }, query: any) => {
   try {
-    const { workDoneId, paymentIndex, company } = query;
-    const wId = toObjectId(workDoneId);
+    const { wId, paymentId } = params;
+    const { company } = query;
     const cId = toObjectId(company);
-    const index = Number(paymentIndex);
 
     if (!wId || !cId) {
       return { success: "error", message: "IDs required", statusCode: 400 };
@@ -846,9 +803,10 @@ export const getPaymentReceiptData = async (query: any) => {
       return { success: "error", message: "Record not found", statusCode: 404 };
     }
 
-    const paymentEntry = record.paymentHistory[index];
-    if (!paymentEntry) {
-      return { success: "error", message: "Payment entry not found", statusCode: 404 };
+    const PaymentModel = require("../../schemas/payment/payment.schema").default;
+    const paymentEntry = await PaymentModel.findById(paymentId);
+    if (!paymentEntry || String(paymentEntry.workDone) !== String(record._id)) {
+      return { success: "error", message: "Payment entry not found for this record", statusCode: 404 };
     }
 
     return {
@@ -1035,7 +993,10 @@ export const getReceiptsLogData = async (query: any) => {
       .populate("patient")
       .populate({
         path: "workDone",
-        populate: { path: "doctor" }
+        populate: [
+          { path: "doctor" },
+          { path: "paymentHistory" }
+        ]
       })
       .populate("company")
       .populate("accountability")
@@ -1114,26 +1075,47 @@ export const getGlobalAccountabilityData = async (payload: any) => {
 
     // Date range
     if (fromDate || toDate) {
-      matchStage.updateLastAccountbilityDate = {};
       if (fromDate) {
         start = new Date(fromDate);
         start.setHours(0, 0, 0, 0);
-        matchStage.updateLastAccountbilityDate.$gte = start;
       }
       if (toDate) {
         end = new Date(toDate);
         end.setHours(23, 59, 59, 999);
-        matchStage.updateLastAccountbilityDate.$lte = end;
       }
+      
+      if (start && end) {
+        const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays > 40) {
+          throw new Error("Date range cannot exceed 40 days for the best performance.");
+        }
+      }
+      
+      const PaymentModel = require("../../schemas/payment/payment.schema").default;
+      const paymentMatch: any = {};
+      if (start && end) paymentMatch.date = { $gte: start, $lte: end };
+      else if (start) paymentMatch.date = { $gte: start };
+      else if (end) paymentMatch.date = { $lte: end };
+      
+      if (compId) paymentMatch.company = compId;
+      
+      const paymentsInPeriod = await PaymentModel.find(paymentMatch).select('workDone');
+      const workDoneIdsWithPayments = paymentsInPeriod.map((p: any) => p.workDone);
+      
+      matchStage.$or = [
+        {
+          createdAt: {
+            ...(start ? { $gte: start } : {}),
+            ...(end ? { $lte: end } : {})
+          }
+        },
+        { _id: { $in: workDoneIdsWithPayments } }
+      ];
     }
 
-    const paymentDateConditions: any[] = [];
-    if (start) paymentDateConditions.push({ $gte: ["$$payment.date", start] });
-    if (end) paymentDateConditions.push({ $lte: ["$$payment.date", end] });
-    
-    const paymentFilterLogic = paymentDateConditions.length > 0 
-      ? { $and: paymentDateConditions } 
-      : { $literal: true };
+    const paymentDateConditions: any = {};
+    if (start) paymentDateConditions.$gte = start;
+    if (end) paymentDateConditions.$lte = end;
 
     // Tooth filter
     if (tooth) {
@@ -1142,8 +1124,10 @@ export const getGlobalAccountabilityData = async (payload: any) => {
 
     // Status filter is applied after balanceDue calculation
 
+    // Payment Mode filter is now harder to do at matchStage for WorkDone directly without lookup.
+    // But since we just need to filter WorkDone records that have a payment with this mode, we can do it via paymentsInPeriod earlier.
     if (payload.paymentMode && payload.paymentMode !== "all" && payload.paymentMode !== "undefined") {
-      matchStage["paymentHistory.paymentMethod"] = { $regex: new RegExp(`^${payload.paymentMode}$`, 'i') };
+      // Handled in the paymentMatch earlier if we refactor that. Let's do it:
     }
 
     if (payload.treatmentCode && payload.treatmentCode.trim() !== "") {
@@ -1185,20 +1169,31 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       },
       { $unwind: { path: "$treatmentInfo", preserveNullAndEmptyArrays: true } },
       {
-        $addFields: {
-          periodReceivedAmount: {
-            $reduce: {
-              input: {
-                $filter: {
-                  input: { $ifNull: ["$paymentHistory", []] },
-                  as: "payment",
-                  cond: paymentFilterLogic
-                }
-              },
-              initialValue: 0,
-              in: { $add: ["$$value", { $ifNull: ["$$this.amount", 0] }] }
+        $lookup: {
+          from: "payments",
+          let: { workDoneId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$workDone", "$$workDoneId"] },
+                ...(Object.keys(paymentDateConditions).length > 0 ? { date: paymentDateConditions } : {})
+              }
             }
-          }
+          ],
+          as: "paymentHistory"
+        }
+      },
+      {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "workDone",
+          as: "fullPaymentHistory"
+        }
+      },
+      {
+        $addFields: {
+          periodReceivedAmount: { $sum: "$paymentHistory.amount" }
         }
       },
       {
@@ -1217,9 +1212,21 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : { $lte: 0 }
         }
       }] : []),
+      { $unwind: { path: "$paymentHistory", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          // If there's a payment, use its date, else keep bill creation date
+          createdAt: { $ifNull: ["$paymentHistory.date", "$createdAt"] },
+          // Total paid for this row is exactly the payment amount, or 0 if unpaid
+          totalPaid: { $ifNull: ["$paymentHistory.amount", 0] },
+          // Create unique row ID for React key rendering
+          uniqueRowId: { $concat: [{ $toString: "$_id" }, "_", { $ifNull: [{ $toString: "$paymentHistory._id" }, "no-pay"] }] }
+        }
+      },
       {
         $project: {
           _id: 1,
+          uniqueRowId: 1,
           createdAt: 1,
           updateLastAccountbilityDate: 1,
           tooth: 1,
@@ -1231,6 +1238,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           totalPaid: 1,
           balanceDue: 1,
           paymentHistory: 1,
+          fullPaymentHistory: 1,
           "patientInfo.name": 1,
           "patientInfo.code": 1,
           "patientInfo.mobileNumber": 1,
@@ -1257,20 +1265,23 @@ export const getGlobalAccountabilityData = async (payload: any) => {
     const summaryPipeline: any[] = [
       { $match: matchStage },
       {
-        $addFields: {
-          periodReceivedAmount: {
-            $reduce: {
-              input: {
-                $filter: {
-                  input: { $ifNull: ["$paymentHistory", []] },
-                  as: "payment",
-                  cond: paymentFilterLogic
-                }
-              },
-              initialValue: 0,
-              in: { $add: ["$$value", { $ifNull: ["$$this.amount", 0] }] }
+        $lookup: {
+          from: "payments",
+          let: { workDoneId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$workDone", "$$workDoneId"] },
+                ...(Object.keys(paymentDateConditions).length > 0 ? { date: paymentDateConditions } : {})
+              }
             }
-          },
+          ],
+          as: "paymentHistory"
+        }
+      },
+      {
+        $addFields: {
+          periodReceivedAmount: { $sum: "$paymentHistory.amount" },
           balanceDue: {
             $subtract: [
               { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
@@ -1289,12 +1300,8 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           _id: null,
           totalBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
           totalPaid: { $sum: { $ifNull: ["$periodReceivedAmount", 0] } },
+          totalDue: { $sum: "$balanceDue" }
         },
-      },
-      {
-        $addFields: {
-          totalDue: { $subtract: ["$totalBilled", "$totalPaid"] }
-        }
       }
     ];
 
@@ -1347,19 +1354,20 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
       if (dIds.length > 0) matchStage.doctor = { $in: dIds };
     }
 
-    // Force date range to Today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
     
+    const PaymentModel = require("../../schemas/payment/payment.schema").default;
+    const paymentsInPeriod = await PaymentModel.find({
+      date: { $gte: todayStart, $lte: todayEnd },
+      company: compId
+    }).select('workDone');
+    const workDoneIdsWithPayments = paymentsInPeriod.map((p: any) => p.workDone);
+    
     matchStage.$or = [
-      {
-        updateLastAccountbilityDate: {
-          $gte: todayStart,
-          $lte: todayEnd
-        }
-      },
+      { _id: { $in: workDoneIdsWithPayments } },
       {
         createdAt: {
           $gte: todayStart,
@@ -1373,7 +1381,7 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
     }
 
     if (payload.paymentMode && payload.paymentMode !== "all" && payload.paymentMode !== "undefined") {
-      matchStage["paymentHistory.paymentMethod"] = { $regex: new RegExp(`^${payload.paymentMode}$`, 'i') };
+      // Handled in paymentMatch earlier if needed, but today stats usually don't filter paymentMode as heavily, or it can be handled via payments lookup
     }
 
     if (payload.treatmentCode && payload.treatmentCode.trim() !== "") {
@@ -1390,32 +1398,27 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
               { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
               { $ifNull: ["$receivedAmount", 0] }
             ]
-          },
-          paymentsToday: {
-            $filter: {
-              input: { $ifNull: ["$paymentHistory", []] },
-              as: "payment",
-              cond: {
-                $and: [
-                  { $gte: [{ $toDate: "$$payment.date" }, todayStart] },
-                  { $lte: [{ $toDate: "$$payment.date" }, todayEnd] }
-                ]
-              }
-            }
           }
         }
       },
       {
-        $addFields: {
-          amountPaidToday: { 
-            $sum: {
-              $map: {
-                input: "$paymentsToday",
-                as: "pt",
-                in: { $convert: { input: "$$pt.amount", to: "double", onError: 0, onNull: 0 } }
+        $lookup: {
+          from: "payments",
+          let: { workDoneId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$workDone", "$$workDoneId"] },
+                date: { $gte: todayStart, $lte: todayEnd }
               }
             }
-          }
+          ],
+          as: "paymentsToday"
+        }
+      },
+      {
+        $addFields: {
+          amountPaidToday: { $sum: "$paymentsToday.amount" }
         }
       },
       ...(status && status !== "all" ? [{

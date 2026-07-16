@@ -1877,6 +1877,19 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     .text("Global Accountability Report", MARGIN, 52);
 
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+
+  // Deduplicate records by _id so split rows don't double-count
+  const uniqueRecordsMap = new Map<string, any>();
+  records.forEach((r: any) => {
+    if (!uniqueRecordsMap.has(String(r._id))) {
+      uniqueRecordsMap.set(String(r._id), r);
+    }
+  });
+  const uniqueRecords = Array.from(uniqueRecordsMap.values());
+  const pdfTotalBilled = uniqueRecords.reduce((sum: number, r: any) => sum + Math.max(0, (r.amount || 0) - (r.discount || 0)), 0);
+  const pdfTotalReceived = summary.totalPaid || 0; // Period received = sum of TXN payments in the date range
+  const pdfTotalDue = uniqueRecords.reduce((sum: number, r: any) => sum + Math.max(0, r.balanceDue || 0), 0);
+
   doc
     .fillColor(COLORS.brand)
     .font("Helvetica-Bold")
@@ -1885,9 +1898,9 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     .fillColor(COLORS.textMuted)
     .opacity(1)
     .fontSize(10)
-    .text(`Billed: Rs. ${summary.totalBilled}`, rightAlignX, 45, { align: "right", width: 250 })
-    .text(`Paid: Rs. ${summary.totalPaid}`, rightAlignX, 57, { align: "right", width: 250 })
-    .text(`Due: Rs. ${summary.totalDue}`, rightAlignX, 69, { align: "right", width: 250 })
+    .text(`Billed: Rs. ${pdfTotalBilled}`, rightAlignX, 45, { align: "right", width: 250 })
+    .text(`Total Received: Rs. ${pdfTotalReceived}`, rightAlignX, 57, { align: "right", width: 250 })
+    .text(`Due: Rs. ${pdfTotalDue}`, rightAlignX, 69, { align: "right", width: 250 })
     .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 81, { align: "right", width: 250 });
 
   // --- DYNAMIC COLUMNS SETUP ---
@@ -1899,8 +1912,8 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "treatment", label: "TREATMENT", width: 65 },
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
-    { key: "paid", label: "PAID", width: 30 },
-    { key: "lastPaid", label: "PERIOD RECEIVED", width: 55 },
+    { key: "paid", label: "TXN PAID", width: 30 },
+    { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
     { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
@@ -2003,33 +2016,16 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     }
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
     if (colX.lastPaid) {
-      let periodSum = 0;
-      if (row.paymentHistory && row.paymentHistory.length > 0) {
-        periodSum = row.paymentHistory.reduce((acc: number, curr: any) => {
-          if (!curr.date) return acc;
-          const d = new Date(curr.date);
-          const rangeStart = fromDate ? new Date(fromDate + "T00:00:00") : null;
-          const rangeEnd = toDate ? new Date(toDate + "T23:59:59") : null;
-          const afterStart = rangeStart ? d >= rangeStart : true;
-          const beforeEnd = rangeEnd ? d <= rangeEnd : true;
-          if (afterStart && beforeEnd) {
-            return acc + (Number(curr.amount) || 0);
-          }
-          return acc;
-        }, 0);
-      }
-      const periodPayStr = periodSum > 0 ? periodSum.toString() : "-";
-      doc.fillColor(COLORS.textMain).text(periodPayStr, colX.lastPaid, y + 8);
+      const paymentDate = row.paymentHistory && row.paymentHistory.date
+        ? new Date(row.paymentHistory.date).toLocaleDateString('en-GB')
+        : "-";
+      doc.fillColor(COLORS.textMain).text(paymentDate, colX.lastPaid, y + 8);
     }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
     if (colX.paymentMode) {
       let paymentModeStr = "-";
-      if (row.paymentHistory && row.paymentHistory.length > 0) {
-        // Get the payment method from the absolute last transaction in the history array
-        const lastPayment = row.paymentHistory[row.paymentHistory.length - 1];
-        if (lastPayment && lastPayment.paymentMethod) {
-          paymentModeStr = String(lastPayment.paymentMethod).toUpperCase();
-        }
+      if (row.paymentHistory && row.paymentHistory.paymentMethod) {
+        paymentModeStr = String(row.paymentHistory.paymentMethod).toUpperCase();
       }
       doc.text(paymentModeStr.slice(0, 15), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
     }
