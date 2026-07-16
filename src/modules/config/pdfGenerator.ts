@@ -1026,6 +1026,18 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   // Remove manual empty space as requested
   y += 10;
 
+  if (data.nextAppointment) {
+    if (y + 40 > 780 - Number(bottomPadding)) {
+      doc.addPage({ margin: 0 });
+      y = 50;
+    }
+    doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    y += 15;
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text("NEXT APPOINTMENT: ", MARGIN, y, { continued: true })
+       .fillColor(COLORS.textMain).font("Helvetica-Bold").text(data.nextAppointment);
+    y += 20;
+  }
+
   if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
     doc.addPage({ margin: 0 });
   }
@@ -1265,6 +1277,18 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     y += 10;
   }
 
+  if (data.nextAppointment) {
+    if (y + 40 > 780 - Number(bottomPadding)) {
+      doc.addPage({ margin: 0 });
+      y = 50;
+    }
+    doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    y += 15;
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text("NEXT APPOINTMENT: ", MARGIN, y, { continued: true })
+       .fillColor(COLORS.textMain).font("Helvetica-Bold").text(data.nextAppointment);
+    y += 20;
+  }
+
   if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
     doc.addPage({ margin: 0 });
   }
@@ -1422,6 +1446,25 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
       doc.lineWidth(0.2).strokeColor("#dddddd").moveTo(MARGIN + 25, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
       y += 15;
     });
+  }
+
+  // Remove manual empty space as requested
+  y += 10;
+
+  if (data.nextAppointment) {
+    if (y + 40 > 780 - Number(bottomPadding)) {
+      doc.addPage({ margin: 0 });
+      y = 50;
+    }
+    doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    y += 15;
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text("NEXT APPOINTMENT: ", MARGIN, y, { continued: true })
+       .fillColor(COLORS.textMain).font("Helvetica-Bold").text(data.nextAppointment);
+    y += 20;
+  }
+
+  if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
+    doc.addPage({ margin: 0 });
   }
 
   doc.end();

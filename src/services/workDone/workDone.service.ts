@@ -439,11 +439,32 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
 
     const reportType = req.query.reportType || req.body.reportType || "both";
 
+    const AppointmentModel = require("../../schemas/appointments/appointments.schema").default;
+    const moment = require("moment");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let nextAppointmentStr = null;
+    const patientId = data.patient?._id || data.patient;
+    if (patientId) {
+      const nextAppt = await AppointmentModel.findOne({
+        patient: patientId,
+        company: req.query.company,
+        status: { $in: ["scheduled", "in-progress", "arrived"] },
+        appointmentDate: { $gte: today }
+      }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
+
+      if (nextAppt) {
+        nextAppointmentStr = `${moment(nextAppt.appointmentDate).format('DD/MM/YYYY')} at ${nextAppt.startTime || 'TBD'} (Dr. ${nextAppt.primaryDoctor?.name || 'N/A'})`;
+      }
+    }
+
     generateWorkDoneReportPDF({
       ...data,
       prescriptions: req.body.prescriptions,
       topPadding: req.body.topPadding,
       bottomPadding: req.body.bottomPadding,
+      nextAppointment: nextAppointmentStr,
       reportType
     }, stream);
   } catch (err: any) {
@@ -501,6 +522,26 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
       });
     });
 
+    const AppointmentModel = require("../../schemas/appointments/appointments.schema").default;
+    const moment = require("moment");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let nextAppointmentStr = null;
+    const patId = patient?._id || patient;
+    if (patId) {
+      const nextAppt = await AppointmentModel.findOne({
+        patient: patId,
+        company: req.query.company,
+        status: { $in: ["scheduled", "in-progress", "arrived"] },
+        appointmentDate: { $gte: today }
+      }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
+
+      if (nextAppt) {
+        nextAppointmentStr = `${moment(nextAppt.appointmentDate).format('DD/MM/YYYY')} at ${nextAppt.startTime || 'TBD'} (Dr. ${nextAppt.primaryDoctor?.name || 'N/A'})`;
+      }
+    }
+
     generateDailyWorkDoneReportPDF({
       records,
       patient,
@@ -508,6 +549,7 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
       prescriptions,
       topPadding,
       bottomPadding,
+      nextAppointment: nextAppointmentStr,
       reportType
     }, stream);
   } catch (err: any) {
@@ -606,12 +648,33 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       });
     });
 
+    const AppointmentModel = require("../../schemas/appointments/appointments.schema").default;
+    const moment = require("moment");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let nextAppointmentStr = null;
+    const patId = patient?._id || patient;
+    if (patId) {
+      const nextAppt = await AppointmentModel.findOne({
+        patient: patId,
+        company: req.query.company,
+        status: { $in: ["scheduled", "in-progress", "arrived"] },
+        appointmentDate: { $gte: today }
+      }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
+
+      if (nextAppt) {
+        nextAppointmentStr = `${moment(nextAppt.appointmentDate).format('DD/MM/YYYY')} at ${nextAppt.startTime || 'TBD'} (Dr. ${nextAppt.primaryDoctor?.name || 'N/A'})`;
+      }
+    }
+
     generateFilteredWorkDoneReportPDF({
       records: records,
       patient,
       prescriptions: dbPrescriptions,
       topPadding,
       bottomPadding,
+      nextAppointment: nextAppointmentStr,
       reportType: reportType || "both"
     }, stream);
 

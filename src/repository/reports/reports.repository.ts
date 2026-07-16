@@ -656,6 +656,18 @@ export async function downloadReport(data: any) {
       }
     }
 
+    if (data.isPreview) {
+      return {
+        status: "success",
+        message: "Report preview generated successfully",
+        data: {
+          columns: columns.map(c => ({ header: c.header, key: c.key })),
+          rows,
+        },
+        statusCode: 200,
+      };
+    }
+
     // Apply to worksheet
     worksheet.columns = columns;
     worksheet.addRows(rows);
