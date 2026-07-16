@@ -8,7 +8,7 @@ class LabWorkRepository {
   }
 
   async getAll(query: any = {}, options: any = {}) {
-    const { search, fromDate, toDate, doctorName, ...filters } = query;
+    const { search, fromDate, toDate, doctorName, noReceivedDate, ...filters } = query;
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
@@ -22,6 +22,14 @@ class LabWorkRepository {
         to.setHours(23, 59, 59, 999);
         mongoQuery.createdAt.$lte = to;
       }
+    }
+
+    if (noReceivedDate === true || noReceivedDate === 'true') {
+      mongoQuery.$or = [
+        { receivedDate: { $exists: false } },
+        { receivedDate: null },
+        { receivedDate: "" },
+      ];
     }
 
     if (mongoQuery.patient && typeof mongoQuery.patient === "string") {
