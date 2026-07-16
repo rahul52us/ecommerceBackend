@@ -445,6 +445,98 @@ export const updateSalaryStructure = async (data: any) => {
   }
 };
 
+const updatePersonalDetails = async (data: any) => {
+  try {
+    const { userId, name, username, mobileNumber, title, dob, gender, bio, addresses, languages } = data;
+
+    if (!userId) {
+      return { status: "error", data: "User ID is required" };
+    }
+
+    if (username) {
+      const existUsername = await User.exists({
+        username: { $regex: new RegExp(`^${username}$`, 'i') },
+        _id: { $ne: userId },
+      });
+      if (existUsername) {
+        return {
+          status: "error",
+          data: `${username} email is already registered`,
+        };
+      }
+    }
+
+    if (mobileNumber) {
+      const existPhone = await User.exists({
+        mobileNumber: mobileNumber,
+        _id: { $ne: userId },
+      });
+      if (existPhone) {
+        return {
+          status: "error",
+          data: `Mobile number ${mobileNumber} is already registered`,
+        };
+      }
+    }
+
+    const updatedUser: any = await User.findByIdAndUpdate(userId, {
+      $set: { 
+        ...(name !== undefined && { name }), 
+        ...(username !== undefined && { username }), 
+        ...(mobileNumber !== undefined && { mobileNumber }), 
+        ...(title !== undefined && { title }), 
+        ...(bio !== undefined && { bio }), 
+        updatedAt: new Date() 
+      },
+    }, { new: true });
+
+    if (!updatedUser) {
+      return {
+        status: "error",
+        data: "User does not exist",
+      };
+    }
+
+    // Also update ProfileDetails if needed
+    const profile = await ProfileDetails.findOne({ user: userId });
+    if (profile) {
+      const existingPersonalInfo: any = profile.personalInfo || {};
+      
+      profile.personalInfo = {
+        ...existingPersonalInfo,
+        ...(name !== undefined && { name }),
+        ...(username !== undefined && { username }),
+        ...(mobileNumber !== undefined && { mobileNumber }),
+        ...(title !== undefined && { title }),
+        ...(dob !== undefined && { dob }),
+        ...(gender !== undefined && { gender }),
+        ...(bio !== undefined && { bio }),
+        ...(addresses !== undefined && { 
+          addresses: { 
+            ...(existingPersonalInfo.addresses || {}), 
+            ...addresses 
+          } 
+        }),
+        ...(languages !== undefined && { languages }),
+      } as any;
+      
+      // Since personalInfo is a Mixed type, we need to mark it as modified
+      profile.markModified("personalInfo");
+      await profile.save();
+    }
+
+    return {
+      status: "success",
+      data: "Personal details updated successfully",
+    };
+  } catch (err: any) {
+    return {
+      status: "error",
+      data: err?.message || err,
+    };
+  }
+};
+
 const updateUserProfileDetails = async (data: any) => {
   try {
     const { pic, _id, ...rest } = data;
@@ -2415,5 +2507,6 @@ export {
   getManagersOfUser,
   deleteUser,
   createAdminUser,
-  updateAdminProfileDetails
+  updateAdminProfileDetails,
+  updatePersonalDetails
 };

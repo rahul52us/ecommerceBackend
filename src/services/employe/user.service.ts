@@ -30,6 +30,7 @@ import {
   createAdminUser,
   getReferredPatients,
   updateAdminProfileDetails,
+  updatePersonalDetails,
   updateAdminStatus,
   updateAdminPassword,
   updateUserPassword
@@ -169,9 +170,34 @@ export const getSalaryStructureService = async (
     });
   } catch (err: any) {
     next(err);
+    }
+  };
+
+const updatePersonalDetailsService = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { data, status } = await updatePersonalDetails({
+      userId: req.params.id,
+      ...req.body,
+    });
+    if (status === "success") {
+      res.status(200).send({
+        status: "success",
+        message: data,
+      });
+    } else {
+      res.status(400).send({
+        status: "error",
+        message: data,
+      });
+    }
+  } catch (error) {
+    next(createCatchError(error));
   }
 };
-
 
 // update the User profile by the user id
 const updateUserProfileService = async (
@@ -897,6 +923,7 @@ const updateUserPasswordService = async (
 export {
   createUserservice,
   deleteUserService,
+  updatePersonalDetailsService,
   updateUserProfileService,
   getCompanyDetailsByIdService,
   getAllUserService,
