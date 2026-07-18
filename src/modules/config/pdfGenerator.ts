@@ -279,18 +279,18 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
   let y = 110;
   const tableHeaderH = 24;
   const rowH = 24;
-  const colX = { 
-    date: MARGIN + 5, 
-    receipt: MARGIN + 70, 
-    treatment: MARGIN + 140, 
-    mode: MARGIN + 290, 
-    bill: MARGIN + 380, 
-    paid: MARGIN + 460 
+  const colX = {
+    date: MARGIN + 5,
+    receipt: MARGIN + 70,
+    treatment: MARGIN + 140,
+    mode: MARGIN + 290,
+    bill: MARGIN + 380,
+    paid: MARGIN + 460
   };
 
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
   doc.moveTo(MARGIN, y + tableHeaderH).lineTo(MARGIN + CONTENT_WIDTH, y + tableHeaderH).stroke();
-  
+
   doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
     .text("DATE", colX.date, y + 8)
     .text("RECEIPT NO.", colX.receipt, y + 8)
@@ -308,7 +308,7 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
 
     const date = moment(record.createdAt).format('DD/MM/YYYY');
     const receiptNo = record.receiptNumber || "N/A";
-    
+
     let moduleStr = (record.type || "Receipt").toUpperCase();
     if (moduleStr === "WORKDONE") moduleStr = "STATEMENT";
     else if (moduleStr === "ACCOUNTABILITY" || moduleStr === "RECEIPT") moduleStr = "PAYMENT";
@@ -324,11 +324,11 @@ export const generateReceiptsLogPDF = (data: any, stream: any) => {
     if (workdone) {
        treatmentStr = (workdone.treatment as any)?.treatmentName || workdone.workDoneNote || workdone.treatmentCode || "General Procedure";
        billStr = `Rs. ${(workdone.amount - (workdone.discount || 0)).toLocaleString()}`;
-       
+
        if (moduleStr === "PAYMENT" && workdone.paymentHistory && workdone.paymentHistory.length > 0) {
          // Find all specific payments in the history array that match this receipt number
          const specificPayments = workdone.paymentHistory.filter((p: any) => p.receiptNumber === receiptNo);
-         
+
          if (specificPayments && specificPayments.length > 0) {
            const totalForReceipt = specificPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
            paidStr = `Rs. ${totalForReceipt.toLocaleString()}`;
@@ -598,7 +598,7 @@ export const generateDoctorWorkDonePDF = (data: any, stream: any) => {
 
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_WIDTH, y).stroke();
   doc.moveTo(MARGIN, y + tableHeaderH).lineTo(MARGIN + CONTENT_WIDTH, y + tableHeaderH).stroke();
-  
+
   doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold")
     .text("DATE", colX.date, y + 8)
     .text("PATIENT", colX.patient, y + 8)
@@ -825,7 +825,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   y += 20;
 
   const itemY = y;
-  doc.fillColor(COLORS.textMain).fontSize(12).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 120, itemY, { width: 80, align: "right" });
+  doc.fillColor(COLORS.textMain).fontSize(12).text(`Rs. ${payment.amount.toLocaleString()}`, WIDTH - 120, itemY, { width: 80, align: "right" });
   doc.fillColor(COLORS.textMain).fontSize(11).font("Helvetica-Bold").text(record.treatmentName, 40, itemY, { width: 180 });
 
   y = doc.y + 8;
@@ -836,12 +836,12 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
   y += 10;
   doc.fillColor(COLORS.textMain).fontSize(11).font("Helvetica-Bold").text("TOTAL PAID", 40, y + 2);
-  doc.fontSize(16).text(`₹ ${payment.amount.toLocaleString()}`, WIDTH - 150, y, { width: 110, align: "right" });
-  
+  doc.fontSize(16).text(`Rs. ${payment.amount.toLocaleString()}`, WIDTH - 150, y, { width: 110, align: "right" });
+
   y += 22;
   doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text(`METHOD: ${(payment.paymentMethod || "CASH").toUpperCase()}`, 40, y);
-  doc.text(`ID: ${String(payment._id || "TXN").toUpperCase().substring(0, 10)}`, WIDTH - 140, y, { width: 100, align: "right" });
-  
+  // doc.text(`ID: ${String(payment._id || "TXN").toUpperCase().substring(0, 10)}`, WIDTH - 140, y, { width: 100, align: "right" });
+
   y += 15;
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
 
@@ -1026,16 +1026,20 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   // Remove manual empty space as requested
   y += 10;
 
-  if (data.nextAppointment) {
-    if (y + 40 > 780 - Number(bottomPadding)) {
+  if (data.nextAppointments && data.nextAppointments.length > 0) {
+    if (y + 40 + (data.nextAppointments.length * 15) > 780 - Number(bottomPadding)) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
     doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
-    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text("NEXT APPOINTMENT: ", MARGIN, y, { continued: true })
-       .fillColor(COLORS.textMain).font("Helvetica-Bold").text(data.nextAppointment);
-    y += 20;
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${data.nextAppointments.length}): `, MARGIN, y);
+    y += 18;
+    data.nextAppointments.forEach((apptStr: string) => {
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`• ${apptStr}`, MARGIN + 10, y);
+      y += 15;
+    });
+    y += 5;
   }
 
   if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
@@ -1156,7 +1160,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     recordsByDoctor[doctorName].forEach((record: any, recIndex: number) => {
       // Add Date for this record
       const recordDate = moment(record.createdAt || Date.now()).format('DD/MM/YYYY');
-      
+
       let noteText = record.workDoneNote || "";
       let toothDesc = "";
       if (record.tooth) {
@@ -1277,16 +1281,20 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     y += 10;
   }
 
-  if (data.nextAppointment) {
-    if (y + 40 > 780 - Number(bottomPadding)) {
+  if (data.nextAppointments && data.nextAppointments.length > 0) {
+    if (y + 40 + (data.nextAppointments.length * 15) > 780 - Number(bottomPadding)) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
     doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
-    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text("NEXT APPOINTMENT: ", MARGIN, y, { continued: true })
-       .fillColor(COLORS.textMain).font("Helvetica-Bold").text(data.nextAppointment);
-    y += 20;
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${data.nextAppointments.length}): `, MARGIN, y);
+    y += 18;
+    data.nextAppointments.forEach((apptStr: string) => {
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`• ${apptStr}`, MARGIN + 10, y);
+      y += 15;
+    });
+    y += 5;
   }
 
   if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
@@ -1451,16 +1459,20 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   // Remove manual empty space as requested
   y += 10;
 
-  if (data.nextAppointment) {
-    if (y + 40 > 780 - Number(bottomPadding)) {
+  if (data.nextAppointments && data.nextAppointments.length > 0) {
+    if (y + 40 + (data.nextAppointments.length * 15) > 780 - Number(bottomPadding)) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
     doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
-    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text("NEXT APPOINTMENT: ", MARGIN, y, { continued: true })
-       .fillColor(COLORS.textMain).font("Helvetica-Bold").text(data.nextAppointment);
-    y += 20;
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${data.nextAppointments.length}): `, MARGIN, y);
+    y += 18;
+    data.nextAppointments.forEach((apptStr: string) => {
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`• ${apptStr}`, MARGIN + 10, y);
+      y += 15;
+    });
+    y += 5;
   }
 
   if (doc.bufferedPageRange().count === 1 && y > 780 - Number(bottomPadding)) {
@@ -1942,7 +1954,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     .opacity(1)
     .fontSize(10)
     .text(`Billed: Rs. ${pdfTotalBilled}`, rightAlignX, 45, { align: "right", width: 250 })
-    .text(`Total Received: Rs. ${pdfTotalReceived}`, rightAlignX, 57, { align: "right", width: 250 })
+    .text(`Total Amt Rec.: Rs. ${pdfTotalReceived}`, rightAlignX, 57, { align: "right", width: 250 })
     .text(`Due: Rs. ${pdfTotalDue}`, rightAlignX, 69, { align: "right", width: 250 })
     .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 81, { align: "right", width: 250 });
 
@@ -1956,23 +1968,24 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
     { key: "paid", label: "TXN PAID", width: 30 },
+    { key: "receiptNumber", label: "RECEIPT", width: 45 },
     { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
     { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
   ];
 
-  const columnsToRender = selectedColumns && selectedColumns.length > 0 
+  const columnsToRender = selectedColumns && selectedColumns.length > 0
     ? allColumns.filter(c => selectedColumns.includes(c.key))
     : allColumns;
 
   const colX: Record<string, number> = {};
   const colW: Record<string, number> = {};
   let currentX = MARGIN + 5;
-  
+
   const totalDefaultWidth = columnsToRender.reduce((sum, c) => sum + c.width, 0);
   const extraSpace = Math.max(0, CONTENT_WIDTH - 10 - totalDefaultWidth);
-  
+
   const expandBy = columnsToRender.length > 0 ? extraSpace / columnsToRender.length : 0;
 
   columnsToRender.forEach(c => {
@@ -2027,7 +2040,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     }
     if (colX.treatmentCode) maxH = Math.max(maxH, doc.heightOfString(treatCode, { width: colW.treatmentCode - 5 }));
     if (colX.treatment) maxH = Math.max(maxH, doc.heightOfString(treatName, { width: colW.treatment - 5 }));
-    
+
     const currentDynamicRowH = Math.max(28, maxH + 16);
 
     if (y + currentDynamicRowH > PAGE_HEIGHT - 60) {
@@ -2042,22 +2055,25 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     }
 
     doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(8);
-    
-    if (colX.date) doc.text(moment(row.updateLastAccountbilityDate || row.createdAt).format('DD/MM/YYYY'), colX.date, y + 8);
+
+    if (colX.date) doc.text(moment(row.createdAt).format('DD/MM/YYYY'), colX.date, y + 8);
     if (colX.patient) doc.font("Helvetica-Bold").text(patientName, colX.patient, y + 8, { width: colW.patient - 5 }).font("Helvetica");
     if (colX.tooth) doc.text((row.tooth || "-").slice(0, 10), colX.tooth, y + 8, { width: colW.tooth - 5, ellipsis: true });
-    
+
     // These columns can now wrap dynamically to the next line
     if (colX.treatmentCode) doc.text(treatCode, colX.treatmentCode, y + 8, { width: colW.treatmentCode - 5 });
     if (colX.treatment) doc.text(treatName, colX.treatment, y + 8, { width: colW.treatment - 5 });
-    
+
     if (colX.doctor) doc.text(docName.slice(0, 15), colX.doctor, y + 8, { width: colW.doctor - 5, ellipsis: true });
-    
+
     if (colX.fees) {
       const feesAmount = (row.amount || 0) - (row.discount || 0);
       doc.font("Helvetica-Bold").text(feesAmount.toString(), colX.fees, y + 8);
     }
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
+    if (colX.receiptNumber) {
+      doc.fillColor(COLORS.textMain).text(row.paymentHistory?.receiptNumber || "-", colX.receiptNumber, y + 8, { width: colW.receiptNumber - 5, ellipsis: true });
+    }
     if (colX.lastPaid) {
       const paymentDate = row.paymentHistory && row.paymentHistory.date
         ? new Date(row.paymentHistory.date).toLocaleDateString('en-GB')
@@ -2076,7 +2092,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     if (colX.status) {
       doc.save();
       // Center the status vertically in the dynamic row
-      const statusY = y + (currentDynamicRowH / 2) - 6; 
+      const statusY = y + (currentDynamicRowH / 2) - 6;
       doc.fillColor(statusColor).roundedRect(colX.status, statusY, 35, 12, 3).fill();
       doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(statusText.toUpperCase(), colX.status, statusY + 4, { width: 35, align: "center" });
       doc.restore();

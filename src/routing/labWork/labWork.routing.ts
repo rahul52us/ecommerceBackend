@@ -32,6 +32,7 @@ LabWorkRouter.get("/", authenticate, async (req: any, res) => {
   if (req.query.fromDate) (query as any)["fromDate"] = req.query.fromDate;
   if (req.query.toDate) (query as any)["toDate"] = req.query.toDate;
   if (req.query.noReceivedDate) (query as any)["noReceivedDate"] = req.query.noReceivedDate;
+  if (req.query.noSendDate) (query as any)["noSendDate"] = req.query.noSendDate;
 
   console.log(query);
   const result = await labWorkService.getAllLabWorks(query, options);

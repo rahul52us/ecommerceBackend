@@ -186,7 +186,7 @@ export const updateWorkDone = async (data: any) => {
 
     const currentBill = (amount !== undefined ? amount : currentRecord.amount || 0) - (discount !== undefined ? discount : currentRecord.discount || 0);
     const proposedReceived = receivedAmount !== undefined ? receivedAmount : currentRecord.receivedAmount || 0;
-    
+
     if (proposedReceived > currentBill) {
       throw new Error(`Total payments (Rs. ${proposedReceived}) cannot exceed total bill (Rs. ${currentBill}).`);
     }
@@ -205,7 +205,7 @@ export const updateWorkDone = async (data: any) => {
     }
 
     const updated = await WorkDoneSchema.findByIdAndUpdate(id, updateQuery, { new: true });
-    
+
     if (updated) {
       const bill = (updated.amount || 0) - (updated.discount || 0);
       const alreadyPaid = updated.receivedAmount || 0;
@@ -273,7 +273,7 @@ export const updateWorkDoneAmount = async (data: any) => {
 
     const newBill = amount - (workDone.discount || 0);
     const alreadyPaid = workDone.receivedAmount || 0;
-    
+
     if (newBill < alreadyPaid) {
       return { success: "error", message: `New bill amount (Rs. ${newBill}) cannot be less than already received amount (Rs. ${alreadyPaid}).`, statusCode: 400 };
     }
@@ -1083,25 +1083,25 @@ export const getGlobalAccountabilityData = async (payload: any) => {
         end = new Date(toDate);
         end.setHours(23, 59, 59, 999);
       }
-      
+
       if (start && end) {
         const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
         if (diffDays > 40) {
           throw new Error("Date range cannot exceed 40 days for the best performance.");
         }
       }
-      
+
       const PaymentModel = require("../../schemas/payment/payment.schema").default;
       const paymentMatch: any = {};
       if (start && end) paymentMatch.date = { $gte: start, $lte: end };
       else if (start) paymentMatch.date = { $gte: start };
       else if (end) paymentMatch.date = { $lte: end };
-      
+
       if (compId) paymentMatch.company = compId;
-      
+
       const paymentsInPeriod = await PaymentModel.find(paymentMatch).select('workDone');
       const workDoneIdsWithPayments = paymentsInPeriod.map((p: any) => p.workDone);
-      
+
       matchStage.$or = [
         {
           createdAt: {
@@ -1215,8 +1215,6 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       { $unwind: { path: "$paymentHistory", preserveNullAndEmptyArrays: true } },
       {
         $addFields: {
-          // If there's a payment, use its date, else keep bill creation date
-          createdAt: { $ifNull: ["$paymentHistory.date", "$createdAt"] },
           // Total paid for this row is exactly the payment amount, or 0 if unpaid
           totalPaid: { $ifNull: ["$paymentHistory.amount", 0] },
           // Create unique row ID for React key rendering
@@ -1358,14 +1356,14 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
-    
+
     const PaymentModel = require("../../schemas/payment/payment.schema").default;
     const paymentsInPeriod = await PaymentModel.find({
       date: { $gte: todayStart, $lte: todayEnd },
       company: compId
     }).select('workDone');
     const workDoneIdsWithPayments = paymentsInPeriod.map((p: any) => p.workDone);
-    
+
     matchStage.$or = [
       { _id: { $in: workDoneIdsWithPayments } },
       {
@@ -1429,7 +1427,7 @@ export const getTodayGlobalAccountabilityStats = async (payload: any) => {
       {
         $group: {
           _id: null,
-          todayBilled: { 
+          todayBilled: {
             $sum: {
               $cond: [
                 {

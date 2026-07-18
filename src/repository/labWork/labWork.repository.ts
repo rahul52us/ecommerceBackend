@@ -8,7 +8,7 @@ class LabWorkRepository {
   }
 
   async getAll(query: any = {}, options: any = {}) {
-    const { search, fromDate, toDate, doctorName, noReceivedDate, ...filters } = query;
+    const { search, fromDate, toDate, doctorName, noReceivedDate, noSendDate, ...filters } = query;
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
@@ -24,12 +24,30 @@ class LabWorkRepository {
       }
     }
 
+    const orConditions = [];
+
     if (noReceivedDate === true || noReceivedDate === 'true') {
-      mongoQuery.$or = [
-        { receivedDate: { $exists: false } },
-        { receivedDate: null },
-        { receivedDate: "" },
-      ];
+      orConditions.push({
+        $or: [
+          { receivedDate: { $exists: false } },
+          { receivedDate: null },
+          { receivedDate: "" },
+        ]
+      });
+    }
+
+    if (noSendDate === true || noSendDate === 'true') {
+      orConditions.push({
+        $or: [
+          { sendDate: { $exists: false } },
+          { sendDate: null },
+          { sendDate: "" },
+        ]
+      });
+    }
+
+    if (orConditions.length > 0) {
+      mongoQuery.$and = orConditions;
     }
 
     if (mongoQuery.patient && typeof mongoQuery.patient === "string") {

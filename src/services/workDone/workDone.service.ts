@@ -444,18 +444,20 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let nextAppointmentStr = null;
+    let nextAppointmentsList = null;
     const patientId = data.patient?._id || data.patient;
     if (patientId) {
-      const nextAppt = await AppointmentModel.findOne({
+      const nextAppts = await AppointmentModel.find({
         patient: patientId,
         company: req.query.company,
         status: { $in: ["scheduled", "in-progress", "arrived"] },
         appointmentDate: { $gte: today }
       }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
 
-      if (nextAppt) {
-        nextAppointmentStr = `${moment(nextAppt.appointmentDate).format('DD/MM/YYYY')} at ${nextAppt.startTime || 'TBD'} (Dr. ${nextAppt.primaryDoctor?.name || 'N/A'})`;
+      if (nextAppts && nextAppts.length > 0) {
+        nextAppointmentsList = nextAppts.map((appt: any) => 
+          `${moment(appt.appointmentDate).format('DD/MM/YYYY')} at ${appt.startTime || 'TBD'} (Dr. ${appt.primaryDoctor?.name || 'N/A'})`
+        );
       }
     }
 
@@ -464,7 +466,7 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
       prescriptions: req.body.prescriptions,
       topPadding: req.body.topPadding,
       bottomPadding: req.body.bottomPadding,
-      nextAppointment: nextAppointmentStr,
+      nextAppointments: nextAppointmentsList,
       reportType
     }, stream);
   } catch (err: any) {
@@ -527,18 +529,20 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let nextAppointmentStr = null;
+    let nextAppointmentsList = null;
     const patId = patient?._id || patient;
     if (patId) {
-      const nextAppt = await AppointmentModel.findOne({
+      const nextAppts = await AppointmentModel.find({
         patient: patId,
         company: req.query.company,
         status: { $in: ["scheduled", "in-progress", "arrived"] },
         appointmentDate: { $gte: today }
       }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
 
-      if (nextAppt) {
-        nextAppointmentStr = `${moment(nextAppt.appointmentDate).format('DD/MM/YYYY')} at ${nextAppt.startTime || 'TBD'} (Dr. ${nextAppt.primaryDoctor?.name || 'N/A'})`;
+      if (nextAppts && nextAppts.length > 0) {
+        nextAppointmentsList = nextAppts.map((appt: any) => 
+          `${moment(appt.appointmentDate).format('DD/MM/YYYY')} at ${appt.startTime || 'TBD'} (Dr. ${appt.primaryDoctor?.name || 'N/A'})`
+        );
       }
     }
 
@@ -549,7 +553,7 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
       prescriptions,
       topPadding,
       bottomPadding,
-      nextAppointment: nextAppointmentStr,
+      nextAppointments: nextAppointmentsList,
       reportType
     }, stream);
   } catch (err: any) {
@@ -653,18 +657,20 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let nextAppointmentStr = null;
+    let nextAppointmentsList = null;
     const patId = patient?._id || patient;
     if (patId) {
-      const nextAppt = await AppointmentModel.findOne({
+      const nextAppts = await AppointmentModel.find({
         patient: patId,
         company: req.query.company,
         status: { $in: ["scheduled", "in-progress", "arrived"] },
         appointmentDate: { $gte: today }
       }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
 
-      if (nextAppt) {
-        nextAppointmentStr = `${moment(nextAppt.appointmentDate).format('DD/MM/YYYY')} at ${nextAppt.startTime || 'TBD'} (Dr. ${nextAppt.primaryDoctor?.name || 'N/A'})`;
+      if (nextAppts && nextAppts.length > 0) {
+        nextAppointmentsList = nextAppts.map((appt: any) => 
+          `${moment(appt.appointmentDate).format('DD/MM/YYYY')} at ${appt.startTime || 'TBD'} (Dr. ${appt.primaryDoctor?.name || 'N/A'})`
+        );
       }
     }
 
@@ -674,7 +680,7 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       prescriptions: dbPrescriptions,
       topPadding,
       bottomPadding,
-      nextAppointment: nextAppointmentStr,
+      nextAppointments: nextAppointmentsList,
       reportType: reportType || "both"
     }, stream);
 

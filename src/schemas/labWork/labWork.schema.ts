@@ -41,6 +41,7 @@ const labWorkSchema = new mongoose.Schema(
         shadeValue: String,
         teethNumbers: [String], // Array of strings (e.g. ["11", "12"])
         arch: String,
+        unit: String,
         amount: { type: Number, default: 0 },
       }
     ],
