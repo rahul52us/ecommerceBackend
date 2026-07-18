@@ -83,14 +83,10 @@ const checkUpcomingAppointments = async () => {
           const dateStr = appointmentTimestamp.toISOString().split('T')[0];
           const timeStr = appt.startTime;
           
-          // You can uncomment below lines when your dynamic_appointment_reminder is approved!
-          // const doctorName = doctor ? doctor.name : 'Doctor';
-          // const companyName = company ? company.name || company.companyName : 'Clinic';
-          // const params = `${patientName},${dateStr},${timeStr},${doctorName},${companyName}`;
-          // await sendWhatsAppReminder(patient.mobileNumber, params, 'dynamic_appointment_reminder');
+          const doctorName = doctor ? doctor.name : 'Doctor';
+          const companyName = company ? company.name || company.companyName : 'Clinic';
           
-          // Temporarily using the default 'appointment_reminder' template (3 params)
-          const params = `${patientName},${dateStr},${timeStr}`;
+          const params = `${patientName},${dateStr},${timeStr},${doctorName},${companyName}`;
           await sendWhatsAppReminder(patient.mobileNumber, params, 'appointment_reminder');
         }
       }
