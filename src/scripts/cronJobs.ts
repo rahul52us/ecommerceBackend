@@ -42,12 +42,13 @@ const checkUpcomingAppointments = async () => {
   try {
     console.log("Checking for appointments 8 hours from now...");
     const now = new Date();
+    
     // 8 hours from now
     const targetStart = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     // 8 hours and 15 minutes from now
     const targetEnd = new Date(now.getTime() + (8 * 60 + 15) * 60 * 1000);
 
-    // Get today's and tomorrow's date strings to query by appointmentDate
+    // Get the date strings for the target appointmentDate
     const startOfDay = new Date(targetStart.getFullYear(), targetStart.getMonth(), targetStart.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
@@ -58,16 +59,14 @@ const checkUpcomingAppointments = async () => {
     }).populate('patient').populate('primaryDoctor').populate('company');
 
     for (const appt of appointments) {
-      if (!appt.startTime) continue; // Skip if no start time
+      if (!appt.startTime) continue;
 
-      // Parse startTime (assuming HH:MM AM/PM format)
-      // e.g. "10:30 AM" or "02:00 PM"
-      const [timeMatch, time, modifier] = appt.startTime.match(/(\d+:\d+)\s*(AM|PM)/i) || [];
-      if (!timeMatch) continue;
+      // Extract hours and minutes from 24-hour format (e.g. "14:30")
+      const [hoursStr, minutesStr] = appt.startTime.split(":");
+      if (!hoursStr || !minutesStr) continue;
 
-      let [hours, minutes] = time.split(':').map(Number);
-      if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12;
-      if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+      const hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
 
       const appointmentTimestamp = new Date(appt.appointmentDate);
       appointmentTimestamp.setHours(hours, minutes, 0, 0);
@@ -80,13 +79,19 @@ const checkUpcomingAppointments = async () => {
 
         if (patient && patient.mobileNumber) {
           const patientName = patient.name || 'Patient';
-          const dateStr = appointmentTimestamp.toISOString().split('T')[0];
-          const timeStr = appt.startTime;
-          
-          const doctorName = doctor ? doctor.name : 'Doctor';
-          const companyName = company ? company.name || company.companyName : 'Clinic';
-          
-          const params = `${patientName},${dateStr},${timeStr},${doctorName},${companyName}`;
+          // Format date as DD-MMM-YYYY (e.g. 18-Jul-2026) to match the strict WhatsApp template approval
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const day = appointmentTimestamp.getDate().toString().padStart(2, '0');
+          const month = months[appointmentTimestamp.getMonth()];
+          const year = appointmentTimestamp.getFullYear();
+          const dateStr = `${day}-${month}-${year}`;
+          // Format time into a friendly 12-hour AM/PM string for the WhatsApp message
+          const period = hours >= 12 ? 'PM' : 'AM';
+          const displayHours = hours % 12 || 12;
+          const friendlyTimeStr = `${displayHours.toString().padStart(2, '0')}:${minutesStr} ${period}`;
+
+          const params = `${patientName},${dateStr},${friendlyTimeStr}`;
+          console.log(`[Cron] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
           await sendWhatsAppReminder(patient.mobileNumber, params, 'appointment_reminder');
         }
       }
@@ -96,11 +101,10 @@ const checkUpcomingAppointments = async () => {
   }
 };
 
-// Export the init function to start the cron
 export const initCronJobs = () => {
-  // Run every 15 minutes
+  // Run every 15 minutes in the background
   cron.schedule('*/15 * * * *', () => {
     checkUpcomingAppointments();
   });
-  console.log("CRON jobs initialized.");
+  console.log("CRON jobs initialized. System will send reminders 8 hours before appointments.");
 };

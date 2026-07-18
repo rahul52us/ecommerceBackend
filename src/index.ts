@@ -53,7 +53,7 @@ const startServer = async () => {
   await connectToDatabase(); // ⬅️ WAIT FOR DB CONNECTION FIRST
 
   // Start cron jobs
-  // initCronJobs();
+  initCronJobs();
 
   // const linkResult = await linkMissingProfileDetails();
   // console.log("Profile Linking Result:", linkResult);
