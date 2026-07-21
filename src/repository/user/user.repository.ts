@@ -16,6 +16,7 @@ import {
 } from "../../config/helper/function";
 import { statusCode } from "../../config/helper/statusCode";
 import Qualification from "../../schemas/User/Qualifications";
+import { seedDefaultCompanyData } from "../../services/company/seedDefaultData";
 import SalaryStructure from "../../schemas/salaryStructure/SalaryStructure.schema";
 import companyDetails from "../../schemas/company/companyDetails";
 import Company from "../../schemas/company/Company";
@@ -161,6 +162,13 @@ const createAdminUser = async (data: any) => {
     const savedProfile = await profile.save();
     savedUser.profile_details = savedProfile._id;
     await savedUser.save();
+
+    // -------------------------------
+    // 4.5️⃣ Seed Default Template Data
+    // -------------------------------
+    if (savedCompany && savedCompany._id) {
+       await seedDefaultCompanyData(savedCompany._id, savedUser._id);
+    }
 
     // -------------------------------
     // 5️⃣ Upload Picture (optional)

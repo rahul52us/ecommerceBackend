@@ -148,7 +148,7 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
     // Get recent users
     const recentUsers = await UserModel.find({
       company: companyId,
-      userType: { $in: ["doctor", "staff", "patient"] },
+      userType: { $in: ["doctor", "staff", "patient","admin"] },
       ...query
     })
       .sort({ _id: -1 })
