@@ -1,8 +1,6 @@
 import cron from 'node-cron';
 import Appointment from '../schemas/appointments/appointments.schema';
 import RecallAppointment from '../schemas/recall-appointment/recallAppointment.schema';
-import User from '../schemas/User/User';
-import Company from '../schemas/company/Company';
 import GlobalConfig from '../schemas/globalConfig/GlobalConfig';
 
 // Function to send BhashSMS WhatsApp message
@@ -98,7 +96,7 @@ const sendTodayRecalls = async () => {
   try {
     console.log("Sending reminders for today's recalls...");
     const now = new Date();
-    
+
     // Get the start and end of today
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
@@ -111,10 +109,10 @@ const sendTodayRecalls = async () => {
 
     for (const recall of recalls) {
       const patient: any = recall.patient;
-      
+
       if (patient && patient.mobileNumber) {
         const patientName = patient.name || 'Patient';
-        
+
         // Format date as DD-MMM-YYYY
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const day = startOfDay.getDate().toString().padStart(2, '0');
@@ -154,7 +152,7 @@ export const initCronJobs = async () => {
   const [hoursStr, minutesStr] = timeString.split(':');
   const hours = parseInt(hoursStr || '7', 10);
   const minutes = parseInt(minutesStr || '0', 10);
-  
+
   const cronExpression = `${minutes} ${hours} * * *`;
 
   currentCronTask = cron.schedule(cronExpression, () => {
@@ -162,5 +160,34 @@ export const initCronJobs = async () => {
     sendTodayRecalls();
   });
 
-  console.log(`CRON jobs initialized. System will send reminders at ${timeString} for today's appointments and recalls.`);
+  // CRON Job for cleaning up old database exports (runs daily at midnight)
+  cron.schedule('0 0 * * *', () => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const downloadsDir = path.join(__dirname, '../../public/downloads');
+
+      if (fs.existsSync(downloadsDir)) {
+        console.log(`[Cron Cleanup] Checking for old database exports...`);
+        const files = fs.readdirSync(downloadsDir);
+        const now = Date.now();
+        const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+
+        files.forEach((file: string) => {
+          if (file.endsWith('.zip')) {
+            const filePath = path.join(downloadsDir, file);
+            const stats = fs.statSync(filePath);
+            if (now - stats.mtimeMs > twoDaysMs) {
+              fs.unlinkSync(filePath);
+              console.log(`[Cron Cleanup] Deleted old export file: ${file}`);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.error("[Cron Cleanup] Error cleaning up old exports:", err);
+    }
+  });
+
+  console.log(`CRON jobs initialized. System will send reminders at ${timeString} for today's appointments and recalls, and cleanup old exports at midnight.`);
 };

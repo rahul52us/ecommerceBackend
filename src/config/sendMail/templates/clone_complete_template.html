@@ -1,87 +1,132 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
+      font-family: 'Inter', Arial, sans-serif;
+      background-color: #f3f4f6;
       margin: 0;
-      padding: 0;
-      color: #333;
+      padding: 40px 0;
+      color: #1f2937;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #f3f4f6;
     }
     .container {
       background-color: #ffffff;
       max-width: 600px;
-      margin: 30px auto;
+      margin: 0 auto;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-      font-size: 16px;
+      text-align: center;
     }
     .logo {
       display: block;
-      max-width: 180px;
-      margin: 0 auto 30px;
+      max-width: 160px;
+      max-height: 80px;
+      margin: 0 auto;
+      object-fit: contain;
+      filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));
     }
     .content {
-      padding: 20px;
-      border-radius: 8px;
-      background-color: #fafafa;
-      margin-bottom: 30px;
+      padding: 40px 30px;
+      background-color: #ffffff;
     }
     .content h1 {
-      color: #2b6cb0;
+      color: #111827;
       margin-top: 0;
+      font-size: 24px;
+      font-weight: 700;
       text-align: center;
+      margin-bottom: 25px;
+    }
+    .content p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+      margin-bottom: 20px;
+    }
+    .card {
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 25px;
+      margin: 30px 0;
     }
     .details {
-      margin-top: 20px;
-      border-collapse: collapse;
       width: 100%;
+      border-collapse: collapse;
     }
     .details td {
-      padding: 8px 12px;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 15px;
+    }
+    .details tr:last-child td {
+      border-bottom: none;
     }
     .details td.label {
-      font-weight: bold;
-      color: #4a5568;
+      font-weight: 600;
+      color: #374151;
       width: 40%;
     }
+    .details td.value {
+      color: #1f2937;
+      word-break: break-all;
+    }
     .footer {
-      font-size: 14px;
-      color: #666;
+      background-color: #f9fafb;
+      padding: 20px;
+      font-size: 13px;
+      color: #6b7280;
       text-align: center;
-      margin-top: 30px;
+      border-top: 1px solid #e5e7eb;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <img src="{{logoUrl}}" alt="Logo" class="logo">
-    <div class="content">
-      <h1>Database Clone Completed</h1>
-      <p>Hello, {{name}}!</p>
-      <p>The database cloning process initiated for your company was completed successfully. Here are the details:</p>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <img src="{{logoUrl}}" alt="Company Logo" class="logo" onerror="this.style.display='none'">
+      </div>
       
-      <table class="details">
-        <tr>
-          <td class="label">Target Company:</td>
-          <td>{{targetCompanyName}}</td>
-        </tr>
-        <tr>
-          <td class="label">Cloned DB Name:</td>
-          <td><code>{{targetDbName}}</code></td>
-        </tr>
-        <tr>
-          <td class="label">Completed At:</td>
-          <td>{{timestamp}}</td>
-        </tr>
-      </table>
-    </div>
-    <div class="footer">
-      <p>Best regards,<br>Dental App Admin Team</p>
-      <p>&copy; {{year}} {{companyName}}. All rights reserved.</p>
+      <div class="content">
+        <h1>Database Export Complete</h1>
+        <p>Hello <strong>{{name}}</strong>,</p>
+        <p>Your database cloning process has finished successfully. The data has been securely processed and is ready for use.</p>
+        
+        <div class="card">
+          <table class="details">
+            <tr>
+              <td class="label">Target Company:</td>
+              <td class="value">{{targetCompanyName}}</td>
+            </tr>
+            <tr>
+              <td class="label">Completed At:</td>
+              <td class="value">{{timestamp}}</td>
+            </tr>
+            <tr>
+              <td class="label">Export Result:</td>
+              <td class="value" style="color: #2563eb; font-weight: 600;">{{targetDbName}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="footer">
+        <p>Best regards,<br><strong>System Admin Team</strong></p>
+        <p>&copy; {{year}} {{companyName}}. All rights reserved.</p>
+      </div>
     </div>
   </div>
 </body>

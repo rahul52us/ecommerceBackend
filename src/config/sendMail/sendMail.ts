@@ -67,7 +67,8 @@ const SendMail = async (
       const mimeType = attachmentBase64String.split(';')[0].split(':')[1];
       const base64Content : any = attachmentBase64String.split(';base64,').pop();
       const fileBuffer = Buffer.from(base64Content, 'base64');
-      let fileExtension = mimeType === "application/pdf" ? "pdf" : "xlsx";
+      let fileExtension = mimeType === "application/pdf" ? "pdf" : 
+                          mimeType === "application/zip" || mimeType === "application/x-zip-compressed" ? "zip" : "xlsx";
 
       messageTemplate.attachments = [
         {
