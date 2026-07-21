@@ -543,6 +543,7 @@ export async function downloadReport(data: any) {
           { header: "Selected Works", key: "works", width: 50 },
           { header: "Teeth Number", key: "teethNumber", width: 15 },
           { header: "Shade", key: "shade", width: 15 },
+          { header: "Unit", key: "unit", width: 15 },
           { header: "Warranty Card", key: "warrantyCardNumber", width: 20 },
         ];
 
@@ -641,15 +642,16 @@ export async function downloadReport(data: any) {
               if (sel && sel.startsWith("TXT:")) return sel.replace("TXT:", "");
               return hierarchyMap[sel] || sel;
             }).join(" > ");
-          }).join(" | ") || "-",
-          teethNumber: lw.selectedWorks?.map((w: any) => w.teethNumbers?.join(", ") || "").filter(Boolean).join(" | ") || "-",
+          }).join(", ") || "-",
+          teethNumber: lw.selectedWorks?.map((w: any) => w.teethNumbers?.join(", ") || "").filter(Boolean).join(", ") || "-",
           shade: lw.selectedWorks?.map((w: any) => {
             const sys = w.shadeSystem;
             const val = w.shadeValue;
             if (sys && val) return `${sys} - ${val}`;
             if (val) return val;
             return "";
-          }).filter(Boolean).join(" | ") || "-",
+          }).filter(Boolean).join(", ") || "-",
+          unit: lw.selectedWorks?.map((w: any) => w.unit || "").filter(Boolean).join(", ") || "-",
           warrantyCardNumber: lw.warrantyCardNumber || "-",
         }));
         break;
