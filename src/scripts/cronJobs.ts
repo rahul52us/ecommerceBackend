@@ -3,6 +3,7 @@ import Appointment from '../schemas/appointments/appointments.schema';
 import RecallAppointment from '../schemas/recall-appointment/recallAppointment.schema';
 import User from '../schemas/User/User';
 import Company from '../schemas/company/Company';
+import GlobalConfig from '../schemas/globalConfig/GlobalConfig';
 
 // Function to send BhashSMS WhatsApp message
 const sendWhatsAppReminder = async (
@@ -38,13 +39,10 @@ const sendWhatsAppReminder = async (
   }
 };
 
-// We have removed checkUpcomingAppointments as per your request to only send at 7:00 AM daily.
-
-
-// Send morning reminders for all of today's appointments
+// Send reminders for all of today's appointments
 const sendTodayReminders = async () => {
   try {
-    console.log("Sending morning reminders for today's appointments...");
+    console.log("Sending reminders for today's appointments...");
     const now = new Date();
 
     // Get the start and end of today
@@ -86,7 +84,7 @@ const sendTodayReminders = async () => {
         const friendlyTimeStr = `${displayHours.toString().padStart(2, '0')}:${minutesStr} ${period}`;
 
         const params = `${patientName},${dateStr},${friendlyTimeStr}`;
-        console.log(`[Cron Morning] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
+        console.log(`[Cron Reminder] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
         await sendWhatsAppReminder(patient.mobileNumber, params, 'appointment_reminder');
       }
     }
@@ -95,17 +93,17 @@ const sendTodayReminders = async () => {
   }
 };
 
-// Send morning reminders for today's recalls
+// Send reminders for today's recalls
 const sendTodayRecalls = async () => {
   try {
-    console.log("Sending morning reminders for today's recalls...");
+    console.log("Sending reminders for today's recalls...");
     const now = new Date();
     
     // Get the start and end of today
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
-    // Query for scheduled recalls (using 'pending' status by default, adjust if needed)
+    // Query for scheduled recalls
     const recalls = await RecallAppointment.find({
       status: 'pending',
       recallDate: { $gte: startOfDay, $lt: endOfDay }
@@ -124,10 +122,8 @@ const sendTodayRecalls = async () => {
         const year = startOfDay.getFullYear();
         const dateStr = `${day}-${month}-${year}`;
 
-        // Note: You may need to change 'recall_reminder' to the actual BhashSMS template name
-        // and adjust the params list according to what the template expects.
         const params = `${patientName},${dateStr}`;
-        console.log(`[Cron Morning] Sending recall reminder to ${patientName} at ${patient.mobileNumber}`);
+        console.log(`[Cron Reminder] Sending recall reminder to ${patientName} at ${patient.mobileNumber}`);
         await sendWhatsAppReminder(patient.mobileNumber, params, 'recall_reminder');
       }
     }
@@ -136,12 +132,35 @@ const sendTodayRecalls = async () => {
   }
 };
 
-export const initCronJobs = () => {
-  // Run every day at 7:00 AM
-  cron.schedule('0 7 * * *', () => {
+let currentCronTask: cron.ScheduledTask | null = null;
+
+export const initCronJobs = async () => {
+  if (currentCronTask) {
+    currentCronTask.stop();
+    console.log("Stopped previous CRON job.");
+  }
+
+  let timeString = '07:00'; // Default
+  try {
+    const config = await GlobalConfig.findOne();
+    if (config && config.cronTime) {
+      timeString = config.cronTime;
+    }
+  } catch (error) {
+    console.error("Failed to fetch global config for cron job, using default.", error);
+  }
+
+  // Parse HH:mm to cron format
+  const [hoursStr, minutesStr] = timeString.split(':');
+  const hours = parseInt(hoursStr || '7', 10);
+  const minutes = parseInt(minutesStr || '0', 10);
+  
+  const cronExpression = `${minutes} ${hours} * * *`;
+
+  currentCronTask = cron.schedule(cronExpression, () => {
     sendTodayReminders();
     sendTodayRecalls();
   });
 
-  console.log("CRON jobs initialized. System will send reminders at 7:00 AM for today's appointments and recalls.");
+  console.log(`CRON jobs initialized. System will send reminders at ${timeString} for today's appointments and recalls.`);
 };

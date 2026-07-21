@@ -35,6 +35,7 @@ import oldDataRouting from "./oldData/oldData.routing";
 import advertisementRouting from "./advertisement.routing";
 import paymentRouting from "./payment/payment.routing";
 import databaseCloneRouter from "./databaseClone/databaseClone.routing";
+import globalConfigRouting from "./globalConfig";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -75,6 +76,7 @@ const importRoutings = (app: any) => {
   app.use('/api/old-data', oldDataRouting)
   app.use('/api/payment', paymentRouting)
   app.use('/api/database', databaseCloneRouter)
+  app.use('/api/global-config', globalConfigRouting)
 };
 
 
