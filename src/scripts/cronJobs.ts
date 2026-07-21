@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import Appointment from '../schemas/appointments/appointments.schema';
+import RecallAppointment from '../schemas/recall-appointment/recallAppointment.schema';
 import User from '../schemas/User/User';
 import Company from '../schemas/company/Company';
 
@@ -37,19 +38,17 @@ const sendWhatsAppReminder = async (
   }
 };
 
-// Check for upcoming appointments (8 hours from now)
-const checkUpcomingAppointments = async () => {
-  try {
-    console.log("Checking for appointments 8 hours from now...");
-    const now = new Date();
-    
-    // 8 hours from now
-    const targetStart = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    // 8 hours and 15 minutes from now
-    const targetEnd = new Date(now.getTime() + (8 * 60 + 15) * 60 * 1000);
+// We have removed checkUpcomingAppointments as per your request to only send at 7:00 AM daily.
 
-    // Get the date strings for the target appointmentDate
-    const startOfDay = new Date(targetStart.getFullYear(), targetStart.getMonth(), targetStart.getDate());
+
+// Send morning reminders for all of today's appointments
+const sendTodayReminders = async () => {
+  try {
+    console.log("Sending morning reminders for today's appointments...");
+    const now = new Date();
+
+    // Get the start and end of today
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
     // Query for scheduled appointments
@@ -61,7 +60,6 @@ const checkUpcomingAppointments = async () => {
     for (const appt of appointments) {
       if (!appt.startTime) continue;
 
-      // Extract hours and minutes from 24-hour format (e.g. "14:30")
       const [hoursStr, minutesStr] = appt.startTime.split(":");
       if (!hoursStr || !minutesStr) continue;
 
@@ -71,40 +69,79 @@ const checkUpcomingAppointments = async () => {
       const appointmentTimestamp = new Date(appt.appointmentDate);
       appointmentTimestamp.setHours(hours, minutes, 0, 0);
 
-      // Check if the appointment time falls within our 15-minute window 8 hours from now
-      if (appointmentTimestamp >= targetStart && appointmentTimestamp < targetEnd) {
-        const patient: any = appt.patient;
-        const doctor: any = appt.primaryDoctor;
-        const company: any = appt.company;
+      const patient: any = appt.patient;
 
-        if (patient && patient.mobileNumber) {
-          const patientName = patient.name || 'Patient';
-          // Format date as DD-MMM-YYYY (e.g. 18-Jul-2026) to match the strict WhatsApp template approval
-          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const day = appointmentTimestamp.getDate().toString().padStart(2, '0');
-          const month = months[appointmentTimestamp.getMonth()];
-          const year = appointmentTimestamp.getFullYear();
-          const dateStr = `${day}-${month}-${year}`;
-          // Format time into a friendly 12-hour AM/PM string for the WhatsApp message
-          const period = hours >= 12 ? 'PM' : 'AM';
-          const displayHours = hours % 12 || 12;
-          const friendlyTimeStr = `${displayHours.toString().padStart(2, '0')}:${minutesStr} ${period}`;
+      if (patient && patient.mobileNumber) {
+        const patientName = patient.name || 'Patient';
+        // Format date as DD-MMM-YYYY
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = appointmentTimestamp.getDate().toString().padStart(2, '0');
+        const month = months[appointmentTimestamp.getMonth()];
+        const year = appointmentTimestamp.getFullYear();
+        const dateStr = `${day}-${month}-${year}`;
 
-          const params = `${patientName},${dateStr},${friendlyTimeStr}`;
-          console.log(`[Cron] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
-          await sendWhatsAppReminder(patient.mobileNumber, params, 'appointment_reminder');
-        }
+        // Format time into a friendly 12-hour AM/PM string
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const friendlyTimeStr = `${displayHours.toString().padStart(2, '0')}:${minutesStr} ${period}`;
+
+        const params = `${patientName},${dateStr},${friendlyTimeStr}`;
+        console.log(`[Cron Morning] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
+        await sendWhatsAppReminder(patient.mobileNumber, params, 'appointment_reminder');
       }
     }
   } catch (error) {
-    console.error("Error in checkUpcomingAppointments cron:", error);
+    console.error("Error in sendTodayReminders cron:", error);
+  }
+};
+
+// Send morning reminders for today's recalls
+const sendTodayRecalls = async () => {
+  try {
+    console.log("Sending morning reminders for today's recalls...");
+    const now = new Date();
+    
+    // Get the start and end of today
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+    // Query for scheduled recalls (using 'pending' status by default, adjust if needed)
+    const recalls = await RecallAppointment.find({
+      status: 'pending',
+      recallDate: { $gte: startOfDay, $lt: endOfDay }
+    }).populate('patient');
+
+    for (const recall of recalls) {
+      const patient: any = recall.patient;
+      
+      if (patient && patient.mobileNumber) {
+        const patientName = patient.name || 'Patient';
+        
+        // Format date as DD-MMM-YYYY
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = startOfDay.getDate().toString().padStart(2, '0');
+        const month = months[startOfDay.getMonth()];
+        const year = startOfDay.getFullYear();
+        const dateStr = `${day}-${month}-${year}`;
+
+        // Note: You may need to change 'recall_reminder' to the actual BhashSMS template name
+        // and adjust the params list according to what the template expects.
+        const params = `${patientName},${dateStr}`;
+        console.log(`[Cron Morning] Sending recall reminder to ${patientName} at ${patient.mobileNumber}`);
+        await sendWhatsAppReminder(patient.mobileNumber, params, 'recall_reminder');
+      }
+    }
+  } catch (error) {
+    console.error("Error in sendTodayRecalls cron:", error);
   }
 };
 
 export const initCronJobs = () => {
-  // Run every 15 minutes in the background
-  cron.schedule('*/15 * * * *', () => {
-    checkUpcomingAppointments();
+  // Run every day at 7:00 AM
+  cron.schedule('0 7 * * *', () => {
+    sendTodayReminders();
+    sendTodayRecalls();
   });
-  console.log("CRON jobs initialized. System will send reminders 8 hours before appointments.");
+
+  console.log("CRON jobs initialized. System will send reminders at 7:00 AM for today's appointments and recalls.");
 };
