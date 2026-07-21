@@ -34,6 +34,7 @@ import doctorInventoryRouting from "./doctorInventory/doctorInventory.routing";
 import oldDataRouting from "./oldData/oldData.routing";
 import advertisementRouting from "./advertisement.routing";
 import paymentRouting from "./payment/payment.routing";
+import databaseCloneRouter from "./databaseClone/databaseClone.routing";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -73,6 +74,7 @@ const importRoutings = (app: any) => {
   app.use('/api/doctor-inventory', doctorInventoryRouting)
   app.use('/api/old-data', oldDataRouting)
   app.use('/api/payment', paymentRouting)
+  app.use('/api/database', databaseCloneRouter)
 };
 
 
