@@ -90,7 +90,7 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   },
   createdAt: {
     type: Date,
-    default: new Date(),
+    default: Date.now,
   },
   updatedAt: {
     type: Date,

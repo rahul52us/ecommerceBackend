@@ -4,6 +4,7 @@ import UserModel from "../../schemas/User/User";
 import appointmentsSchema from "../../schemas/appointments/appointments.schema";
 import LabItemModal from "../../schemas/labItems/labItems.schema";
 import DealerModal from "../../schemas/dealers/dealer.schema";
+import WorkDoneModel from "../../schemas/workDone/workDone.schema";
 
 export const getPatientDashboardCount = async (
   req: any,
@@ -144,14 +145,13 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       return { _id: day, count: found ? found.count : 0 };
     });
 
-    console.log(companyId)
     // Get recent users
     const recentUsers = await UserModel.find({
       company: companyId,
-      userType: { $in: ["doctor", "staff", "patient", "dealer"] },
+      userType: { $in: ["doctor", "staff", "patient"] },
       ...query
     })
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
       .limit(5)
       .select('name userType createdAt pic');
 
@@ -191,6 +191,57 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
       return { _id: month, count: found ? found.count : 0 };
     });
 
+    // -------------------------------------------------------------------------
+    // NEW: Treatment Code Chart Data (Last 6 Months)
+    // -------------------------------------------------------------------------
+    const treatmentTrends = await WorkDoneModel.aggregate([
+      {
+        $match: {
+          company: companyId,
+          createdAt: { $gte: sixMonthsAgo },
+          isActive: { $ne: false },
+          ...query
+        }
+      },
+      {
+        $addFields: {
+          baseTreatmentCode: {
+            $trim: {
+              input: {
+                $arrayElemAt: [
+                  { $split: [{ $ifNull: ["$treatmentCode", ""] }, "·"] },
+                  0
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ["$baseTreatmentCode", ""] },
+              "Other/Unspecified",
+              "$baseTreatmentCode"
+            ]
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 10 // top 10 treatment codes to prevent huge charts
+      }
+    ]);
+
+    const formattedTreatmentTrends = treatmentTrends.map(t => ({
+      label: t._id || "Other/Unspecified",
+      count: t.count
+    }));
+
     return res.status(200).send({
       message: "Dashboard data fetched successfully",
       status: true,
@@ -199,6 +250,7 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
         growth: registrationGrowth,
         recentUsers: recentUsers,
         appointmentTrends: appointmentTrends,
+        treatmentTrends: formattedTreatmentTrends,
       },
     });
   } catch (err: any) {
@@ -209,13 +261,13 @@ export const getDashboardData = async (req: any, res: Response, next: any) => {
 export const getTimeSlotAnalytics = async (req: any, res: Response, next: NextFunction) => {
   try {
     const companyId = new mongoose.Types.ObjectId(req.bodyData.company);
-    
+
     // Date filters: default to today if not provided
     let query: any = { company: companyId, isActive: true };
-    
+
     const start = req.query.startDate ? new Date(req.query.startDate) : new Date();
     start.setHours(0, 0, 0, 0);
-    
+
     const end = req.query.endDate ? new Date(req.query.endDate) : new Date();
     end.setHours(23, 59, 59, 999);
 
@@ -236,7 +288,7 @@ export const getTimeSlotAnalytics = async (req: any, res: Response, next: NextFu
 
     appointments.forEach((app: any) => {
       if (!app.startTime) return;
-      
+
       // Parse "10:00 AM" to hours (0-23)
       let hours = 0;
       try {
