@@ -1,10 +1,7 @@
 import ProfileDetails from "../../schemas/User/ProfileDetails";
-import BankDetails from "../../schemas/User/BankDetails";
 import bcrypt from "bcrypt";
-import WorkExperience from "../../schemas/User/WorkExperience";
 import { generateError } from "../../config/Error/functions";
 import { deleteFile, uploadFile } from "../uploadDoc.repository";
-import FamilyDetails from "../../schemas/User/FamilyDetails";
 import Documents from "../../schemas/User/Document";
 import { updateUserRoleService } from "../../services/auth/auth.service";
 import mongoose from "mongoose";
@@ -15,9 +12,7 @@ import {
   hashBcrypt,
 } from "../../config/helper/function";
 import { statusCode } from "../../config/helper/statusCode";
-import Qualification from "../../schemas/User/Qualifications";
 import { seedDefaultCompanyData } from "../../services/company/seedDefaultData";
-import SalaryStructure from "../../schemas/salaryStructure/SalaryStructure.schema";
 import companyDetails from "../../schemas/company/companyDetails";
 import Company from "../../schemas/company/Company";
 
@@ -371,101 +366,7 @@ const deleteUser = async (userId: any) => {
   }
 };
 
-export const getSalaryStructure = async (data: any) => {
-  try {
-    const salaryStructures = await SalaryStructure.aggregate([
-      { $match: { user: data.user } },
 
-      { $sort: { createdAt: -1 } },
-
-      {
-        $group: {
-          _id: "$user",
-          currentSalaryStructure: { $first: "$$ROOT" },
-          historicalSalaryStructures: { $push: "$$ROOT" },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          currentSalaryStructure: 1,
-          historicalSalaryStructures: 1,
-        },
-      },
-    ]);
-
-    if (salaryStructures.length === 0) {
-      return {
-        status: "success",
-        data: null,
-        message: "no such salary details exists",
-        statusCode: 200,
-      };
-    }
-
-    return {
-      status: "success",
-      data: salaryStructures[0],
-      message: "no such salary details exists",
-      statusCode: 200,
-    };
-  } catch (err: any) {
-    return {
-      status: "error",
-      data: err?.message,
-      message: err?.message,
-      statusCode: 500,
-    };
-  }
-};
-
-export const updateSalaryStructure = async (data: any) => {
-  try {
-    const id = data.id;
-
-    let updatedSalaryStructure;
-
-    const existingSalaryStructure = await SalaryStructure.findOne({
-      user: data.user,
-      _id: id,
-    });
-
-    if (existingSalaryStructure) {
-      updatedSalaryStructure = await SalaryStructure.findOneAndUpdate(
-        { user: data.user, _id: id },
-        { $set: { ...data, updatedAt: new Date() } },
-        { new: true }
-      );
-
-      return {
-        data: updatedSalaryStructure,
-        message: "Salary Structure has been successfully updated",
-        statusCode: 200,
-        status: "success",
-      };
-    } else {
-      updatedSalaryStructure = await SalaryStructure.create({
-        user: data.user,
-        ...data,
-        createdAt: new Date(),
-      });
-
-      return {
-        data: updatedSalaryStructure,
-        message: "Salary Structure has been successfully created",
-        statusCode: 201,
-        status: "success",
-      };
-    }
-  } catch (err: any) {
-    return {
-      status: "error",
-      data: err?.message,
-      message: err?.message,
-      statusCode: 500,
-    };
-  }
-};
 
 const updatePersonalDetails = async (data: any) => {
   try {
@@ -526,13 +427,13 @@ const updatePersonalDetails = async (data: any) => {
     }
 
     const updatedUser: any = await User.findByIdAndUpdate(userId, {
-      $set: { 
-        ...(name !== undefined && { name }), 
-        ...(username !== undefined && { username }), 
-        ...(mobileNumber !== undefined && { mobileNumber }), 
-        ...(title !== undefined && { title }), 
-        ...(bio !== undefined && { bio }), 
-        updatedAt: new Date() 
+      $set: {
+        ...(name !== undefined && { name }),
+        ...(username !== undefined && { username }),
+        ...(mobileNumber !== undefined && { mobileNumber }),
+        ...(title !== undefined && { title }),
+        ...(bio !== undefined && { bio }),
+        updatedAt: new Date()
       },
     }, { new: true });
 
@@ -547,7 +448,7 @@ const updatePersonalDetails = async (data: any) => {
     const profile = await ProfileDetails.findOne({ user: userId });
     if (profile) {
       const existingPersonalInfo: any = profile.personalInfo || {};
-      
+
       profile.personalInfo = {
         ...existingPersonalInfo,
         ...(name !== undefined && { name }),
@@ -557,15 +458,15 @@ const updatePersonalDetails = async (data: any) => {
         ...(dob !== undefined && { dob }),
         ...(gender !== undefined && { gender }),
         ...(bio !== undefined && { bio }),
-        ...(addresses !== undefined && { 
-          addresses: { 
-            ...(existingPersonalInfo.addresses || {}), 
-            ...addresses 
-          } 
+        ...(addresses !== undefined && {
+          addresses: {
+            ...(existingPersonalInfo.addresses || {}),
+            ...addresses
+          }
         }),
         ...(languages !== undefined && { languages }),
       } as any;
-      
+
       // Since personalInfo is a Mixed type, we need to mark it as modified
       profile.markModified("personalInfo");
       await profile.save();
@@ -1122,62 +1023,6 @@ const getTotalUsers = async (data: any) => {
 
 // UPDATE BANK DETAILS OF THE User
 
-const updateBankDetails = async (data: any) => {
-  try {
-    const { cancelledCheque, ...rest } = data;
-    const updatedData: any = await BankDetails.findOneAndUpdate(
-      { user: data.id },
-      rest,
-      {
-        new: true,
-      }
-    );
-
-    if (!updatedData) {
-      return {
-        status: "error",
-        data: "bank Details does not exist",
-      };
-    }
-
-    if (
-      data?.cancelledCheque?.isDeleted === 1 &&
-      updatedData.cancelledCheque?.name
-    ) {
-      await deleteFile(updatedData.cancelledCheque.name);
-      updatedData.cancelledCheque = {
-        name: undefined,
-        url: undefined,
-        type: undefined,
-      };
-      await updatedData.save();
-    }
-
-    if (
-      data.cancelledCheque &&
-      data.cancelledCheque?.isAdd === 1 &&
-      data.cancelledCheque?.filename &&
-      data.cancelledCheque?.buffer
-    ) {
-      const { filename, type } = data.cancelledCheque;
-      const url = await uploadFile(data.cancelledCheque);
-      updatedData.cancelledCheque = {
-        name: filename,
-        url,
-        type,
-      };
-      await updatedData.save();
-    }
-
-    return {
-      status: "success",
-      data: updatedData,
-    };
-  } catch (err: any) {
-    throw new Error(err);
-  }
-};
-
 const updatePermissions = async (data: any) => {
   try {
     const updatedData: any = await User.findByIdAndUpdate(
@@ -1204,85 +1049,6 @@ const updatePermissions = async (data: any) => {
   }
 };
 
-const updateFamilyDetails = async (data: any) => {
-  try {
-    const updatedData: any = await FamilyDetails.findOneAndUpdate(
-      { user: data.id },
-      data,
-      {
-        new: true,
-      }
-    );
-
-    if (!updatedData) {
-      return {
-        status: "error",
-        data: "Family Details does not exist",
-      };
-    }
-
-    return {
-      status: "success",
-      data: updatedData,
-    };
-  } catch (err: any) {
-    throw new Error(err);
-  }
-};
-
-const updateWorkExperienceDetails = async (data: any) => {
-  try {
-    let rest = data.experienceDetails;
-    let workExperience: any = await WorkExperience.findOne({ user: data.id });
-    if (workExperience) {
-      for (var i = 0; i < rest.length; i++) {
-        try {
-          if (
-            rest[i].certificate &&
-            rest[i].certificate?.buffer &&
-            rest[i].certificate.isAdd === 1
-          ) {
-            const { filename, type, isFileDeleted } = rest[i].certificate;
-            const url = await uploadFile(rest[i].certificate);
-            rest[i].certificate = {
-              name: filename,
-              url,
-              type,
-              isFileDeleted: isFileDeleted,
-            };
-          }
-
-          if (
-            rest[i].certificate.isFileDeleted === 1 &&
-            workExperience.experienceDetails[i]?.certificate
-          ) {
-            await deleteFile(
-              workExperience.experienceDetails[i].certificate?.name
-            );
-          }
-        } catch (error) { }
-      }
-      const updatedData: any = await WorkExperience.findOneAndUpdate(
-        { user: data.id },
-        { experienceDetails: rest },
-        {
-          new: true,
-        }
-      );
-      return {
-        status: "success",
-        data: updatedData,
-      };
-    } else {
-      return {
-        status: "error",
-        data: "WorkExperience Details does not exists",
-      };
-    }
-  } catch (err: any) {
-    throw new Error(err);
-  }
-};
 
 async function uploadDocument(originalDoc: any, data: any, fieldName: string) {
   try {
@@ -1382,77 +1148,6 @@ async function updateDocumentDetails(data: any) {
   }
 }
 
-async function updateQualificationDetails(data: any) {
-  try {
-    const docum = await Qualification.findOne({ user: data.id });
-    if (docum) {
-      const { qualifications } = data;
-
-      for (const file of data.deleteAttachments) {
-        await deleteFile(file);
-      }
-
-      let attach_files: any = [];
-
-      for (const file of qualifications) {
-        try {
-          if (file.file && file.isAdd) {
-            let filename = `${data.id}_qualification_${file.file.filename}`;
-            const documentInfo = await uploadFile({ ...file.file, filename });
-            delete file.isAdd;
-            attach_files.push({
-              ...file,
-              file: {
-                url: documentInfo,
-                name: filename,
-                type: file.file.type,
-              },
-            });
-          } else {
-            if (file.file) {
-              delete file.isAdd;
-              attach_files.push({
-                ...file,
-              });
-            } else {
-              delete file.isAdd;
-              attach_files.push({
-                ...file,
-                file: {
-                  url: undefined,
-                  name: undefined,
-                  type: undefined,
-                },
-              });
-            }
-          }
-        } catch (err: any) {
-          console.error("Error uploading file:", err);
-        }
-      }
-
-      docum.qualifications = attach_files;
-      await docum.save();
-      return {
-        statusCode: statusCode.success,
-        status: "success",
-        data: docum,
-      };
-    } else {
-      return {
-        statusCode: statusCode.info,
-        status: "error",
-        data: "Documents do not exist",
-      };
-    }
-  } catch (err) {
-    return {
-      statusCode: statusCode.serverError,
-      status: "error",
-      data: err,
-    };
-  }
-}
 
 async function updateCompanyDetails(data: any) {
   try {
@@ -2565,10 +2260,6 @@ export {
   getCompanyDetailsByUserId,
   getCountDesignationStatus,
   getTotalUsers,
-  updateBankDetails,
-  updateFamilyDetails,
-  updateQualificationDetails,
-  updateWorkExperienceDetails,
   updateDocumentDetails,
   updateCompanyDetails,
   updatePermissions,

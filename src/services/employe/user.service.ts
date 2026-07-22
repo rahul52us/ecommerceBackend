@@ -1,14 +1,9 @@
 import { NextFunction, Response } from "express";
-import { createUserValidation } from "./utils/validation";
-import { generateError } from "../../config/Error/functions";
 import {
-  updateBankDetails,
   getCountDesignationStatus,
   getUsers,
   getTotalUsers,
   updateUserProfileDetails,
-  updateFamilyDetails,
-  updateWorkExperienceDetails,
   updateDocumentDetails,
   updateCompanyDetails,
   getManagerUsers,
@@ -21,9 +16,6 @@ import {
   createUser,
   getRoleCountOfCompany,
   getCompanyDetailsById,
-  updateQualificationDetails,
-  updateSalaryStructure,
-  getSalaryStructure,
   getCompanyDetailsByUserId,
   getUserByName,
   deleteUser,
@@ -126,52 +118,6 @@ const deleteUserService = async (
 };
 
 
-// Update Salary Structure Service
-export const UpdateSalaryStructureService = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const id = req.params.id;
-    const { data, status, statusCode, message } = await updateSalaryStructure({
-      ...req.body,
-      ...(id && id?.trim() && id !== "undefined" ? { id: new mongoose.Types.ObjectId(id) } : {}),
-      user: new mongoose.Types.ObjectId(req.body.user),
-    });
-
-
-
-    return res.status(statusCode).send({
-      message,
-      data,
-      status,
-    });
-
-  } catch (err: any) {
-    next(err);
-  }
-};
-
-export const getSalaryStructureService = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { data, status, statusCode, message } = await getSalaryStructure({
-      ...req.body,
-      user: new mongoose.Types.ObjectId(req.body.user)
-    });
-    return res.status(statusCode).send({
-      message,
-      data,
-      status,
-    });
-  } catch (err: any) {
-    next(err);
-    }
-  };
 
 const updatePersonalDetailsService = async (
   req: any,
@@ -428,80 +374,11 @@ const getTotalUsersService = async (
   }
 };
 
-// update the bank details of the particular user
-const updateBankDetialsService = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    req.body.id = new mongoose.Types.ObjectId(req.params.id);
-    const { status, data } = await updateBankDetails(req.body);
-    if (status === "success") {
-      res.status(201).send({
-        status: "success",
-        data: data,
-      });
-    } else {
-      res.status(400).send({
-        status: "error",
-        data: data,
-      });
-    }
-  } catch (err) {
-    next(err);
-  }
-};
-
+// update the bank details of the particular use
 // update the family details of the particular users
-export const updateFamilyDetailsService = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    req.body.id = new mongoose.Types.ObjectId(req.params.id);
-    const { status, data } = await updateFamilyDetails(req.body);
-    if (status === "success") {
-      res.status(201).send({
-        status: "success",
-        data: data,
-      });
-    } else {
-      res.status(400).send({
-        status: "error",
-        data: data,
-      });
-    }
-  } catch (err) {
-    next(err);
-  }
-};
 
-// update the workExperience of the particular users
-const updateWorkExperienceService = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    req.body.id = new mongoose.Types.ObjectId(req.params.id);
-    const { status, data } = await updateWorkExperienceDetails(req.body);
-    if (status === "success") {
-      res.status(201).send({
-        status: "success",
-        data: data,
-      });
-    } else {
-      res.status(400).send({
-        status: "error",
-        data: data,
-      });
-    }
-  } catch (err) {
-    next(err);
-  }
-};
+
+
 
 // update the document of the particular users
 const updateDocumentService = async (
@@ -512,30 +389,6 @@ const updateDocumentService = async (
   try {
     req.body.id = new mongoose.Types.ObjectId(req.params.id);
     const { status, data } = await updateDocumentDetails(req.body);
-    if (status === "success") {
-      res.status(200).send({
-        status: "success",
-        data: data,
-      });
-    } else {
-      res.status(400).send({
-        status: "error",
-        data: data,
-      });
-    }
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updateQualifcationService = async (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    req.body.id = new mongoose.Types.ObjectId(req.params.id);
-    const { status, data } = await updateQualificationDetails(req.body);
     if (status === "success") {
       res.status(200).send({
         status: "success",
@@ -930,13 +783,10 @@ export {
   getUserByNameService,
   getCountDesignationStatusService,
   getTotalUsersService,
-  updateBankDetialsService,
-  updateWorkExperienceService,
   updateDocumentService,
   updatePermissionsService,
   updateStaffPermissionsService,
   updateCompanyDetailsService,
-  updateQualifcationService,
   getManagersEmploysService,
   getManagerUsersCountsService,
   getUserInfoWithManagerService,

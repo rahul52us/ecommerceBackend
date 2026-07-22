@@ -2,16 +2,12 @@ import { Response, NextFunction } from "express";
 import User from "../../schemas/User/User";
 import Company from "../../schemas/company/Company";
 import ProfileDetails from "../../schemas/User/ProfileDetails";
-import QualificationDetails from "../../schemas/User/Qualifications";
 import { createValidation } from "./utils/validation";
 import { generateError } from "../config/function";
 import generateToken from "../config/generateToken";
 import Token from "../../schemas/Token/Token";
-import WorkExperience from "../../schemas/User/WorkExperience";
-import BankDetails from "../../schemas/User/BankDetails";
 import DocumentDetails from "../../schemas/User/Document";
 import CompanyPolicy from "../../schemas/company/CompanyPolicy";
-import FamilyDetails from "../../schemas/User/FamilyDetails";
 import { deleteFile, uploadFile } from "../../repository/uploadDoc.repository";
 import { statusCode } from "../../config/helper/statusCode";
 import mongoose from "mongoose";
@@ -89,36 +85,12 @@ const createCompany = async (req: any, res: Response, next: NextFunction): Promi
     });
     const createdProfileDetails = await profileDetail.save();
 
-    const BankDetail = new BankDetails({
-      user: user._id,
-    });
-    const savedBank = await BankDetail.save();
-
-    const WorkExperienceDetail = new WorkExperience({
-      user: user._id,
-    });
-
-    const savedWorkExperience = await WorkExperienceDetail.save();
 
     const documentDetails = new DocumentDetails({
       user: user._id,
     });
 
     const savedDocument = await documentDetails.save();
-
-    const familyDetails = new FamilyDetails({
-      user: user._id,
-    });
-
-    const savedFamilyDetails = await familyDetails.save();
-
-
-
-    const qualifications = new QualificationDetails({
-      user: user._id,
-    });
-
-    const savedQualifications = await qualifications.save()
 
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
@@ -160,12 +132,8 @@ const createCompany = async (req: any, res: Response, next: NextFunction): Promi
       message: `${comp.company_name} company has been created successfully`,
       data: {
         ...rest,
-        bankDetails: savedBank._id,
         documentDetails: savedDocument._id,
-        workExperience: savedWorkExperience._id,
         companyPolicy: createdCompPolicy._id,
-        familyDetails: savedFamilyDetails._id,
-        qualifications: savedQualifications?._id,
         authorization_token: generateToken({ userId: updatedUser._id }),
       },
       statusCode: 201,
@@ -274,16 +242,7 @@ const createOrganisationCompany = async (
     });
     const createdProfileDetails = await profileDetail.save();
 
-    const BankDetail = new BankDetails({
-      user: user._id,
-    });
-    await BankDetail.save();
 
-    const WorkExperienceDetail = new WorkExperience({
-      user: user._id,
-    });
-
-    await WorkExperienceDetail.save();
 
     const documentDetails = new DocumentDetails({
       user: user._id,
@@ -291,17 +250,6 @@ const createOrganisationCompany = async (
 
     await documentDetails.save();
 
-    const familyDetails = new FamilyDetails({
-      user: user._id,
-    });
-
-    await familyDetails.save();
-
-    const qualifications = new QualificationDetails({
-      user: user._id,
-    });
-
-    await qualifications.save()
 
 
 
@@ -624,11 +572,11 @@ export const updateCompanyLogo = async (req: any, res: Response, next: NextFunct
 export const updateCompanyName = async (req: any, res: Response, next: NextFunction) => {
   try {
     const { companyId, newCompanyName } = req.body;
-    
+
     if (!companyId || !newCompanyName) {
       throw generateError("Company ID and new company name are required", 400);
     }
-    
+
     const user = await User.findById(req.userId);
     if (!user || user.role !== "admin") {
       throw generateError("Only admins can update the company name", 403);

@@ -1,13 +1,10 @@
 import express from "express";
 import authenticate from "../modules/config/authenticate";
 import {
-  updateBankDetialsService,
   createUserservice,
   getCountDesignationStatusService,
   getTotalUsersService,
   updateUserProfileService,
-  updateFamilyDetailsService,
-  updateWorkExperienceService,
   updateDocumentService,
   updateCompanyDetailsService,
   getUserRoleUser,
@@ -20,9 +17,6 @@ import {
   getManagersOfUserService,
   getRoleCountOfCompanyService,
   getCompanyDetailsByIdService,
-  updateQualifcationService,
-  UpdateSalaryStructureService,
-  getSalaryStructureService,
   getCompanyDetailsByUserIdService,
   getAllUserService,
   getUserByNameService,
@@ -52,16 +46,10 @@ router.get("/:_id", getUserByNameService);
 router.get('/companydetails/:id',authenticate,getCompanyDetailsByUserIdService)
 router.post("/", authenticate, getAllUserService);
 router.get("/managers/:id", authenticate, getManagersEmploysService);
-router.post('/salaryStructure',authenticate,getSalaryStructureService)
 router.post("/total/count", authenticate, getTotalUsersService);
 router.get("/designation/count", authenticate, getCountDesignationStatusService);
-router.put("/bankDetails/:id",authenticate,updateBankDetialsService)
 router.put('/companyDetails/:id',authenticate,updateCompanyDetailsService)
-router.put('/familyDetails/:id',authenticate,updateFamilyDetailsService)
-router.put('/workExperience/:id',authenticate,updateWorkExperienceService)
-router.put('/salaryStructure/:id',authenticate,UpdateSalaryStructureService)
 router.put('/updateDocuments/:id',authenticate,updateDocumentService)
-router.put('/qualifications/:id',authenticate,updateQualifcationService)
 router.put('/permissions/:id',authenticate,updatePermissionsService)
 router.put('/update-permissions/:id',authenticate,updateStaffPermissionsService)
 router.get('/users/roles',authenticate,getUserRoleUser)
