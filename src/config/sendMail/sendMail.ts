@@ -21,8 +21,8 @@ const SendMail = async (
     // Create a transporter object using the SMTP settings
     const transporter = nodemailer.createTransport({
       host: "smtp.hostinger.com",
-      port: 587,
-      secure: false, // TLS is used
+      port: 465,
+      secure: true, // SSL/TLS is used
       auth: {
         user: process.env.WELCOME_REGISTER_EMAIL_USERNAME,
         pass: process.env.WELCOME_REGISTER_EMAIL_PASSWORD,

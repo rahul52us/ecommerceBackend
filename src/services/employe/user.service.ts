@@ -270,7 +270,7 @@ const updateAdminStatusService = async (
 
     const { data, status, message, statusCode }: any = await updateAdminStatus(
       userId,
-      is_active
+      is_active === true ? true : false
     );
 
     if (status === "success") {
