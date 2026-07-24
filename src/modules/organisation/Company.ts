@@ -487,6 +487,7 @@ export const updateCompanyPreferences = async (req: any, res: Response, next: Ne
     const updateData: any = {};
     if (req.body.operatingHours) updateData.operatingHours = req.body.operatingHours;
     if (req.body.sidebarColors) updateData.sidebarColors = req.body.sidebarColors;
+    if (req.body.whatsappConfig) updateData.whatsappConfig = req.body.whatsappConfig;
 
     const dt = await Company.findOneAndUpdate(
       { _id: req.body.company },
@@ -502,6 +503,30 @@ export const updateCompanyPreferences = async (req: any, res: Response, next: Ne
     });
   }
   catch (err) {
+    next(err);
+  }
+};
+
+export const updateWhatsappConfig = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const { company, whatsappConfig } = req.body;
+    if (!company) {
+      return res.status(400).send({ status: "error", message: "Company ID is required" });
+    }
+
+    const dt = await Company.findOneAndUpdate(
+      { _id: company },
+      { $set: { whatsappConfig: whatsappConfig } },
+      { new: true }
+    );
+
+    res.status(200).send({
+      message: "WhatsApp configuration updated successfully",
+      data: dt,
+      statusCode: 200,
+      success: true
+    });
+  } catch (err) {
     next(err);
   }
 };

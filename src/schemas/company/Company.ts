@@ -41,6 +41,7 @@ export interface CompanyI extends Document {
   addressInfo?: addressInfo[];
   operatingHours?: any[]
   sidebarColors?: any;
+  whatsappConfig?: any;
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
   subscriptionHistory?: {
@@ -131,6 +132,7 @@ const companySchema = new mongoose.Schema<CompanyI>({
   },
   operatingHours: { type: Array, default: [] },
   sidebarColors: { type: mongoose.Schema.Types.Mixed, default: {} },
+  whatsappConfig: { type: mongoose.Schema.Types.Mixed, default: {} },
   activeUser: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

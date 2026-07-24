@@ -12,6 +12,7 @@ import {
   updateCompanySubscriptionHistory,
   getCompanySubscription,
   updateCompanyName,
+  updateWhatsappConfig,
 } from "../modules/organisation/Company";
 import { getCompanyCountService, getCompanyDetailsByNameService, getCompanyPoliciesService, getHolidayService, getIndividualPolicyService, getOrganisationsCompanyService, getWorkLocationservice, getWorkTimingService, updateCompanyPolicyService, updateHolidayExcelService, updateHolidayService, updateWorkLocationExcelService, updateWorkLocationService, updateWorkTimingService } from "../services/company/company.service";
 import authenticate from "../modules/config/authenticate";
@@ -20,6 +21,7 @@ const router = express.Router();
 router.post("/create", createCompany);
 router.post('/update', authenticate, updatedCompanyDetails)
 router.post('/updateOperatingHours', authenticate, updateCompanyPreferences)
+router.post('/whatsapp-config', authenticate, updateWhatsappConfig)
 router.get('/:company', getCompanyDetails)
 router.post('/single/create', authenticate, createOrganisationCompany)
 router.put('/policy', authenticate, updateCompanyPolicyService)

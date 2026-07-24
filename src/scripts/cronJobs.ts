@@ -37,8 +37,8 @@ const sendWhatsAppReminder = async (
   }
 };
 
-// Send reminders for all of today's appointments
-const sendTodayReminders = async () => {
+// Send reminders for all of today's appointments for a specific company
+const sendTodayReminders = async (companyId: any) => {
   try {
     console.log("Sending reminders for today's appointments...");
     const now = new Date();
@@ -49,6 +49,7 @@ const sendTodayReminders = async () => {
 
     // Query for scheduled appointments
     const appointments = await Appointment.find({
+      company: companyId,
       status: 'scheduled',
       appointmentDate: { $gte: startOfDay, $lt: endOfDay }
     }).populate('patient').populate('primaryDoctor').populate('company');
@@ -91,8 +92,8 @@ const sendTodayReminders = async () => {
   }
 };
 
-// Send reminders for today's recalls
-const sendTodayRecalls = async () => {
+// Send reminders for today's recalls for a specific company
+const sendTodayRecalls = async (companyId: any) => {
   try {
     console.log("Sending reminders for today's recalls...");
     const now = new Date();
@@ -103,6 +104,7 @@ const sendTodayRecalls = async () => {
 
     // Query for scheduled recalls
     const recalls = await RecallAppointment.find({
+      company: companyId,
       status: 'pending',
       recallDate: { $gte: startOfDay, $lt: endOfDay }
     }).populate('patient');
@@ -132,32 +134,36 @@ const sendTodayRecalls = async () => {
 
 let currentCronTask: cron.ScheduledTask | null = null;
 
+import Company from '../schemas/company/Company';
+
 export const initCronJobs = async () => {
   if (currentCronTask) {
     currentCronTask.stop();
     console.log("Stopped previous CRON job.");
   }
 
-  let timeString = '07:00'; // Default
-  try {
-    const config = await GlobalConfig.findOne();
-    if (config && config.cronTime) {
-      timeString = config.cronTime;
+  currentCronTask = cron.schedule('0,30 * * * *', async () => {
+    const now = new Date();
+    // Use local time for matching if we assume server timezone is the same as the user timezone
+    const currentHourStr = now.getHours().toString().padStart(2, '0');
+    const currentMinuteStr = now.getMinutes().toString().padStart(2, '0');
+    const timeStr = `${currentHourStr}:${currentMinuteStr}`;
+
+    try {
+      const activeCompanies = await Company.find({ is_active: true });
+      for (const company of activeCompanies) {
+        if (company.whatsappConfig?.enabled) {
+          const reminderTime = company.whatsappConfig.reminderTime || '07:00';
+          if (reminderTime === timeStr) {
+            console.log(`[Cron Reminder] Triggering reminders for company ${company.company_name} at ${timeStr}`);
+            await sendTodayReminders(company._id);
+            await sendTodayRecalls(company._id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in per-company reminder cron:", error);
     }
-  } catch (error) {
-    console.error("Failed to fetch global config for cron job, using default.", error);
-  }
-
-  // Parse HH:mm to cron format
-  const [hoursStr, minutesStr] = timeString.split(':');
-  const hours = parseInt(hoursStr || '7', 10);
-  const minutes = parseInt(minutesStr || '0', 10);
-
-  const cronExpression = `${minutes} ${hours} * * *`;
-
-  currentCronTask = cron.schedule(cronExpression, () => {
-    sendTodayReminders();
-    sendTodayRecalls();
   });
 
   // CRON Job for cleaning up old database exports (runs daily at midnight)
@@ -189,5 +195,5 @@ export const initCronJobs = async () => {
     }
   });
 
-  console.log(`CRON jobs initialized. System will send reminders at ${timeString} for today's appointments and recalls, and cleanup old exports at midnight.`);
+  console.log(`CRON jobs initialized. System will send reminders based on per-company configuration, and cleanup old exports at midnight.`);
 };
