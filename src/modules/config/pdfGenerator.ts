@@ -1964,7 +1964,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "paid", label: "TXN PAID", width: 30 },
     { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
     { key: "due", label: "DUE", width: 30 },
-    { key: "overpay", label: "OVERPAY", width: 45 },
+    { key: "overpay", label: "ADVANCE", width: 45 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
   ];
@@ -2021,7 +2021,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     const treatName = row.treatmentInfo?.name || row.workDoneNote || "-";
     const treatCode = row.treatmentCode || "-";
     const balDue = row.balanceDue || 0;
-    const statusText = balDue < 0 ? "Overpaid" : balDue === 0 ? "Settled" : "Due";
+    const statusText = balDue < 0 ? "Advance" : balDue === 0 ? "Settled" : "Due";
     const statusColor = balDue < 0 ? "#7e22ce" : balDue === 0 ? COLORS.success : COLORS.danger;
 
     // Calculate dynamic row height based on text wrapping
@@ -2066,23 +2066,27 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     }
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
     if (colX.receiptNumber) {
-      doc.fillColor(COLORS.textMain).text(row.paymentHistory?.receiptNumber || "-", colX.receiptNumber, y + 8, { width: colW.receiptNumber - 5, ellipsis: true });
+      const history = Array.isArray(row.paymentHistory) ? row.paymentHistory : (row.paymentHistory ? [row.paymentHistory] : []);
+      const receiptNumbers = Array.from(new Set(history.map((p: any) => p.receiptNumber).filter(Boolean))).join(", ");
+      doc.fillColor(COLORS.textMain).text(receiptNumbers || "-", colX.receiptNumber, y + 8, { width: colW.receiptNumber - 5, ellipsis: true });
     }
     if (colX.lastPaid) {
-      const paymentDate = row.paymentHistory && row.paymentHistory.date
-        ? new Date(row.paymentHistory.date).toLocaleDateString('en-GB')
+      const history = Array.isArray(row.paymentHistory) ? row.paymentHistory : (row.paymentHistory ? [row.paymentHistory] : []);
+      const paymentDate = history.length > 0 && history[history.length - 1].date
+        ? new Date(history[history.length - 1].date).toLocaleDateString('en-GB')
         : "-";
       doc.fillColor(COLORS.textMain).text(paymentDate, colX.lastPaid, y + 8);
     }
-    if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
+    if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue > 0 ? balDue.toString() : "0", colX.due, y + 8);
     if (colX.overpay) {
       const overpayAmt = Math.max(0, -balDue);
       doc.fillColor(overpayAmt > 0 ? "#7e22ce" : COLORS.textMuted).text(overpayAmt.toString(), colX.overpay, y + 8);
     }
     if (colX.paymentMode) {
       let paymentModeStr = "-";
-      if (row.paymentHistory && row.paymentHistory.paymentMethod) {
-        paymentModeStr = String(row.paymentHistory.paymentMethod).toUpperCase();
+      const history = Array.isArray(row.paymentHistory) ? row.paymentHistory : (row.paymentHistory ? [row.paymentHistory] : []);
+      if (history.length > 0 && history[history.length - 1].paymentMethod) {
+        paymentModeStr = String(history[history.length - 1].paymentMethod).toUpperCase();
       }
       doc.text(paymentModeStr.slice(0, 15), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
     }
@@ -2463,7 +2467,7 @@ export const generateLegacyWorkFeePDF = (data: any[], stream: any, fromDate?: st
     doc.text(docName, colX.doctor, y + 8, { width: colW.doctor - 5, ellipsis: true });
     doc.font("Helvetica-Bold").text(row.fee_due?.toString() || "0", colX.feeDue, y + 8).font("Helvetica");
     doc.text(row.fee_dis?.toString() || "0", colX.feeDis, y + 8);
-    
+
     // Stage logic
     const stageY = y + (h / 2) - 6;
     doc.fillColor(COLORS.brand).roundedRect(colX.stage, stageY, 25, 12, 3).fill();

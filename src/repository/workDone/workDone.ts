@@ -1212,13 +1212,10 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : status.toLowerCase() === "overpaid" ? { $lt: 0 } : { $eq: 0 }
         }
       }] : []),
-      { $unwind: { path: "$paymentHistory", preserveNullAndEmptyArrays: true } },
       {
         $addFields: {
-          // Total paid for this row is exactly the payment amount, or 0 if unpaid
-          totalPaid: { $ifNull: ["$paymentHistory.amount", 0] },
-          // Create unique row ID for React key rendering
-          uniqueRowId: { $concat: [{ $toString: "$_id" }, "_", { $ifNull: [{ $toString: "$paymentHistory._id" }, "no-pay"] }] }
+          totalPaid: { $ifNull: ["$periodReceivedAmount", 0] },
+          uniqueRowId: { $toString: "$_id" }
         }
       },
       {
@@ -1298,7 +1295,8 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           _id: null,
           totalBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
           totalPaid: { $sum: { $ifNull: ["$periodReceivedAmount", 0] } },
-          totalDue: { $sum: "$balanceDue" }
+          totalDue: { $sum: { $cond: [{ $gt: ["$balanceDue", 0] }, "$balanceDue", 0] } },
+          totalAdvance: { $sum: { $cond: [{ $lt: ["$balanceDue", 0] }, { $abs: "$balanceDue" }, 0] } }
         },
       }
     ];
