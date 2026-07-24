@@ -1924,12 +1924,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     .fillColor(COLORS.brand)
     .font("Helvetica-Bold")
     .fontSize(20)
-    .text("CLINICAL AUDIT", MARGIN, 25)
-    .fillColor(COLORS.textMuted)
-    .fontSize(10)
-    .font("Helvetica")
-    .opacity(1)
-    .text("Global Accountability Report", MARGIN, 52);
+    .text("Account Report", MARGIN, 25);
 
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
 
@@ -1953,14 +1948,13 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     .fillColor(COLORS.textMuted)
     .opacity(1)
     .fontSize(10)
-    .text(`Billed: Rs. ${pdfTotalBilled}`, rightAlignX, 45, { align: "right", width: 250 })
-    .text(`Total Amt Rec.: Rs. ${pdfTotalReceived}`, rightAlignX, 57, { align: "right", width: 250 })
-    .text(`Due: Rs. ${pdfTotalDue}`, rightAlignX, 69, { align: "right", width: 250 })
-    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 81, { align: "right", width: 250 });
+    .text(`Total Amt Rec.: Rs. ${pdfTotalReceived}`, rightAlignX, 45, { align: "right", width: 250 })
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 57, { align: "right", width: 250 });
 
   // --- DYNAMIC COLUMNS SETUP ---
   const allColumns = [
     { key: "date", label: "BILLING DATE", width: 55 },
+    { key: "receiptNumber", label: "RECEIPT", width: 45 },
     { key: "patient", label: "PATIENT", width: 60 },
     { key: "tooth", label: "TOOTH", width: 30 },
     { key: "treatmentCode", label: "CODE", width: 65 },
@@ -1968,7 +1962,6 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "doctor", label: "DOCTOR", width: 60 },
     { key: "fees", label: "FEES", width: 35 },
     { key: "paid", label: "TXN PAID", width: 30 },
-    { key: "receiptNumber", label: "RECEIPT", width: 45 },
     { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
     { key: "due", label: "DUE", width: 30 },
     { key: "paymentMode", label: "MODE", width: 35 },
