@@ -66,6 +66,71 @@ export const getOldWorkCompService = async (req: Request, res: Response) => {
   }
 };
 
+export const generateOldWorkCompReportService = async (req: Request, res: Response) => {
+  try {
+    const { search, startDate, endDate } = req.body;
+
+    let query: any = {};
+    if (startDate || endDate) {
+      query.wrk_date = {};
+      if (startDate) query.wrk_date.$gte = new Date(startDate as string);
+      if (endDate) {
+         const end = new Date(endDate as string);
+         end.setHours(23, 59, 59, 999);
+         query.wrk_date.$lte = end;
+      }
+    }
+    
+    if (search) {
+      const searchStr = search as string;
+      const matchedUsers = await UserModel.find({ name: { $regex: searchStr, $options: "i" } }).select("_id").lean();
+      const matchedUserIds = matchedUsers.map(u => u._id);
+      
+      if (/^\d{1,2}$/.test(searchStr.trim())) {
+        query.$or = [
+          { legacyDocCode: searchStr.trim() },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
+        ];
+      } else {
+        query.$or = [
+          { legacyPatCode: { $regex: searchStr, $options: "i" } },
+          { legacyDocCode: { $regex: searchStr, $options: "i" } },
+          { patientId: { $in: matchedUserIds } },
+          { doctorId: { $in: matchedUserIds } }
+        ];
+      }
+    }
+
+    // Hard limit of 50000 records
+    const data = await LegacyWorkComp.find(query)
+      .populate("patientId", "name code mobileNumber")
+      .populate("doctorId", "name code")
+      .sort({ wrk_date: -1 })
+      .limit(50000)
+      .lean();
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Report generated successfully",
+        data: base64
+      });
+    });
+
+    const { generateLegacyWorkCompPDF } = require("../../modules/config/pdfGenerator");
+    generateLegacyWorkCompPDF(data, stream, startDate, endDate);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getLegacyRecordDetailsService = async (req: Request, res: Response) => {
   try {
     const { legacyWrkDoneId } = req.params;
@@ -315,6 +380,113 @@ export const getLegacyPatientHistoryService = async (req: Request, res: Response
         toothWorks
       }
     });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const buildLegacyQuery = async (search: any, startDate: any, endDate: any) => {
+  let query: any = {};
+  if (startDate || endDate) {
+    query.date = {};
+    if (startDate) query.date.$gte = new Date(startDate as string);
+    if (endDate) {
+       const end = new Date(endDate as string);
+       end.setHours(23, 59, 59, 999);
+       query.date.$lte = end;
+    }
+  }
+  if (search) {
+    const searchStr = search as string;
+    const matchedUsers = await UserModel.find({ name: { $regex: searchStr, $options: "i" } }).select("_id").lean();
+    const matchedUserIds = matchedUsers.map(u => u._id);
+    
+    if (/^\d{1,2}$/.test(searchStr.trim())) {
+      query.$or = [
+        { legacyDocCode: searchStr.trim() },
+        { patientId: { $in: matchedUserIds } },
+        { doctorId: { $in: matchedUserIds } }
+      ];
+    } else {
+      query.$or = [
+        { legacyPatCode: { $regex: searchStr, $options: "i" } },
+        { legacyDocCode: { $regex: searchStr, $options: "i" } },
+        { patientId: { $in: matchedUserIds } },
+        { doctorId: { $in: matchedUserIds } }
+      ];
+    }
+  }
+  return query;
+};
+
+const handleLegacyReportStream = (data: any[], generatePdfFnName: string, res: Response, startDate?: string, endDate?: string) => {
+  const chunks: any[] = [];
+  const stream = new (require("stream").PassThrough)();
+
+  stream.on("data", (chunk: any) => chunks.push(chunk));
+  stream.on("end", () => {
+    const pdfBuffer = Buffer.concat(chunks);
+    const base64 = pdfBuffer.toString("base64");
+    return res.status(200).send({
+      status: "success",
+      message: "Report generated successfully",
+      data: base64
+    });
+  });
+
+  const pdfGenerator = require("../../modules/config/pdfGenerator");
+  pdfGenerator[generatePdfFnName](data, stream, startDate, endDate);
+};
+
+export const generateOldToothWorkReportService = async (req: Request, res: Response) => {
+  try {
+    const { search, startDate, endDate } = req.body;
+    const query = await buildLegacyQuery(search, startDate, endDate);
+    
+    const data = await LegacyToothWork.find(query)
+      .populate("patientId", "name code mobileNumber")
+      .populate("doctorId", "name code")
+      .sort({ date: -1 })
+      .limit(50000)
+      .lean();
+
+    handleLegacyReportStream(data, "generateLegacyToothWorkPDF", res, startDate, endDate);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const generateOldTransactionReportService = async (req: Request, res: Response) => {
+  try {
+    const { search, startDate, endDate } = req.body;
+    const query = await buildLegacyQuery(search, startDate, endDate);
+    
+    const data = await LegacyTransaction.find(query)
+      .populate("patientId", "name code mobileNumber")
+      .populate("doctorId", "name code")
+      .sort({ date: -1 })
+      .limit(50000)
+      .lean();
+
+    handleLegacyReportStream(data, "generateLegacyTransactionPDF", res, startDate, endDate);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const generateOldWorkFeeReportService = async (req: Request, res: Response) => {
+  try {
+    const { search, startDate, endDate } = req.body;
+    const query = await buildLegacyQuery(search, startDate, endDate);
+    
+    const data = await LegacyWorkFee.find(query)
+      .populate("patientId", "name code mobileNumber")
+      .populate("doctorId", "name code")
+      .sort({ date: -1 })
+      .limit(50000)
+      .lean();
+
+    handleLegacyReportStream(data, "generateLegacyWorkFeePDF", res, startDate, endDate);
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
