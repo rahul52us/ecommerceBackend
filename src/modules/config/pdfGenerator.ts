@@ -1964,6 +1964,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "paid", label: "TXN PAID", width: 30 },
     { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
     { key: "due", label: "DUE", width: 30 },
+    { key: "overpay", label: "OVERPAY", width: 45 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
   ];
@@ -2020,8 +2021,8 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     const treatName = row.treatmentInfo?.name || row.workDoneNote || "-";
     const treatCode = row.treatmentCode || "-";
     const balDue = row.balanceDue || 0;
-    const statusText = balDue <= 0 ? "Settled" : "Due";
-    const statusColor = balDue <= 0 ? COLORS.success : COLORS.danger;
+    const statusText = balDue < 0 ? "Overpaid" : balDue === 0 ? "Settled" : "Due";
+    const statusColor = balDue < 0 ? "#7e22ce" : balDue === 0 ? COLORS.success : COLORS.danger;
 
     // Calculate dynamic row height based on text wrapping
     doc.font("Helvetica").fontSize(8);
@@ -2074,6 +2075,10 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
       doc.fillColor(COLORS.textMain).text(paymentDate, colX.lastPaid, y + 8);
     }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue.toString(), colX.due, y + 8);
+    if (colX.overpay) {
+      const overpayAmt = Math.max(0, -balDue);
+      doc.fillColor(overpayAmt > 0 ? "#7e22ce" : COLORS.textMuted).text(overpayAmt.toString(), colX.overpay, y + 8);
+    }
     if (colX.paymentMode) {
       let paymentModeStr = "-";
       if (row.paymentHistory && row.paymentHistory.paymentMethod) {

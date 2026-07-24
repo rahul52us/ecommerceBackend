@@ -187,9 +187,9 @@ export const updateWorkDone = async (data: any) => {
     const currentBill = (amount !== undefined ? amount : currentRecord.amount || 0) - (discount !== undefined ? discount : currentRecord.discount || 0);
     const proposedReceived = receivedAmount !== undefined ? receivedAmount : currentRecord.receivedAmount || 0;
 
-    if (proposedReceived > currentBill) {
-      throw new Error(`Total payments (Rs. ${proposedReceived}) cannot exceed total bill (Rs. ${currentBill}).`);
-    }
+    // if (proposedReceived > currentBill) {
+    //   throw new Error(`Total payments (Rs. ${proposedReceived}) cannot exceed total bill (Rs. ${currentBill}).`);
+    // }
 
     const updateQuery: any = {
       $set: {
@@ -1209,7 +1209,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       },
       ...(status && status !== "all" ? [{
         $match: {
-          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : { $lte: 0 }
+          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : status.toLowerCase() === "overpaid" ? { $lt: 0 } : { $eq: 0 }
         }
       }] : []),
       { $unwind: { path: "$paymentHistory", preserveNullAndEmptyArrays: true } },
@@ -1290,7 +1290,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       },
       ...(status && status !== "all" ? [{
         $match: {
-          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : { $lte: 0 }
+          balanceDue: status.toLowerCase() === "due" ? { $gt: 0 } : status.toLowerCase() === "overpaid" ? { $lt: 0 } : { $eq: 0 }
         }
       }] : []),
       {
