@@ -151,10 +151,15 @@ export async function downloadReport(data: any) {
 
         // If filtering by patient (patients treated by this doctor)
         if (filters.patientId) {
-          const appointments = await appointmentsSchema.distinct("doctor", {
-            patient: filters.patientId,
+          const patientObjectId = new mongoose.Types.ObjectId(filters.patientId);
+          const primaryDocs = await appointmentsSchema.distinct("primaryDoctor", {
+            patient: patientObjectId,
           });
-          matchStage._id = { $in: appointments };
+          const additionalDocs = await appointmentsSchema.distinct("additionalDoctors", {
+            patient: patientObjectId,
+          });
+          const allDocs = [...new Set([...primaryDocs, ...additionalDocs])];
+          matchStage._id = { $in: allDocs };
         }
 
         columns = [
@@ -251,7 +256,17 @@ export async function downloadReport(data: any) {
 
   // Date range filter on appointmentDate
   if (Object.keys(dateFilter).length > 0) {
-    matchStage.appointmentDate = dateFilter;
+    if (matchStage.appointmentDate && matchStage.appointmentDate.$gte) {
+      const mergedDate = { ...dateFilter };
+      if (dateFilter.$gte) {
+        mergedDate.$gte = dateFilter.$gte > matchStage.appointmentDate.$gte ? dateFilter.$gte : matchStage.appointmentDate.$gte;
+      } else {
+        mergedDate.$gte = matchStage.appointmentDate.$gte;
+      }
+      matchStage.appointmentDate = mergedDate;
+    } else {
+      matchStage.appointmentDate = dateFilter;
+    }
   }
 
   // Always filter active appointments
@@ -353,7 +368,7 @@ export async function downloadReport(data: any) {
       case "recall": {
         let matchStage: any = {};
 
-        if (filters.patientId) matchStage.patient = filters.patientId;
+        if (filters.patientId) matchStage.patient = new mongoose.Types.ObjectId(filters.patientId);
 
         if (filters.status && filters.status !== "") {
           matchStage.status = filters.status;
@@ -420,7 +435,11 @@ export async function downloadReport(data: any) {
         };
 
         if (filters.role && filters.role !== "all") {
-          matchStage.role = filters.role;
+          if (filters.role === "admin" || filters.role === "user" || filters.role === "superadmin") {
+            matchStage.role = filters.role;
+          } else {
+            matchStage.designation = { $regex: new RegExp(filters.role, "i") };
+          }
         }
 
         if (Object.keys(dateFilter).length > 0) {
