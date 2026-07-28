@@ -97,7 +97,7 @@ const forgotPasswordService = async (
     const mailData = {
       name : user?.name,
       message : "We received a request to reset your password. If you didn't initiate this request, please disregard this email for security.",
-      link :  `${baseURL}/reset-password/${resetData.token}`,
+      link :  `${baseURL}/reset-password?token=${resetData.token}`,
       subject : 'Reset Your Password'
     };
 

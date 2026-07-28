@@ -28,6 +28,8 @@ export interface UserInterface extends Document {
   refrenceNote?: string;
   previousRecord?: boolean;
   walletBalance?: number;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
 }
 
 const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
@@ -104,7 +106,13 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
     type: Number,
     default: 0,
   },
-});
+  resetPasswordToken: {
+    type: String,
+  },
+  resetPasswordExpires: {
+    type: Date,
+  },
+}, { timestamps: true });
 
 const UserModel = mongoose.model<UserInterface>("User", UserSchema);
 export default UserModel;

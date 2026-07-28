@@ -252,7 +252,7 @@ const forgotPassword = async (
     const sendMail: any = await SendMail(
       user.name,
       user.username,
-      `${process.env.RESET_PASSWORD_LINK}/${resetData.token}`,
+      `${process.env.RESET_PASSWORD_LINK}?token=${resetData.token}`,
       "Reset Your Password",
       "forgot_email_templates.html"
     );
