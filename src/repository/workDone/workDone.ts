@@ -1074,8 +1074,11 @@ export const getGlobalAccountabilityData = async (payload: any) => {
     let start: Date | null = null;
     let end: Date | null = null;
 
-    // Date range
-    if (fromDate || toDate) {
+    const hasPaymentModeFilter = payload.paymentMode && payload.paymentMode !== "all" && payload.paymentMode !== "undefined";
+    const paymentModeRegex = hasPaymentModeFilter ? new RegExp(`^${payload.paymentMode}$`, "i") : null;
+
+    // Date range or Payment Mode
+    if (fromDate || toDate || hasPaymentModeFilter) {
       if (fromDate) {
         start = new Date(fromDate);
         start.setHours(0, 0, 0, 0);
@@ -1099,36 +1102,42 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       else if (end) paymentMatch.date = { $lte: end };
 
       if (compId) paymentMatch.company = compId;
+      if (hasPaymentModeFilter) paymentMatch.paymentMethod = { $regex: paymentModeRegex };
 
       const paymentsInPeriod = await PaymentModel.find(paymentMatch).select('workDone');
       const workDoneIdsWithPayments = paymentsInPeriod.map((p: any) => p.workDone);
 
-      matchStage.$or = [
-        {
-          createdAt: {
-            ...(start ? { $gte: start } : {}),
-            ...(end ? { $lte: end } : {})
-          }
-        },
-        { _id: { $in: workDoneIdsWithPayments } }
-      ];
+      if (hasPaymentModeFilter) {
+        matchStage._id = { $in: workDoneIdsWithPayments };
+      } else {
+        matchStage.$or = [
+          {
+            createdAt: {
+              ...(start ? { $gte: start } : {}),
+              ...(end ? { $lte: end } : {})
+            }
+          },
+          { _id: { $in: workDoneIdsWithPayments } }
+        ];
+      }
     }
 
+    const paymentHistoryMatch: any = {
+      $expr: { $eq: ["$workDone", "$$workDoneId"] }
+    };
     const paymentDateConditions: any = {};
     if (start) paymentDateConditions.$gte = start;
     if (end) paymentDateConditions.$lte = end;
+    if (Object.keys(paymentDateConditions).length > 0) {
+      paymentHistoryMatch.date = paymentDateConditions;
+    }
+    if (hasPaymentModeFilter) {
+      paymentHistoryMatch.paymentMethod = { $regex: paymentModeRegex };
+    }
 
     // Tooth filter
     if (tooth) {
       matchStage.tooth = { $regex: tooth, $options: "i" };
-    }
-
-    // Status filter is applied after balanceDue calculation
-
-    // Payment Mode filter is now harder to do at matchStage for WorkDone directly without lookup.
-    // But since we just need to filter WorkDone records that have a payment with this mode, we can do it via paymentsInPeriod earlier.
-    if (payload.paymentMode && payload.paymentMode !== "all" && payload.paymentMode !== "undefined") {
-      // Handled in the paymentMatch earlier if we refactor that. Let's do it:
     }
 
     if (payload.treatmentCode && payload.treatmentCode.trim() !== "") {
@@ -1145,7 +1154,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           localField: "patient",
           foreignField: "_id",
           as: "patientInfo",
-          pipeline: [{ $project: { name: 1, code: 1, mobileNumber: 1, title: 1 } }],
+          pipeline: [{ $project: { name: 1, code: 1, mobileNumber: 1, title: 1, walletBalance: 1 } }],
         },
       },
       { $unwind: { path: "$patientInfo", preserveNullAndEmptyArrays: true } },
@@ -1175,10 +1184,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           let: { workDoneId: "$_id" },
           pipeline: [
             {
-              $match: {
-                $expr: { $eq: ["$workDone", "$$workDoneId"] },
-                ...(Object.keys(paymentDateConditions).length > 0 ? { date: paymentDateConditions } : {})
-              }
+              $match: paymentHistoryMatch
             }
           ],
           as: "paymentHistory"
@@ -1239,6 +1245,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           "patientInfo.code": 1,
           "patientInfo.mobileNumber": 1,
           "patientInfo.title": 1,
+          "patientInfo.walletBalance": 1,
           "patientInfo._id": 1,
           "doctorInfo.name": 1,
           "doctorInfo._id": 1,
@@ -1266,10 +1273,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           let: { workDoneId: "$_id" },
           pipeline: [
             {
-              $match: {
-                $expr: { $eq: ["$workDone", "$$workDoneId"] },
-                ...(Object.keys(paymentDateConditions).length > 0 ? { date: paymentDateConditions } : {})
-              }
+              $match: paymentHistoryMatch
             }
           ],
           as: "paymentHistory"

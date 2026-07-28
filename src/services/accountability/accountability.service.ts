@@ -54,7 +54,7 @@ export const getAccountabilityList = async (query: any) => {
     const total = await Accountability.countDocuments(filter);
     const data = await Accountability.find(filter)
       .populate("doctor", "name")
-      .populate("patient", "name")
+      .populate("patient", "name walletBalance")
       .populate("workDone")
       .sort({ lastAccountabilityAmountUpdated: -1 })
       .skip((page - 1) * limit)
@@ -133,7 +133,7 @@ export const generateAccountabilityReportService = async (query: any) => {
 
     const records = await Accountability.find(filter)
       .populate("doctor", "name")
-      .populate("patient", "name")
+      .populate("patient", "name walletBalance")
       .sort({ lastAccountabilityAmountUpdated: -1 });
 
     const CompanyModel = require("../../schemas/company/Company.ts").default;

@@ -24,6 +24,33 @@ class PaymentController {
         createdBy: req.userId,
       };
       
+      if (paymentData.paymentMethod === "Wallet") {
+        const User = require("../../schemas/User/User").default;
+        const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
+        
+        const patientUser = await User.findById(paymentData.patient);
+        if (!patientUser || (patientUser.walletBalance || 0) < paymentData.amount) {
+          return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
+        }
+        
+        // Deduct from wallet
+        patientUser.walletBalance -= paymentData.amount;
+        await patientUser.save();
+        
+        // Record withdrawal
+        const walletTxn = new WalletTransaction({
+          patient: paymentData.patient,
+          amount: paymentData.amount,
+          type: "Withdrawal",
+          paymentMethod: "Wallet",
+          description: "Payment for treatment",
+          workDone: paymentData.workDone,
+          company: paymentData.company,
+          createdBy: paymentData.createdBy,
+        });
+        await walletTxn.save();
+      }
+      
       const newPayment = await PaymentService.createPayment(paymentData);
 
       // Now we need to update the workDone's receivedAmount by fetching all payments
@@ -74,6 +101,13 @@ class PaymentController {
 
   async updatePayment(req: any, res: any) {
     try {
+      const oldPayment = await PaymentService.getPaymentById(req.params.id);
+      if (!oldPayment) return res.status(404).json({ success: false, message: "Payment not found" });
+
+      if (oldPayment.paymentMethod === "Wallet" || oldPayment.paymentMethod === "Transferred to Wallet" || req.body.paymentMethod === "Wallet") {
+        return res.status(400).json({ success: false, message: "Wallet transactions cannot be edited directly. Please delete and recreate the payment." });
+      }
+
       const updatedPayment = await PaymentService.updatePayment(req.params.id, req.body);
       
       if (updatedPayment) {
@@ -116,6 +150,44 @@ class PaymentController {
       const paymentToDel = await PaymentService.getPaymentById(paymentId);
       if (!paymentToDel) {
         return res.status(404).json({ success: false, message: "Payment not found" });
+      }
+
+      // Handle Wallet Reversals
+      if (paymentToDel.paymentMethod === "Wallet" || paymentToDel.paymentMethod === "Transferred to Wallet") {
+        const User = require("../../schemas/User/User").default;
+        const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
+        const patientUser = await User.findById(paymentToDel.patient);
+        
+        if (patientUser) {
+          if (paymentToDel.paymentMethod === "Wallet") {
+            // Refund the wallet for deleted payment
+            patientUser.walletBalance = (patientUser.walletBalance || 0) + paymentToDel.amount;
+            await patientUser.save();
+            await new WalletTransaction({
+              patient: paymentToDel.patient,
+              amount: paymentToDel.amount,
+              type: "Deposit",
+              description: "Refund for deleted payment",
+              workDone: paymentToDel.workDone,
+              company: paymentToDel.company,
+              createdBy: req.userId,
+            }).save();
+          } else if (paymentToDel.paymentMethod === "Transferred to Wallet") {
+            // Reverse the advance transfer (negative payment)
+            const transferAmt = Math.abs(paymentToDel.amount);
+            patientUser.walletBalance = (patientUser.walletBalance || 0) - transferAmt;
+            await patientUser.save();
+            await new WalletTransaction({
+              patient: paymentToDel.patient,
+              amount: transferAmt,
+              type: "Withdrawal",
+              description: "Reversed advance transfer (deleted)",
+              workDone: paymentToDel.workDone,
+              company: paymentToDel.company,
+              createdBy: req.userId,
+            }).save();
+          }
+        }
       }
 
       const workDoneId = paymentToDel.workDone;

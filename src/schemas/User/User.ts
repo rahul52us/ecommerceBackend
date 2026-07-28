@@ -27,6 +27,7 @@ export interface UserInterface extends Document {
   refrenceBy?: any;
   refrenceNote?: string;
   previousRecord?: boolean;
+  walletBalance?: number;
 }
 
 const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
@@ -98,6 +99,10 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   previousRecord: {
     type: Boolean,
     default: false,
+  },
+  walletBalance: {
+    type: Number,
+    default: 0,
   },
 });
 

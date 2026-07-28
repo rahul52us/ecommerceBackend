@@ -28,6 +28,7 @@ import advertisementRouting from "./advertisement.routing";
 import paymentRouting from "./payment/payment.routing";
 import databaseCloneRouter from "./databaseClone/databaseClone.routing";
 import globalConfigRouting from "./globalConfig";
+import walletRouting from "./wallet/wallet.route";
 
 const importRoutings = (app: any) => {
   app.use("/api/auth", userRouting);
@@ -61,6 +62,7 @@ const importRoutings = (app: any) => {
   app.use('/api/payment', paymentRouting)
   app.use('/api/database', databaseCloneRouter)
   app.use('/api/global-config', globalConfigRouting)
+  app.use('/api/wallet', walletRouting)
 };
 
 
