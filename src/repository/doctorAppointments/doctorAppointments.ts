@@ -211,6 +211,13 @@ export const updateAppointment = async (data: any) => {
         remarks: status === "cancelled" ? shiftOrCancelledReason || description || "" : description || "",
         timestamp: new Date(),
       });
+    } else {
+      updatedAppointment.history.push({
+        action: "shift",
+        by: user || null,
+        remarks: shiftOrCancelledReason || description || "",
+        timestamp: new Date(),
+      });
     }
 
     await updatedAppointment.save()
