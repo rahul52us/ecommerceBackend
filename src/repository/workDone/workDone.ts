@@ -385,7 +385,8 @@ export const getPatientStatementData = async (query: any) => {
     const records = await WorkDoneSchema.find(findQuery)
       .sort({ createdAt: -1 })
       .populate("doctor", "name")
-      .populate("examiningDoctor", "name");
+      .populate("examiningDoctor", "name")
+      .populate("paymentHistory");
 
     let filteredRecords = records;
     if (status && status !== "all") {
@@ -1131,8 +1132,8 @@ export const getGlobalAccountabilityData = async (payload: any) => {
     }
 
     if (payload.treatmentCode && payload.treatmentCode.trim() !== "") {
-      const escapedTreatmentCode = payload.treatmentCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      matchStage["treatmentCode"] = { $regex: new RegExp(escapedTreatmentCode, "i") };
+      const escapedTreatmentCode = payload.treatmentCode.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      matchStage["treatmentCode"] = { $regex: new RegExp("^" + escapedTreatmentCode + "(?:\\s*·|$)", "i") };
     }
 
     const pipeline: any[] = [
