@@ -2480,3 +2480,33 @@ export const generateLegacyWorkFeePDF = (data: any[], stream: any, fromDate?: st
   renderLegacyTable(doc, data, allColumns, rowRenderer, LEGACY_COLORS, 595.28, 841.89, 20, 555.28);
   doc.end();
 };
+
+export const generateTechnicianReportPDF = (data: any[], stream: any, filters: any = {}) => {
+  const PDFDocument = require("pdfkit");
+  const moment = require("moment");
+  const doc = new PDFDocument({ margin: 0, size: "A4", bufferPages: true });
+  doc.pipe(stream);
+
+  createLegacyPDFHeader(doc, `Technician Report: ${filters.technicianName?.toUpperCase() || 'All'}`, data.length, 595.28, 20, LEGACY_COLORS, moment);
+
+  const allColumns = [
+    { key: "date", label: "DATE", width: 60 },
+    { key: "patient", label: "PATIENT", width: 100 },
+    { key: "category", label: "CATEGORY", width: 120 },
+    { key: "teeth", label: "TEETH", width: 80 },
+    { key: "unit", label: "UNIT", width: 50 },
+    { key: "amount", label: "AMOUNT", width: 70 },
+  ];
+
+  const rowRenderer = (doc: any, row: any, _: string, __: string, colX: any, colW: any, y: number, h: number, COLORS: any) => {
+    doc.text(row.date ? new Date(row.date).toLocaleDateString('en-IN') : "-", colX.date, y + 8);
+    doc.font("Helvetica-Bold").text(row.patientName || "Unknown", colX.patient, y + 8, { width: colW.patient - 5, ellipsis: true }).font("Helvetica");
+    doc.text(row.category || "-", colX.category, y + 8, { width: colW.category - 5, ellipsis: true });
+    doc.text(row.teeth || "-", colX.teeth, y + 8, { width: colW.teeth - 5, ellipsis: true });
+    doc.text(row.unit || "-", colX.unit, y + 8);
+    doc.font("Helvetica-Bold").text(row.amount?.toString() || "0", colX.amount, y + 8).font("Helvetica");
+  };
+
+  renderLegacyTable(doc, data, allColumns, rowRenderer, LEGACY_COLORS, 595.28, 841.89, 20, 555.28);
+  doc.end();
+};

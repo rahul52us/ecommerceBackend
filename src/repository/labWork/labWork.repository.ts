@@ -8,19 +8,21 @@ class LabWorkRepository {
   }
 
   async getAll(query: any = {}, options: any = {}) {
-    const { search, fromDate, toDate, doctorName, noReceivedDate, noSendDate, ...filters } = query;
+    const { search, fromDate, toDate, doctorName, noReceivedDate, noSendDate, dateType, ...filters } = query;
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
     let mongoQuery: any = { ...filters, isActive: true };
 
+    const filterDateType = dateType || "createdAt";
+    
     if (fromDate || toDate) {
-      mongoQuery.createdAt = {};
-      if (fromDate) mongoQuery.createdAt.$gte = new Date(fromDate);
+      mongoQuery[filterDateType] = {};
+      if (fromDate) mongoQuery[filterDateType].$gte = new Date(fromDate);
       if (toDate) {
         const to = new Date(toDate);
         to.setHours(23, 59, 59, 999);
-        mongoQuery.createdAt.$lte = to;
+        mongoQuery[filterDateType].$lte = to;
       }
     }
 

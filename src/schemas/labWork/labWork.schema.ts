@@ -43,6 +43,11 @@ const labWorkSchema = new mongoose.Schema(
         arch: String,
         unit: String,
         amount: { type: Number, default: 0 },
+        technicianName: {
+          type: String,
+          lowercase: true,
+          trim: true,
+        },
       }
     ],
     labInstructions: {

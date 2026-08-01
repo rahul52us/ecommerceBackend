@@ -39,6 +39,18 @@ LabWorkRouter.get("/", authenticate, async (req: any, res) => {
   res.status(result.status === "success" ? 200 : 400).json(result);
 });
 
+LabWorkRouter.get("/technician-report", authenticate, async (req: any, res) => {
+  const query: any = { company: req.bodyData.company };
+  if (req.query.technicianName) query.technicianName = req.query.technicianName;
+  if (req.query.fromDate) query.fromDate = req.query.fromDate;
+  if (req.query.toDate) query.toDate = req.query.toDate;
+  if (req.query.dateType) query.dateType = req.query.dateType;
+  if (req.query.download !== undefined) query.download = req.query.download;
+  
+  const result = await labWorkService.generateTechnicianReport(query);
+  res.status(result.status === "success" ? 200 : 400).json(result);
+});
+
 LabWorkRouter.get("/:id", authenticate, async (req, res) => {
   const result = await labWorkService.getLabWorkById(req.params.id);
   res.status(result.status === "success" ? 200 : 400).json(result);
