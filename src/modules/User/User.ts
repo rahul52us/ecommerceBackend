@@ -23,6 +23,7 @@ import { baseURL } from "../../config/helper/urls";
 import {
   convertIdsToObjects,
   createCatchError,
+  hashBcrypt,
 } from "../../config/helper/function";
 import { statusCode } from "../../config/helper/statusCode";
 import { createToken } from "../../services/token/token.service";
@@ -288,8 +289,10 @@ const resetPassword = async (
       throw generateError(`Invalid token or token has expired`, 400);
     }
 
+    const hashedPassword = await hashBcrypt(req.body.password);
+    
     const user = await User.findByIdAndUpdate(token.userId, {
-      $set: { password: req.body.password },
+      $set: { password: hashedPassword },
     });
 
     if (!user) {

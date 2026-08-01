@@ -10,8 +10,17 @@ export const handleErrorMessage = (message: string, data: any, statusCode: numbe
   };
 
 export const generateError = (message : any, status : number) => {
-    const validationError : any = new Error(message);
-    validationError['data'] = message
+    let errorMessage = message;
+    if (Array.isArray(message) && message.length > 0 && message[0].message) {
+        errorMessage = message[0].message;
+    } else if (typeof message === "object" && message !== null && message.message) {
+        errorMessage = message.message;
+    } else if (typeof message === "object" && message !== null) {
+        try { errorMessage = JSON.stringify(message); } catch (e) {}
+    }
+    
+    const validationError : any = new Error(errorMessage);
+    validationError['data'] = errorMessage
     validationError["statusCode"] = status
     return validationError;
 };
