@@ -1960,6 +1960,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "treatmentCode", label: "CODE", width: 65 },
     { key: "treatment", label: "TREATMENT", width: 65 },
     { key: "doctor", label: "DOCTOR", width: 60 },
+    { key: "walletBalance", label: "WALLET BAL.", width: 45 },
     { key: "fees", label: "FEES", width: 35 },
     { key: "paid", label: "TXN PAID", width: 30 },
     { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
@@ -2059,6 +2060,8 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     if (colX.treatment) doc.text(treatName, colX.treatment, y + 8, { width: colW.treatment - 5 });
 
     if (colX.doctor) doc.text(docName.slice(0, 15), colX.doctor, y + 8, { width: colW.doctor - 5, ellipsis: true });
+    
+    if (colX.walletBalance) doc.fillColor("#7e22ce").text((row.patientInfo?.walletBalance || 0).toString(), colX.walletBalance, y + 8);
 
     if (colX.fees) {
       const feesAmount = (row.amount || 0) - (row.discount || 0);

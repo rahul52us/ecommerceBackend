@@ -55,18 +55,66 @@ class PaymentController {
 
       // Now we need to update the workDone's receivedAmount by fetching all payments
       const payments = await PaymentService.getPayments({ workDoneId: paymentData.workDone });
-      const totalReceived = payments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      let totalReceived = payments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
 
       // We should ideally call an internal WorkDone update here to update receivedAmount.
       // But since we decoupled paymentHistory, we can just update receivedAmount.
       const WorkDoneModel = require("../../schemas/workDone/workDone.schema").default;
       const AccountabilityModel = require("../../schemas/accountability/accountability.schema").default;
       
+      const workDoneDataPre = await WorkDoneModel.findById(paymentData.workDone);
+      const bill = Math.max(0, (workDoneDataPre?.amount || 0) - (workDoneDataPre?.discount || 0));
+
+      // Handle overpayment logic
+      const overpayment = totalReceived - bill;
+      if (overpayment > 0) {
+        const User = require("../../schemas/User/User").default;
+        const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
+        const PaymentModel = require("../../schemas/payment/payment.schema").default;
+        
+        const patientId = paymentData.patient?._id || paymentData.patient;
+        const companyId = paymentData.company?._id || paymentData.company;
+        const workDoneId = paymentData.workDone?._id || paymentData.workDone;
+
+        // 1. Create a negative payment to settle the overpaid treatment
+        const negativePayment = new PaymentModel({
+          patient: patientId,
+          company: companyId,
+          workDone: workDoneId,
+          amount: -overpayment,
+          paymentMethod: "Transferred to Wallet",
+          createdBy: req.userId,
+          date: new Date(),
+        });
+        await negativePayment.save();
+
+        // 2. Adjust totalReceived
+        totalReceived -= overpayment;
+
+        // 3. Add to Patient's Wallet Balance
+        const patientUser = await User.findById(patientId);
+        if (patientUser) {
+          patientUser.walletBalance = (patientUser.walletBalance || 0) + overpayment;
+          await patientUser.save();
+
+          // 4. Record Wallet Transaction
+          const walletTxn = new WalletTransaction({
+            patient: patientId,
+            amount: overpayment,
+            type: "Deposit",
+            description: "Auto-transferred advance from overpayment",
+            workDone: workDoneId,
+            company: companyId,
+            createdBy: req.userId,
+          });
+          await walletTxn.save();
+        }
+      }
+      
       const workDoneData = await WorkDoneModel.findByIdAndUpdate(paymentData.workDone, {
         $set: { receivedAmount: totalReceived, updateLastAccountbilityDate: new Date() }
       }, { new: true });
 
-      const bill = (workDoneData?.amount || 0) - (workDoneData?.discount || 0);
       const statusStr = totalReceived >= bill ? "PAID" : "PENDING";
 
       await AccountabilityModel.findOneAndUpdate({ workDone: paymentData.workDone }, {
@@ -113,16 +161,64 @@ class PaymentController {
       if (updatedPayment) {
         // Update total receivedAmount
         const payments = await PaymentService.getPayments({ workDoneId: updatedPayment.workDone });
-        const totalReceived = payments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+        let totalReceived = payments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
         
         const WorkDoneModel = require("../../schemas/workDone/workDone.schema").default;
         const AccountabilityModel = require("../../schemas/accountability/accountability.schema").default;
         
+        const workDoneDataPre = await WorkDoneModel.findById(updatedPayment.workDone);
+        const bill = Math.max(0, (workDoneDataPre?.amount || 0) - (workDoneDataPre?.discount || 0));
+
+        // Handle overpayment logic
+        const overpayment = totalReceived - bill;
+        if (overpayment > 0) {
+          const User = require("../../schemas/User/User").default;
+          const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
+          const PaymentModel = require("../../schemas/payment/payment.schema").default;
+          
+          const patientId = updatedPayment.patient?._id || updatedPayment.patient;
+          const companyId = updatedPayment.company?._id || updatedPayment.company;
+          const workDoneId = updatedPayment.workDone?._id || updatedPayment.workDone;
+
+          // 1. Create a negative payment to settle the overpaid treatment
+          const negativePayment = new PaymentModel({
+            patient: patientId,
+            company: companyId,
+            workDone: workDoneId,
+            amount: -overpayment,
+            paymentMethod: "Transferred to Wallet",
+            createdBy: req.userId,
+            date: new Date(),
+          });
+          await negativePayment.save();
+
+          // 2. Adjust totalReceived
+          totalReceived -= overpayment;
+
+          // 3. Add to Patient's Wallet Balance
+          const patientUser = await User.findById(patientId);
+          if (patientUser) {
+            patientUser.walletBalance = (patientUser.walletBalance || 0) + overpayment;
+            await patientUser.save();
+
+            // 4. Record Wallet Transaction
+            const walletTxn = new WalletTransaction({
+              patient: patientId,
+              amount: overpayment,
+              type: "Deposit",
+              description: "Auto-transferred advance from edited overpayment",
+              workDone: workDoneId,
+              company: companyId,
+              createdBy: req.userId,
+            });
+            await walletTxn.save();
+          }
+        }
+
         const workDoneData = await WorkDoneModel.findByIdAndUpdate(updatedPayment.workDone, {
           $set: { receivedAmount: totalReceived, updateLastAccountbilityDate: new Date() }
         }, { new: true });
 
-        const bill = (workDoneData?.amount || 0) - (workDoneData?.discount || 0);
         const statusStr = totalReceived >= bill ? "PAID" : "PENDING";
 
         await AccountabilityModel.findOneAndUpdate({ workDone: updatedPayment.workDone }, {
