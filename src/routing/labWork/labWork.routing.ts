@@ -45,6 +45,7 @@ LabWorkRouter.get("/technician-report", authenticate, async (req: any, res) => {
   if (req.query.fromDate) query.fromDate = req.query.fromDate;
   if (req.query.toDate) query.toDate = req.query.toDate;
   if (req.query.dateType) query.dateType = req.query.dateType;
+  if (req.query.category) query.category = req.query.category;
   if (req.query.download !== undefined) query.download = req.query.download;
   
   const result = await labWorkService.generateTechnicianReport(query);

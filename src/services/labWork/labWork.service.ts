@@ -70,16 +70,25 @@ class LabWorkService {
 
   async generateTechnicianReport(query: any) {
     try {
-      const { technicianName, download, ...dbQuery } = query;
-      const result = await labWorkRepository.getAll(dbQuery, { page: 1, limit: 10000 });
-      const labWorks = result.data || [];
-
-      // Fetch hierarchies to map category ID to name
+      const { technicianName, download, category: filterCategory, ...dbQuery } = query;
       const hierarchies = await labWorkHierarchyRepository.getAll({ company: dbQuery.company });
       const hierarchyMap: Record<string, string> = {};
       hierarchies.forEach((h: any) => {
         hierarchyMap[h._id.toString()] = h.name;
       });
+
+      if (filterCategory && filterCategory !== "all") {
+        const matchingIds = hierarchies
+          .filter((h: any) => h.name.trim().toLowerCase() === filterCategory.trim().toLowerCase())
+          .map((h: any) => h._id.toString());
+        
+        dbQuery["selectedWorks.selections.0"] = { 
+          $in: [...matchingIds, filterCategory, `TXT:${filterCategory}`] 
+        };
+      }
+
+      const result = await labWorkRepository.getAll(dbQuery, { page: 1, limit: 10000 });
+      const labWorks = result.data || [];
 
       const reportData: any[] = [];
       const searchStr = (query.technicianName || "").trim();
@@ -95,17 +104,27 @@ class LabWorkService {
           
           if (!searchRegex || searchRegex.test(techName)) {
             let category = "Unknown";
+            let categoryId: string | null = null;
             if (work.selections && work.selections.length > 0) {
               const firstSelection = work.selections[0];
               if (firstSelection.startsWith("TXT:")) {
                 category = firstSelection.replace("TXT:", "");
               } else {
                  category = hierarchyMap[firstSelection] || firstSelection;
+                 categoryId = firstSelection;
               }
             }
+            
+            if (filterCategory && filterCategory !== "all") {
+              if (category.trim().toLowerCase() !== filterCategory.trim().toLowerCase()) {
+                return;
+              }
+            }
+
             const shade = work.shadeValue ? (work.shadeSystem ? `${work.shadeSystem} - ${work.shadeValue}` : work.shadeValue) : "-";
             reportData.push({
               date: lw.receivedDate || lw.createdAt,
+              technicianName: techName || "-",
               patientName: lw.patientNameManual || lw.patient?.name || "Unknown",
               category,
               teeth: (work.teethNumbers || []).join(", "),
@@ -129,6 +148,7 @@ class LabWorkService {
       // Add columns
       worksheet.columns = [
         { header: 'Date', key: 'date', width: 15 },
+        { header: 'Technician Name', key: 'technicianName', width: 25 },
         { header: 'Patient Name', key: 'patientName', width: 25 },
         { header: 'Category', key: 'category', width: 25 },
         { header: 'Teeth', key: 'teeth', width: 15 },
@@ -146,6 +166,7 @@ class LabWorkService {
         }
         worksheet.addRow({
           date: dateStr,
+          technicianName: data.technicianName,
           patientName: data.patientName,
           category: data.category,
           teeth: data.teeth,
