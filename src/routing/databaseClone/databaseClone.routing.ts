@@ -6,6 +6,7 @@ import SendMail from "../../config/sendMail/sendMail";
 import * as fs from "fs";
 import * as path from "path";
 const archiver = require("archiver");
+const ExcelJS = require("exceljs");
 
 const databaseCloneRouter = Router();
 const { EJSON } = mongoose.mongo.BSON;
@@ -22,12 +23,12 @@ databaseCloneRouter.get("/download-export/:filename", (req, res) => {
 
 databaseCloneRouter.post("/clone-company", authenticate, async (req: any, res) => {
   try {
-    // 1. Verify Superadmin role
+    // 1. Verify Superadmin or Admin role
     const userRole = req.bodyData?.role?.toLowerCase() || req.bodyData?.userType?.toLowerCase();
-    if (userRole !== "superadmin") {
+    if (userRole !== "superadmin" && userRole !== "admin") {
       return res.status(403).json({
         status: "error",
-        message: "Forbidden: Only Superadmins can clone databases.",
+        message: "Forbidden: Only Superadmins and Admins can clone databases.",
       });
     }
 
@@ -45,6 +46,13 @@ databaseCloneRouter.post("/clone-company", authenticate, async (req: any, res) =
       return res.status(404).json({
         status: "error",
         message: "Company not found",
+      });
+    }
+
+    if (userRole === "admin" && companyId !== req.bodyData.company?.toString()) {
+      return res.status(403).json({
+        status: "error",
+        message: "Forbidden: Admins can only clone their own company's database.",
       });
     }
 
@@ -77,10 +85,65 @@ databaseCloneRouter.post("/clone-company", authenticate, async (req: any, res) =
         const collections = await sourceDb.listCollections().toArray();
         const targetCompanyObjId = new mongoose.Types.ObjectId(companyId);
 
+        const workbook = new ExcelJS.Workbook();
+        const exportableCollections = [
+          "appointment", "appointments", 
+          "user", "users", 
+          "recall", "recalls",
+          "recallappointment", "recallappointments", 
+          "recall-appointment", "recall-appointments", 
+          "toothtreatment", "toothtreatments",
+          "treatment", "treatments",
+          "workdone", "workdones", 
+          "labwork", "labworks", 
+          "lab", "labs",
+          "labdoctor", "labdoctors", 
+          "payment", "payments"
+        ];
+
         // Pre-fetch all user IDs belonging to this target company to securely filter related collections
         const usersCollection = sourceDb.collection("users");
-        const companyUsers = await usersCollection.find({ company: targetCompanyObjId }, { projection: { _id: 1 } }).toArray();
+        // Also fetch name and username for ID-to-Name mapping in Excel
+        const companyUsers = await usersCollection.find({ company: targetCompanyObjId }, { projection: { _id: 1, name: 1, username: 1, profile_details: 1 } }).toArray();
         const companyUserIds = companyUsers.map((u: any) => u._id);
+
+        const userMap = new Map<string, string>();
+        companyUsers.forEach((u: any) => {
+          userMap.set(u._id.toString(), u.name || u.username || 'Unknown User');
+        });
+
+        const flattenObject = (obj: any, prefix = '') => {
+          return Object.keys(obj).reduce((acc: any, k: string) => {
+            if (k === '_id' || k === 'id') return acc; // Exclude IDs
+            if (['password', 'permissions', 'updatedAt', '__v'].includes(k)) return acc; // Exclude extra fields
+
+            const pre = prefix.length ? prefix + '_' : '';
+            if (typeof obj[k] === 'object' && obj[k] !== null && !Array.isArray(obj[k]) && !(obj[k] instanceof Date) && !(obj[k] instanceof mongoose.Types.ObjectId) && obj[k]._bsontype !== 'ObjectID' && obj[k]._bsontype !== 'ObjectId') {
+              Object.assign(acc, flattenObject(obj[k], pre + k));
+            } else {
+              if (Array.isArray(obj[k])) {
+                acc[pre + k] = JSON.stringify(obj[k]);
+              } else {
+                let val = obj[k]?.toString ? obj[k].toString() : obj[k];
+                
+                // Format createdAt to only date
+                if (k === 'createdAt' && obj[k]) {
+                  const d = new Date(obj[k]);
+                  if (!isNaN(d.getTime())) {
+                    val = d.toISOString().split('T')[0];
+                  }
+                }
+                
+                // Replace ObjectId with User Name if it matches a known user
+                if (typeof val === 'string' && userMap.has(val)) {
+                  val = userMap.get(val);
+                }
+                acc[pre + k] = val;
+              }
+            }
+            return acc;
+          }, {});
+        };
 
         for (const col of collections) {
           if (col.type === "view") continue;
@@ -139,6 +202,16 @@ databaseCloneRouter.post("/clone-company", authenticate, async (req: any, res) =
             writeStream.write('[\n');
             let isFirst = true;
 
+            let worksheet: any = null;
+            let excelRows: any[] = [];
+            let columnsSet = new Set<string>();
+            const normalizedColName = colName.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const isMatch = exportableCollections.some(ec => normalizedColName.includes(ec));
+            
+            if (isMatch) {
+              worksheet = workbook.addWorksheet(colName);
+            }
+
             while (await cursor.hasNext()) {
               const doc = await cursor.next();
               
@@ -150,6 +223,12 @@ databaseCloneRouter.post("/clone-company", authenticate, async (req: any, res) =
               const jsonString = EJSON.stringify(doc);
               writeStream.write(jsonString);
               isFirst = false;
+
+              if (worksheet) {
+                const flattened = flattenObject(doc);
+                Object.keys(flattened).forEach(k => columnsSet.add(k));
+                excelRows.push(flattened);
+              }
             }
             
             // Close JSON array
@@ -158,10 +237,21 @@ databaseCloneRouter.post("/clone-company", authenticate, async (req: any, res) =
             
             // Wait for file to finish writing
             await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
+
+            if (worksheet && excelRows.length > 0) {
+              worksheet.columns = Array.from(columnsSet).map(c => ({ header: c, key: c }));
+              worksheet.getRow(1).font = { bold: true };
+              excelRows.forEach((row: any) => worksheet.addRow(row));
+            }
           }
         }
 
-        console.log(`JSON export complete. Zipping to: ${zipFilePath}`);
+        if (workbook.worksheets.length > 0) {
+          const excelPath = path.join(tempDir, `Readable_Data.xlsx`);
+          await workbook.xlsx.writeFile(excelPath);
+        }
+
+        console.log(`JSON and Excel export complete. Zipping to: ${zipFilePath}`);
 
         // Zip the directory
         await new Promise<void>((resolve, reject) => {

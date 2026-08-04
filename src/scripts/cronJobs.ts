@@ -7,7 +7,7 @@ import GlobalConfig from '../schemas/globalConfig/GlobalConfig';
 const sendWhatsAppReminder = async (
   phone: string,
   params: string, // e.g. "Rahul,12-Aug,10:00 AM,Dr. Smith,Clinic"
-  templateName: string = 'appointment_reminder'
+  templateName: string = 'daily_appointment_update'
 ) => {
   try {
     const user = process.env.BHASH_SMS_USER;
@@ -29,6 +29,8 @@ const sendWhatsAppReminder = async (
     url.searchParams.append('stype', 'normal');
     url.searchParams.append('Params', params);
 
+    console.log(`[WhatsApp API URL]`, url.toString());
+
     const response = await fetch(url.toString(), { method: 'GET' });
     const responseText = await response.text();
     console.log(`WhatsApp reminder sent to ${phone}. Response: ${responseText}`);
@@ -37,21 +39,21 @@ const sendWhatsAppReminder = async (
   }
 };
 
-// Send reminders for all of today's appointments for a specific company
-const sendTodayReminders = async (companyId: any) => {
+// Send reminders for tomorrow's appointments for a specific company
+const sendTomorrowReminders = async (companyId: any) => {
   try {
-    console.log("Sending reminders for today's appointments...");
+    console.log("Sending reminders for tomorrow's appointments...");
     const now = new Date();
 
-    // Get the start and end of today
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+    // Get the start and end of tomorrow
+    const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const endOfTomorrow = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
 
     // Query for scheduled appointments
     const appointments = await Appointment.find({
       company: companyId,
       status: 'scheduled',
-      appointmentDate: { $gte: startOfDay, $lt: endOfDay }
+      appointmentDate: { $gte: startOfTomorrow, $lt: endOfTomorrow }
     }).populate('patient').populate('primaryDoctor').populate('company');
 
     for (const appt of appointments) {
@@ -84,29 +86,29 @@ const sendTodayReminders = async (companyId: any) => {
 
         const params = `${patientName},${dateStr},${friendlyTimeStr}`;
         console.log(`[Cron Reminder] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
-        await sendWhatsAppReminder(patient.mobileNumber, params, 'appointment_reminder');
+        await sendWhatsAppReminder(patient.mobileNumber, params, 'daily_appointment_update');
       }
     }
   } catch (error) {
-    console.error("Error in sendTodayReminders cron:", error);
+    console.error("Error in sendTomorrowReminders cron:", error);
   }
 };
 
-// Send reminders for today's recalls for a specific company
-const sendTodayRecalls = async (companyId: any) => {
+// Send reminders for tomorrow's recalls for a specific company
+const sendTomorrowRecalls = async (companyId: any) => {
   try {
-    console.log("Sending reminders for today's recalls...");
+    console.log("Sending reminders for tomorrow's recalls...");
     const now = new Date();
 
-    // Get the start and end of today
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+    // Get the start and end of tomorrow
+    const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const endOfTomorrow = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
 
     // Query for scheduled recalls
     const recalls = await RecallAppointment.find({
       company: companyId,
       status: 'pending',
-      recallDate: { $gte: startOfDay, $lt: endOfDay }
+      recallDate: { $gte: startOfTomorrow, $lt: endOfTomorrow }
     }).populate('patient');
 
     for (const recall of recalls) {
@@ -117,9 +119,9 @@ const sendTodayRecalls = async (companyId: any) => {
 
         // Format date as DD-MMM-YYYY
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const day = startOfDay.getDate().toString().padStart(2, '0');
-        const month = months[startOfDay.getMonth()];
-        const year = startOfDay.getFullYear();
+        const day = startOfTomorrow.getDate().toString().padStart(2, '0');
+        const month = months[startOfTomorrow.getMonth()];
+        const year = startOfTomorrow.getFullYear();
         const dateStr = `${day}-${month}-${year}`;
 
         const params = `${patientName},${dateStr}`;
@@ -128,7 +130,7 @@ const sendTodayRecalls = async (companyId: any) => {
       }
     }
   } catch (error) {
-    console.error("Error in sendTodayRecalls cron:", error);
+    console.error("Error in sendTomorrowRecalls cron:", error);
   }
 };
 
@@ -156,8 +158,8 @@ export const initCronJobs = async () => {
           const reminderTime = company.whatsappConfig.reminderTime || '07:00';
           if (reminderTime === timeStr) {
             console.log(`[Cron Reminder] Triggering reminders for company ${company.company_name} at ${timeStr}`);
-            await sendTodayReminders(company._id);
-            await sendTodayRecalls(company._id);
+            await sendTomorrowReminders(company._id);
+            await sendTomorrowRecalls(company._id);
           }
         }
       }
