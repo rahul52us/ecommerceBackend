@@ -131,6 +131,7 @@ class LabWorkService {
               unit: work.unit || "-",
               shade,
               status: lw.status || "-",
+              workType: lw.workType || "-",
               amount: work.amount || 0,
             });
           }
@@ -155,6 +156,7 @@ class LabWorkService {
         { header: 'Unit', key: 'unit', width: 10 },
         { header: 'Shade', key: 'shade', width: 15 },
         { header: 'Status', key: 'status', width: 15 },
+        { header: 'Work Type', key: 'workType', width: 15 },
         { header: 'Amount', key: 'amount', width: 15 }
       ];
 
@@ -173,6 +175,7 @@ class LabWorkService {
           unit: data.unit,
           shade: data.shade,
           status: data.status,
+          workType: data.workType,
           amount: data.amount
         });
       });
