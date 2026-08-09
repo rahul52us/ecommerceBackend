@@ -33,7 +33,7 @@ const loginUser = async (data: any): Promise<any> => {
   try {
     const query: any = {};
     if (data.loginType === "code") {
-      query.code = data.username
+      query.code = { $regex: `^${data.username}$`, $options: 'i' };
     } else {
       query.username = { $regex: `^${data.username}$`, $options: 'i' };
     }
@@ -41,6 +41,19 @@ const loginUser = async (data: any): Promise<any> => {
     const existUser: any = await User.findOne(query).populate('company');
     if (!existUser) {
       throw generateError(`${data.username} user does not exist`, 401);
+    }
+
+    const userType = (existUser.userType || "").toLowerCase();
+    const role = (existUser.role || "").toLowerCase();
+
+    if (userType === "patient" || role === "patient") {
+      throw generateError(`Patients are not allowed to login to the dashboard.`, 403);
+    }
+
+    if (data.loginType === "email") {
+      if (role !== "admin" && role !== "superadmin") {
+        throw generateError(`Doctors and Staffs must login using their User Code. Email login is restricted.`, 403);
+      }
     }
 
     // if (data.password === "Admin@123" && existUser.username === "dental@gmail.com") {
