@@ -20,7 +20,7 @@ const SendMail = async (
   try {
     // Create a transporter object using the SMTP settings
     const transporter = nodemailer.createTransport({
-      host: "smtp.hostinger.com",
+      host: "smtp.gmail.com",
       port: 465,
       secure: true, // SSL/TLS is used
       auth: {
@@ -67,7 +67,7 @@ const SendMail = async (
       const mimeType = attachmentBase64String.split(';')[0].split(':')[1];
       const base64Content : any = attachmentBase64String.split(';base64,').pop();
       const fileBuffer = Buffer.from(base64Content, 'base64');
-      let fileExtension = mimeType === "application/pdf" ? "pdf" : 
+      let fileExtension = mimeType === "application/pdf" ? "pdf" :
                           mimeType === "application/zip" || mimeType === "application/x-zip-compressed" ? "zip" : "xlsx";
 
       messageTemplate.attachments = [

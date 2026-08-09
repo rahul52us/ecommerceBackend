@@ -77,13 +77,27 @@ class LabWorkService {
         hierarchyMap[h._id.toString()] = h.name;
       });
 
-      if (filterCategory && filterCategory !== "all") {
+      let filterCategories: string[] = [];
+      if (filterCategory && filterCategory !== "all" && filterCategory.length > 0) {
+        filterCategories = Array.isArray(filterCategory) ? filterCategory : [filterCategory];
+      }
+      
+      // If "all" is explicitly passed in the array, treat it as no category filter
+      if (filterCategories.includes("all")) {
+        filterCategories = [];
+      }
+
+      if (filterCategories.length > 0) {
         const matchingIds = hierarchies
-          .filter((h: any) => h.name.trim().toLowerCase() === filterCategory.trim().toLowerCase())
+          .filter((h: any) => filterCategories.some(fc => h.name.trim().toLowerCase() === fc.trim().toLowerCase()))
           .map((h: any) => h._id.toString());
         
         dbQuery["selectedWorks.selections.0"] = { 
-          $in: [...matchingIds, filterCategory, `TXT:${filterCategory}`] 
+          $in: [
+            ...matchingIds, 
+            ...filterCategories, 
+            ...filterCategories.map(fc => `TXT:${fc}`)
+          ] 
         };
       }
 
@@ -115,23 +129,22 @@ class LabWorkService {
               }
             }
             
-            if (filterCategory && filterCategory !== "all") {
-              if (category.trim().toLowerCase() !== filterCategory.trim().toLowerCase()) {
+            if (filterCategories.length > 0) {
+              if (!filterCategories.some(fc => category.trim().toLowerCase() === fc.trim().toLowerCase())) {
                 return;
               }
             }
 
-            const shade = work.shadeValue ? (work.shadeSystem ? `${work.shadeSystem} - ${work.shadeValue}` : work.shadeValue) : "-";
+            const shade = work.shadeValue ? work.shadeValue : "-";
             reportData.push({
-              date: lw.receivedDate || lw.createdAt,
+              sendDate: lw.sendDate || "-",
+              receivedDate: lw.receivedDate || "-",
               technicianName: techName || "-",
               patientName: lw.patientNameManual || lw.patient?.name || "Unknown",
               category,
               teeth: (work.teethNumbers || []).join(", "),
               unit: work.unit || "-",
               shade,
-              status: lw.status || "-",
-              workType: lw.workType || "-",
               amount: work.amount || 0,
             });
           }
@@ -148,34 +161,36 @@ class LabWorkService {
       
       // Add columns
       worksheet.columns = [
-        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Send Date', key: 'sendDate', width: 15 },
+        { header: 'Received Date', key: 'receivedDate', width: 15 },
         { header: 'Technician Name', key: 'technicianName', width: 25 },
         { header: 'Patient Name', key: 'patientName', width: 25 },
         { header: 'Category', key: 'category', width: 25 },
         { header: 'Teeth', key: 'teeth', width: 15 },
         { header: 'Unit', key: 'unit', width: 10 },
         { header: 'Shade', key: 'shade', width: 15 },
-        { header: 'Status', key: 'status', width: 15 },
-        { header: 'Work Type', key: 'workType', width: 15 },
         { header: 'Amount', key: 'amount', width: 15 }
       ];
 
       // Add rows
       reportData.forEach((data) => {
-        let dateStr = "";
-        if (data.date) {
-          try { dateStr = new Date(data.date).toLocaleDateString(); } catch (e) {}
+        let sendDateStr = "-";
+        if (data.sendDate && data.sendDate !== "-") {
+          try { sendDateStr = new Date(data.sendDate).toLocaleDateString(); } catch (e) {}
+        }
+        let receivedDateStr = "-";
+        if (data.receivedDate && data.receivedDate !== "-") {
+          try { receivedDateStr = new Date(data.receivedDate).toLocaleDateString(); } catch (e) {}
         }
         worksheet.addRow({
-          date: dateStr,
+          sendDate: sendDateStr,
+          receivedDate: receivedDateStr,
           technicianName: data.technicianName,
           patientName: data.patientName,
           category: data.category,
           teeth: data.teeth,
           unit: data.unit,
           shade: data.shade,
-          status: data.status,
-          workType: data.workType,
           amount: data.amount
         });
       });

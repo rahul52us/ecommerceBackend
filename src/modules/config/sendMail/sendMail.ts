@@ -7,7 +7,7 @@ dotenv.config()
 
 const SendMail = (names: string, username: string, link: string, subject : string, fileName :string) => {
   const transporter = nodemailer.createTransport({
-  host: "smtp.hostinger.com", // SMTP server hostnam
+  host: "smtp.gmail.com", // SMTP server hostnam
   port: 587, // SMTP server port
   secure: false, // Use SSL/TLS
   auth: {
