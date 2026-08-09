@@ -213,7 +213,7 @@ const createAdminUser = async (data: any) => {
 
 const createUser = async (data: any) => {
   try {
-    let finalCode = data.code;
+    let finalCode = data.code ? data.code.toLowerCase() : undefined;
     if (!finalCode) {
       const typeStr = (data.type || data.userType || "").toLowerCase();
       let prefix = "";
@@ -227,7 +227,7 @@ const createUser = async (data: any) => {
       const userCode = await User.findOne({ code: finalCode });
       if (userCode) {
         throw generateError(
-          `${userCode.username} already exists with ${finalCode}`,
+          `${userCode.name} already exists with ${finalCode}`,
           300
         );
       }
@@ -236,29 +236,12 @@ const createUser = async (data: any) => {
     const isNewUserPatient = (data.type || data.userType || "").toLowerCase() === 'patient';
 
     if (data.username) {
-      const existingUsernames = await User.find({ username: { $regex: new RegExp(`^${data.username}$`, 'i') } });
+      const existingUsernames = await User.find({
+        username: { $regex: new RegExp(`^${data.username}$`, 'i') },
+        role: { $in: ["admin", "superadmin"] }
+      });
       if (existingUsernames.length > 0) {
-        if (!isNewUserPatient) {
-          throw generateError("Username is already registered", 400);
-        }
-        const hasNonPatient = existingUsernames.some(u => (u.userType || "").toLowerCase() !== 'patient');
-        if (hasNonPatient) {
-          throw generateError("Username is already registered by a staff or doctor", 400);
-        }
-      }
-    }
-
-    const phone = data.phoneNumber || data.mobileNumber;
-    if (phone) {
-      const existingPhones = await User.find({ mobileNumber: phone });
-      if (existingPhones.length > 0) {
-        if (!isNewUserPatient) {
-          throw generateError("Phone number is already registered", 400);
-        }
-        const hasNonPatient = existingPhones.some(u => (u.userType || "").toLowerCase() !== 'patient');
-        if (hasNonPatient) {
-          throw generateError("Phone number is already registered by a staff or doctor", 400);
-        }
+        throw generateError(`Username "${data.username}" is already in use by an admin/superadmin and cannot be reused`, 400);
       }
     }
 
@@ -380,49 +363,32 @@ const updatePersonalDetails = async (data: any) => {
     if (!currentUser) {
       return { status: "error", data: "User not found" };
     }
-    const isEditingPatient = (currentUser.userType || "").toLowerCase() === 'patient';
-
     if (username) {
       const existingUsernames = await User.find({
         username: { $regex: new RegExp(`^${username}$`, 'i') },
+        role: { $in: ["admin", "superadmin"] },
         _id: { $ne: userId },
       });
       if (existingUsernames.length > 0) {
-        if (!isEditingPatient) {
-          return {
-            status: "error",
-            data: `${username} email is already registered`,
-          };
-        }
-        const hasNonPatient = existingUsernames.some(u => (u.userType || "").toLowerCase() !== 'patient');
-        if (hasNonPatient) {
-          return {
-            status: "error",
-            data: `${username} email is already registered by a staff or doctor`,
-          };
-        }
+        return {
+          status: "error",
+          data: `Username "${username}" is already in use by an admin/superadmin and cannot be reused`,
+        };
       }
     }
 
-    if (mobileNumber) {
-      const existingPhones = await User.find({
-        mobileNumber: mobileNumber,
+    if (data.code) {
+      data.code = data.code.toLowerCase();
+      const existCode = await User.exists({
+        code: data.code,
         _id: { $ne: userId },
       });
-      if (existingPhones.length > 0) {
-        if (!isEditingPatient) {
-          return {
-            status: "error",
-            data: `Mobile number ${mobileNumber} is already registered`,
-          };
-        }
-        const hasNonPatient = existingPhones.some(u => (u.userType || "").toLowerCase() !== 'patient');
-        if (hasNonPatient) {
-          return {
-            status: "error",
-            data: `Mobile number ${mobileNumber} is already registered by a staff or doctor`,
-          };
-        }
+
+      if (existCode) {
+        return {
+          status: "error",
+          data: `${data.code} code is already registered`,
+        };
       }
     }
 
@@ -431,6 +397,7 @@ const updatePersonalDetails = async (data: any) => {
         ...(name !== undefined && { name }),
         ...(username !== undefined && { username }),
         ...(mobileNumber !== undefined && { mobileNumber }),
+        ...(data.code !== undefined && { code: data.code }),
         ...(title !== undefined && { title }),
         ...(bio !== undefined && { bio }),
         updatedAt: new Date()
@@ -492,53 +459,23 @@ const updateUserProfileDetails = async (data: any) => {
     if (!currentUser) {
       return { status: "error", data: "User not found" };
     }
-    const isEditingPatient = (currentUser.userType || "").toLowerCase() === 'patient';
-
     if (data.username) {
       const existingUsernames = await User.find({
         username: { $regex: new RegExp(`^${data.username}$`, 'i') },
+        role: { $in: ["admin", "superadmin"] },
         _id: { $ne: data.userId },
       });
       if (existingUsernames.length > 0) {
-        if (!isEditingPatient) {
-          return {
-            status: "error",
-            data: `${data.username} username is already registered`,
-          };
-        }
-        const hasNonPatient = existingUsernames.some(u => (u.userType || "").toLowerCase() !== 'patient');
-        if (hasNonPatient) {
-          return {
-            status: "error",
-            data: `${data.username} username is already registered by a staff or doctor`,
-          };
-        }
+        return {
+          status: "error",
+          data: `Username "${data.username}" is already in use by an admin/superadmin and cannot be reused`,
+        };
       }
     }
 
-    const phone = data.phoneNumber || data.mobileNumber || data.mobileNo;
-    if (phone) {
-      const existingPhones = await User.find({
-        mobileNumber: phone,
-        _id: { $ne: data.userId },
-      });
-      if (existingPhones.length > 0) {
-        if (!isEditingPatient) {
-          return {
-            status: "error",
-            data: `Mobile number ${phone} is already registered`,
-          };
-        }
-        const hasNonPatient = existingPhones.some(u => (u.userType || "").toLowerCase() !== 'patient');
-        if (hasNonPatient) {
-          return {
-            status: "error",
-            data: `Mobile number ${phone} is already registered by a staff or doctor`,
-          };
-        }
-      }
+    if (data.code) {
+      data.code = data.code.toLowerCase();
     }
-
     const existCode = await User.exists({
       code: data.code,
       _id: { $ne: data.userId },

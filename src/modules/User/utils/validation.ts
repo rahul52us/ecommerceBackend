@@ -10,14 +10,17 @@ const UserValidation = Joi.object({
     }),
     otherwise: Joi.string().allow("").optional(),
   }),
-  username:Joi.string().min(5).max(30).required().messages({
+  username: Joi.string().min(5).max(30).allow("").optional().messages({
       "string.min": "username must have a minimum length of {#limit}",
-      "string.max": "username should not exceed a maximum length of {#limit}",
-      "any.required": "Username is required"
+      "string.max": "username should not exceed a maximum length of {#limit}"
   }),
-  mobileNumber:Joi.string().min(10).max(15).messages({
-      "string.min": "mobile Number must have a minimum length of {#limit}",
-      "string.max": "mobile Number should not exceed a maximum length of {#limit}"
+  code: Joi.string().min(6).required().messages({
+      "string.min": "Code must have a minimum length of {#limit}",
+      "any.required": "Code is required"
+  }),
+  mobileNumber: Joi.string().allow("").optional().messages({
+      "string.min": "Mobile number must have a minimum length of {#limit}",
+      "string.max": "Mobile number should not exceed a maximum length of {#limit}"
   }),
   references: Joi.array().items(
     Joi.object({

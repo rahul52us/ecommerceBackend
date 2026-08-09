@@ -55,11 +55,26 @@ const createUser = async (
     if (result.error) {
       throw generateError(result.error.details, 422);
     }
-    const existUser = await User.findOne({
-      username: new RegExp(req.body.username, "i"),
+    // Block only if username is taken by an admin or superadmin
+    if (req.body.username) {
+      const existUser = await User.findOne({
+        username: new RegExp(`^${req.body.username}$`, "i"),
+        role: { $in: ["admin", "superadmin"] },
+      });
+      if (existUser) {
+        throw generateError(
+          `Username "${req.body.username}" is already in use by an ${existUser.role} and cannot be reused`,
+          400
+        );
+      }
+    }
+
+    // Block if code already exists (code is always unique)
+    const existCode = await User.findOne({
+      code: new RegExp(`^${req.body.code}$`, "i"),
     });
-    if (existUser) {
-      throw generateError(`${existUser.username} user already exists`, 400);
+    if (existCode) {
+      throw generateError(`Code "${req.body.code}" already exists`, 400);
     }
 
     if (req.body.role !== "superadmin") {
@@ -290,7 +305,7 @@ const resetPassword = async (
     }
 
     const hashedPassword = await hashBcrypt(req.body.password);
-    
+
     const user = await User.findByIdAndUpdate(token.userId, {
       $set: { password: hashedPassword },
     });
@@ -417,7 +432,7 @@ const updateUserProfile = async (
       pic: req.body.pic,
       bio: req.body.bio,
     };
-    
+
     if (req.body.mobileNo) {
       userDataToUpdate.mobileNumber = req.body.mobileNo;
     }
