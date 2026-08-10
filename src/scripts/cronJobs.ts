@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import Appointment from '../schemas/appointments/appointments.schema';
 import RecallAppointment from '../schemas/recall-appointment/recallAppointment.schema';
 import GlobalConfig from '../schemas/globalConfig/GlobalConfig';
+import MarketingCampaign from '../schemas/marketingCampaign/MarketingCampaign.schema';
+import User from '../schemas/User/User';
 
 // Function to send BhashSMS WhatsApp message
 const sendWhatsAppReminder = async (
@@ -36,6 +38,42 @@ const sendWhatsAppReminder = async (
     console.log(`WhatsApp reminder sent to ${phone}. Response: ${responseText}`);
   } catch (error) {
     console.error(`Failed to send WhatsApp reminder to ${phone}:`, error);
+  }
+};
+
+// Function dedicated to sending Marketing Campaign WhatsApp messages
+const sendMarketingWhatsApp = async (
+  phone: string,
+  templateName: string
+) => {
+  try {
+    const user = process.env.BHASH_SMS_USER;
+    const pass = process.env.BHASH_SMS_PASS;
+    const sender = process.env.BHASH_SMS_SENDER;
+
+    if (!user || !pass || !sender) {
+      console.error("Missing BhashSMS credentials in environment variables.");
+      return;
+    }
+
+    const url = new URL('https://bhashsms.com/api/sendmsgutil.php');
+    url.searchParams.append('user', user);
+    url.searchParams.append('pass', pass);
+    url.searchParams.append('sender', sender);
+    url.searchParams.append('phone', phone);
+    url.searchParams.append('text', templateName);
+    url.searchParams.append('priority', 'wa');
+    url.searchParams.append('stype', 'normal');
+    // For marketing templates with no variables, Params is kept empty
+    url.searchParams.append('Params', '');
+
+    console.log(`[Marketing WhatsApp API URL]`, url.toString());
+
+    const response = await fetch(url.toString(), { method: 'GET' });
+    const responseText = await response.text();
+    console.log(`Marketing WhatsApp sent to ${phone}. Response: ${responseText}`);
+  } catch (error) {
+    console.error(`Failed to send Marketing WhatsApp to ${phone}:`, error);
   }
 };
 
@@ -138,6 +176,55 @@ let currentCronTask: cron.ScheduledTask | null = null;
 
 import Company from '../schemas/company/Company';
 
+// Function to process Marketing Campaigns
+const processMarketingCampaigns = async () => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const campaigns = await MarketingCampaign.find({
+      scheduledDates: { $elemMatch: { $gte: todayStart, $lte: todayEnd } }
+    });
+
+    if (campaigns.length === 0) return;
+
+    for (const campaign of campaigns) {
+      console.log(`[Marketing Campaign] Starting to send ${campaign.templateName} to ${campaign.audience}...`);
+      
+      let userQuery: any = { is_active: true };
+      
+      if (campaign.audience && Array.isArray(campaign.audience) && campaign.audience.length > 0) {
+        userQuery.userType = { $in: campaign.audience };
+      }
+      
+      if (campaign.company && campaign.company.length > 0) {
+        userQuery.company = { $in: campaign.company };
+      }
+      
+      const activeUsers = await User.find(userQuery).select('name mobileNumber');
+
+      for (const user of activeUsers) {
+        if (user.mobileNumber) {
+          // Validate mobile number: must have at least 10 digits
+          const numericPhone = user.mobileNumber.replace(/\D/g, '');
+          if (numericPhone.length >= 10 && numericPhone.length <= 15) {
+            // Using dedicated marketing function
+            await sendMarketingWhatsApp(user.mobileNumber, campaign.templateName);
+          } else {
+            console.log(`[Marketing Campaign] Skipped invalid mobile number: ${user.mobileNumber} for user ${user.name}`);
+          }
+        }
+      }
+
+      console.log(`[Marketing Campaign] Finished sending ${campaign.templateName}.`);
+    }
+  } catch (error) {
+    console.error("Error processing marketing campaigns:", error);
+  }
+};
+
 export const initCronJobs = async () => {
   if (currentCronTask) {
     currentCronTask.stop();
@@ -195,6 +282,11 @@ export const initCronJobs = async () => {
     } catch (err) {
       console.error("[Cron Cleanup] Error cleaning up old exports:", err);
     }
+  });
+
+  // CRON Job for Marketing Campaigns (runs daily at 8:00 AM)
+  cron.schedule('0 7 * * *', () => {
+    processMarketingCampaigns();
   });
 
   console.log(`CRON jobs initialized. System will send reminders based on per-company configuration, and cleanup old exports at midnight.`);
