@@ -204,10 +204,7 @@ export const updateChairsRepo = async (id: string, payload: any) => {
                 $match: {
                   $expr: { $eq: ["$chair", "$$chairId"] },
                   ...statusMatch, // apply dynamic status filter
-                  appointmentDate: { $gte: dayStart, $lte: dayEnd },
-                  ...(userType === "staff" && userId
-                    ? { createdBy: new mongoose.Types.ObjectId(userId) }
-                    : {}),
+                  appointmentDate: { $gte: dayStart, $lte: dayEnd }
                 },
               },
               {
