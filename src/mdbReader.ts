@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 
 async function exportAllTables() {
   try {
-    const filePath = "D:\\download\\dentalcare.mdb";
+    const filePath = "f:\\downloads\\dentalcare.mdb";
 
     if (!fs.existsSync(filePath)) {
       throw new Error("MDB file not found");
@@ -104,4 +104,4 @@ async function exportAllTables() {
   }
 }
 
-// exportAllTables();
+exportAllTables();
