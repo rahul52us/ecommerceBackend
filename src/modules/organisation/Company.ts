@@ -116,7 +116,7 @@ const createCompany = async (req: any, res: Response, next: NextFunction): Promi
 
     if (req.body.companyDetails.logo && req.body.companyDetails.logo !== "") {
       try {
-        let url = await uploadFile(req.body.companyDetails.logo);
+        let url = await uploadFile(req.body.companyDetails.logo, req.body.companyDetails.companyId || 'global');
         comp.logo = {
           name: req.body.companyDetails.logo.filename,
           url: url,
@@ -227,7 +227,7 @@ const createOrganisationCompany = async (
 
     if (req.body.companyDetails.logo && req.body.companyDetails.logo !== "") {
       try {
-        let url = await uploadFile(req.body.companyDetails.logo);
+        let url = await uploadFile(req.body.companyDetails.logo, req.body.companyDetails.companyId || 'global');
         comp.logo = {
           name: req.body.companyDetails.logo.filename,
           url: url,
@@ -305,7 +305,7 @@ const updateOrganisationCompany = async (
 
       if (req.body.companyDetails.logo && req.body.companyDetails.logo !== "" && req.body.companyDetails.isLogoEdit) {
         try {
-          let url = await uploadFile(req.body.companyDetails.logo);
+          let url = await uploadFile(req.body.companyDetails.logo, req.body.companyDetails.companyId || 'global');
           updatedCompany.logo = {
             name: req.body.companyDetails.logo.filename,
             url: url,
@@ -569,7 +569,7 @@ export const updateCompanyLogo = async (req: any, res: Response, next: NextFunct
         type: "image/png"
       };
     } else if (logo && logo.buffer && logo.filename) {
-      let url = await uploadFile(logo);
+      let url = await uploadFile(logo, 'global');
       newLogo = {
         name: logo.filename,
         url: url,

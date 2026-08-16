@@ -328,7 +328,7 @@ const deleteUser = async (userId: any) => {
     }
 
     if (user.pic?.name) {
-      await deleteFile(user.pic.name);
+      await deleteFile(user.pic.url);
     }
 
     await User.findByIdAndDelete(userId);
@@ -514,8 +514,8 @@ const updateUserProfileDetails = async (data: any) => {
 
 
 
-    if (pic.isDeleted && users.pic?.url && users.pic?.name) {
-      await deleteFile(users.pic.name);
+    if (pic.isDeleted && users.pic?.url ) {
+      await deleteFile(users.pic.url);
       users.pic = {
         name: undefined,
         url: undefined,
@@ -1004,7 +1004,7 @@ async function uploadDocument(originalDoc: any, data: any, fieldName: string) {
       data[fieldName]?.isDeleted === 1 &&
       originalDoc[fieldName]
     ) {
-      const deleted = await deleteFile(originalDoc[fieldName]?.name);
+      const deleted = await deleteFile(originalDoc[fieldName]?.url);
       return null;
     }
     return originalDoc[fieldName];
@@ -2018,8 +2018,8 @@ const updateAdminProfileDetails = async (data: any) => {
       };
     }
 
-    if (pic?.isDeleted && users.pic?.url && users.pic?.name) {
-      await deleteFile(users.pic.name);
+    if (pic?.isDeleted && users.pic?.url ) {
+      await deleteFile(users.pic.url);
       users.pic = {
         name: undefined,
         url: undefined,

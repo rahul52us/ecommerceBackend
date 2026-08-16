@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import PatientDocumentModel from "../../schemas/patientDocument/patientDocument.schema";
+import { deleteFile } from "../uploadDoc.repository";
 
 const toObjectId = (id: any) => {
   if (!id) return null;
@@ -87,7 +88,11 @@ export const deletePatientDocument = async (data: any) => {
       };
     }
 
-    await PatientDocumentModel.findByIdAndUpdate(id, { isActive: false });
+    const doc = await PatientDocumentModel.findById(id);
+    if (doc && doc.url) {
+      await deleteFile(doc.url);
+    }
+    await PatientDocumentModel.findByIdAndDelete(id);
 
     return {
       success: "success",

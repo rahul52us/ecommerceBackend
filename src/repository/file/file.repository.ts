@@ -6,7 +6,7 @@ export const uploadFileDocument = async (data: any) => {
   try {
     if (data.file?.filename && data.file?.buffer && data.file) {
       data.file.filename = generateFileName(data.file.filename);
-      const url = await uploadFile(data.file);
+      const url = await uploadFile(data.file, 'global');
       return {
         status: "success",
         data: url,

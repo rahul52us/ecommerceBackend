@@ -6,7 +6,7 @@ export async function processCategories(req : any , categories: any[], savedData
       for (const item of categories) {
         if (item.thumbnail !== "" && item.thumbnail) {
           try {
-            const url = await uploadFile(item.thumbnail);
+            const url = await uploadFile(item.thumbnail, req?.bodyData?.company || 'global');
             const fileData: any = {
               name: item.thumbnail.filename,
               url: url,

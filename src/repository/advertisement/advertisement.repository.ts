@@ -1,10 +1,10 @@
 import Advertisement from "../../schemas/advertisement/advertisement.schema";
-import { uploadFile } from "../uploadDoc.repository";
+import { uploadFile, deleteFile } from "../uploadDoc.repository";
 
 export const createAdvertisement = async (data: any, userId: string, companyId: string) => {
   try {
     if (data.image && data.image.isAdd === 1) {
-      const url = await uploadFile(data.image);
+      const url = await uploadFile(data.image, companyId);
       data.image = {
         name: data.image.filename,
         url: url,
@@ -38,7 +38,7 @@ export const createAdvertisement = async (data: any, userId: string, companyId: 
 export const updateAdvertisement = async (id: string, data: any) => {
   try {
     if (data.image && data.image.isAdd === 1) {
-      const url = await uploadFile(data.image);
+      const url = await uploadFile(data.image, data.companyId || 'global');
       data.image = {
         name: data.image.filename,
         url: url,
@@ -155,6 +155,10 @@ export const deleteAdvertisement = async (id: string) => {
         message: "Advertisement not found",
         statusCode: 404,
       };
+    }
+    
+    if (deletedAdvertisement.image && deletedAdvertisement.image.url) {
+      await deleteFile(deletedAdvertisement.image.url);
     }
     return {
       status: "success",
