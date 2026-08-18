@@ -16,14 +16,14 @@ async function uploadFile(file: any, companyId: string = 'global'): Promise<stri
     const rawExtName = file.originalname || file.filename || 'unknown';
     // Remove spaces and special characters (keep alphanumeric, dot, hyphen, underscore)
     const extName = rawExtName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    
+
     const ext = extName.includes('.') ? `.${extName.split('.').pop()}` : '.png';
     const random10Chars = Math.random().toString(36).substring(2, 12);
     const uniqueFilename = `${companyId}-${random10Chars}-${extName}`;
-    
+
     // Write file to local folder
     const filePath = path.join(uploadPath, uniqueFilename);
-    
+
     // Check if buffer is a base64 data URI string and decode it
     let fileData = file.buffer;
     if (typeof fileData === 'string' && fileData.startsWith('data:')) {
@@ -32,11 +32,11 @@ async function uploadFile(file: any, companyId: string = 'global'): Promise<stri
         fileData = Buffer.from(base64Data, 'base64');
       }
     }
-    
+
     fs.writeFileSync(filePath, fileData);
 
     // Return the URL for the frontend
-    const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 9098}`;
+    const baseUrl = process.env.APP_BASE_URL || `http://localhost:${process.env.PORT || 9098}`;
     return `${baseUrl}/uploads/${uniqueFilename}`;
   } catch (error: any) {
     console.log(error?.message);
@@ -59,7 +59,7 @@ async function deleteFile(fileNameOrUrl: string): Promise<boolean> {
     // Delete file if it exists
     const filePath = path.join(uploadPath, fileName);
     console.log(`[deleteFile] Attempting to delete: ${filePath}`);
-    
+
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       console.log(`[deleteFile] Successfully deleted: ${filePath}`);

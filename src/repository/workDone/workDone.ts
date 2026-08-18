@@ -1282,6 +1282,21 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       {
         $addFields: {
           periodReceivedAmount: { $sum: "$paymentHistory.amount" },
+          periodWalletReceived: {
+            $sum: {
+              $map: {
+                input: {
+                  $filter: {
+                    input: "$paymentHistory",
+                    as: "payment",
+                    cond: { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] }
+                  }
+                },
+                as: "walletPayment",
+                in: { $abs: "$$walletPayment.amount" }
+              }
+            }
+          },
           balanceDue: {
             $subtract: [
               { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] },
@@ -1301,13 +1316,14 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           totalBilled: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$discount", 0] }] } },
           totalPaid: { $sum: { $ifNull: ["$periodReceivedAmount", 0] } },
           totalDue: { $sum: { $cond: [{ $gt: ["$balanceDue", 0] }, "$balanceDue", 0] } },
-          totalAdvance: { $sum: { $cond: [{ $lt: ["$balanceDue", 0] }, { $abs: "$balanceDue" }, 0] } }
+          totalAdvance: { $sum: { $cond: [{ $lt: ["$balanceDue", 0] }, { $abs: "$balanceDue" }, 0] } },
+          totalWalletReceived: { $sum: { $ifNull: ["$periodWalletReceived", 0] } }
         },
       }
     ];
 
     const summaryResult = await WorkDoneSchema.aggregate(summaryPipeline);
-    const summary = summaryResult[0] || { totalBilled: 0, totalPaid: 0, totalDue: 0 };
+    const summary = summaryResult[0] || { totalBilled: 0, totalPaid: 0, totalDue: 0, totalAdvance: 0, totalWalletReceived: 0 };
 
     return {
       success: "success",

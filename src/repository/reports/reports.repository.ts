@@ -56,6 +56,7 @@ export async function downloadReport(data: any) {
       // =====================================
       case "patient": {
         let matchStage: any = { userType: "patient" };
+        if (data.company) matchStage.company = new mongoose.Types.ObjectId(data.company);
 
         if (Object.keys(dateFilter).length > 0) {
           matchStage.createdAt = dateFilter;
@@ -144,6 +145,7 @@ export async function downloadReport(data: any) {
       // =====================================
       case "doctor": {
         let matchStage: any = { userType: "doctor" };
+        if (data.company) matchStage.company = new mongoose.Types.ObjectId(data.company);
 
         if (Object.keys(dateFilter).length > 0) {
           matchStage.createdAt = dateFilter;
@@ -227,6 +229,7 @@ export async function downloadReport(data: any) {
       // =====================================
       case "appointment": {
   let matchStage: any = {};
+  if (data.company) matchStage.company = new mongoose.Types.ObjectId(data.company);
 
   // Patient filter
   if (filters.patientId) {
@@ -367,6 +370,7 @@ export async function downloadReport(data: any) {
       // =====================================
       case "recall": {
         let matchStage: any = {};
+        if (data.company) matchStage.company = new mongoose.Types.ObjectId(data.company);
 
         if (filters.patientId) matchStage.patient = new mongoose.Types.ObjectId(filters.patientId);
 
@@ -433,6 +437,7 @@ export async function downloadReport(data: any) {
           userType: { $nin: ["patient", "doctor"] },
           role: { $in: ["admin", "user", "superadmin"] },
         };
+        if (data.company) matchStage.company = new mongoose.Types.ObjectId(data.company);
 
         if (filters.role && filters.role !== "all") {
           if (filters.role === "admin" || filters.role === "user" || filters.role === "superadmin") {
@@ -492,6 +497,7 @@ export async function downloadReport(data: any) {
       // =====================================
       case "labWork": {
         let matchStage: any = { isActive: true };
+        if (data.company) matchStage.company = new mongoose.Types.ObjectId(data.company);
 
         if (filters.workType && filters.workType !== "all" && filters.workType.length > 0) {
           if (Array.isArray(filters.workType)) {
@@ -641,7 +647,9 @@ export async function downloadReport(data: any) {
         ]);
 
         // Fetch all hierarchy names to resolve IDs in the report
-        const hierarchies = await LabWorkHierarchy.find({ isActive: true });
+        const hierarchyQuery: any = {};
+        if (data.company) hierarchyQuery.company = new mongoose.Types.ObjectId(data.company);
+        const hierarchies = await LabWorkHierarchy.find(hierarchyQuery);
         const hierarchyMap: any = {};
         hierarchies.forEach(h => {
           hierarchyMap[h._id.toString()] = h.name;
@@ -659,21 +667,33 @@ export async function downloadReport(data: any) {
           receivedDate: formatToIndianDate(lw.receivedDate),
           status: lw.status ? lw.status.toUpperCase() : "N/A",
           price: lw.price || 0,
-          works: lw.selectedWorks?.map((w: any) => {
-            return w.selections?.map((sel: string) => {
+          works: lw.selectedWorks?.map((w: any, i: number) => {
+            const prefix = lw.selectedWorks.length > 1 ? `${i + 1}. ` : "";
+            const str = w.selections?.map((sel: string) => {
               if (sel && sel.startsWith("TXT:")) return sel.replace("TXT:", "");
               return hierarchyMap[sel] || sel;
             }).join(" > ");
-          }).join(", ") || "-",
-          teethNumber: lw.selectedWorks?.map((w: any) => w.teethNumbers?.join(", ") || "").filter(Boolean).join(", ") || "-",
-          shade: lw.selectedWorks?.map((w: any) => {
+            return `${prefix}${str}`;
+          }).join("\n") || "-",
+          teethNumber: lw.selectedWorks?.map((w: any, i: number) => {
+            const prefix = lw.selectedWorks.length > 1 ? `${i + 1}. ` : "";
+            const teeth = w.teethNumbers?.join(", ") || "-";
+            return `${prefix}${teeth}`;
+          }).join("\n") || "-",
+          shade: lw.selectedWorks?.map((w: any, i: number) => {
+            const prefix = lw.selectedWorks.length > 1 ? `${i + 1}. ` : "";
             const sys = w.shadeSystem;
             const val = w.shadeValue;
-            if (sys && val) return `${sys} - ${val}`;
-            if (val) return val;
-            return "";
-          }).filter(Boolean).join(", ") || "-",
-          unit: lw.selectedWorks?.map((w: any) => w.unit || "").filter(Boolean).join(", ") || "-",
+            let str = "-";
+            if (sys && val) str = `${sys} - ${val}`;
+            else if (val) str = val;
+            return `${prefix}${str}`;
+          }).join("\n") || "-",
+          unit: lw.selectedWorks?.map((w: any, i: number) => {
+            const prefix = lw.selectedWorks.length > 1 ? `${i + 1}. ` : "";
+            const unitVal = w.unit || "-";
+            return `${prefix}${unitVal}`;
+          }).join("\n") || "-",
           warrantyCardNumber: lw.warrantyCardNumber || "-",
         }));
         break;
@@ -706,13 +726,31 @@ export async function downloadReport(data: any) {
     };
     headerRow.alignment = { vertical: "middle", horizontal: "center" };
 
+    // Add borders to all cells
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+          left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+          bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+          right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
+        };
+      });
+    });
+
     // Auto-adjust column widths
     worksheet.columns.forEach((col: any) => {
       const maxLength = Math.max(
         col.header?.length || 0,
-        ...rows.map((row: any) => (row[col.key] || "").toString().length)
+        ...rows.map((row: any) => {
+           const str = (row[col.key] || "").toString();
+           const lines = str.split("\n");
+           return Math.max(...lines.map((l: string) => l.length));
+        })
       );
       col.width = maxLength + 8;
+      
+      col.alignment = { wrapText: true, vertical: "middle" };
     });
 
     const buffer : any = await workbook.xlsx.writeBuffer();
