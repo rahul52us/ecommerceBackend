@@ -10,8 +10,10 @@ import {
   generateOldWorkCompReportService,
   generateOldToothWorkReportService,
   generateOldTransactionReportService,
-  generateOldWorkFeeReportService
+  generateOldWorkFeeReportService,
+  getPatientOldDataService,
 } from "../../services/oldData/oldData.service";
+import { importExcelService } from "../../services/oldData/importExcel.service";
 
 const oldData = express.Router();
 
@@ -21,6 +23,12 @@ oldData.get("/transactions", authenticate, getOldTransactionService);
 oldData.get("/work-fees", authenticate, getOldWorkFeeService);
 oldData.get("/legacy-record-details/:legacyWrkDoneId", authenticate, getLegacyRecordDetailsService);
 oldData.get("/patient-history/:legacyPatCode", authenticate, getLegacyPatientHistoryService);
+
+// Excel Patient Import — file is sent as base64 string in JSON body: { "file": "<base64>" }
+oldData.post("/import-excel", authenticate, importExcelService);
+
+// Fetch OldData (Excel-imported) for a specific patient by their MongoDB userId
+oldData.get("/by-patient/:userId", authenticate, getPatientOldDataService);
 
 // Report Generation Endpoints
 oldData.post("/generate-work-comp-report", authenticate, generateOldWorkCompReportService);

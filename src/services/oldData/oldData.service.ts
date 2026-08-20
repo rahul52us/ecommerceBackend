@@ -491,3 +491,34 @@ export const generateOldWorkFeeReportService = async (req: Request, res: Respons
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ── New OldData (Excel-imported) — fetch by patient userId ───────────────────
+import { OldData } from "../../schemas/legacy/OldData";
+
+export const getPatientOldDataService = async (req: any, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const companyId = req.bodyData?.company;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID" });
+    }
+
+    const query: any = { user: new mongoose.Types.ObjectId(userId) };
+    if (companyId) {
+      query.company = new mongoose.Types.ObjectId(companyId);
+    }
+
+    const data = await OldData.find(query)
+      .sort({ Work_Date: -1, Work_ID: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data,
+      totalCount: data.length,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
