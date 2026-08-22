@@ -5,7 +5,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Create uploads directory if it doesn't exist
-const uploadPath = path.join(__dirname, '../../public/uploads');
+// Vercel serverless functions have a read-only filesystem except for /tmp
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+const uploadPath = isVercel
+  ? path.join('/tmp', 'uploads')
+  : path.join(__dirname, '../../public/uploads');
+
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
