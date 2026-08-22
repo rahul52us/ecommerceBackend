@@ -877,7 +877,6 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   let y = Number(topPadding) > 0 ? Number(topPadding) : 40;
 
   // --- REPORT TITLE BAR ---
-  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
   y += 15; // Extra padding from top border
 
   const getPageBottomLimit = () => doc.bufferedPageRange().count === 1 ? 780 : 780 - Number(bottomPadding);
@@ -927,13 +926,15 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     y += 10;
   }
 
-  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
-
   y += 25;
 
   if (reportType === "both" || reportType === "workdone_only") {
     // --- DOCTOR & PATIENT NOTES ---
-    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr.${(record.doctor as any)?.name || "N/A"}`, MARGIN, y);
+    const docName = (record?.doctor as any)?.name || "N/A";
+    const formattedDoc = docName?.toLowerCase().startsWith("dr") ? docName : `Dr. ${docName}`;
+    const examName = (record?.examiningDoctor as any)?.name;
+    const formattedExam = examName ? (examName.toLowerCase().startsWith("dr") ? ` And ${examName}` : ` And Dr. ${examName}`) : "";
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`${formattedDoc}${formattedExam}`, MARGIN, y);
     y += 18;
 
     // --- NOTE & TOOTH DETAILS ON SAME LINE ---
@@ -991,7 +992,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
     // Brand Name and Type (Pushed right to avoid number overlap)
-    doc.fillColor("#b91c1c").text(`${p.form || ""} - ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`${p.form || ""} - ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
     // Dosage Summary (printed immediately after the Brand Name)
     const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
@@ -1078,7 +1079,6 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
   let y = Number(topPadding) > 0 ? Number(topPadding) : 40;
 
   // --- REPORT TITLE BAR ---
-  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
   y += 15; // Extra padding from top border
 
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11);
@@ -1125,8 +1125,6 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     y += 10;
   }
 
-  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
-
   y += 25;
 
   const getPageBottomLimit = () => doc.bufferedPageRange().count === 1 ? 780 : 780 - Number(bottomPadding);
@@ -1135,11 +1133,16 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     // --- DOCTOR & PATIENT NOTES (Grouped by Doctor) ---
     const recordsByDoctor: { [key: string]: any[] } = {};
     safeRecords.forEach((record: any) => {
-      const doctorName = (record.doctor as any)?.name || "N/A";
-      if (!recordsByDoctor[doctorName]) {
-        recordsByDoctor[doctorName] = [];
+      let doctorName = (record.doctor as any)?.name || "N/A";
+      let formattedDoc = doctorName.toLowerCase().startsWith("dr") ? doctorName : `Dr. ${doctorName}`;
+      let examName = (record.examiningDoctor as any)?.name;
+      if (examName) {
+          formattedDoc += examName.toLowerCase().startsWith("dr") ? ` And ${examName}` : ` And Dr. ${examName}`;
       }
-      recordsByDoctor[doctorName].push(record);
+      if (!recordsByDoctor[formattedDoc]) {
+        recordsByDoctor[formattedDoc] = [];
+      }
+      recordsByDoctor[formattedDoc].push(record);
     });
 
   Object.keys(recordsByDoctor).forEach((doctorName, docIndex) => {
@@ -1153,7 +1156,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       y = 50;
     }
 
-    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${doctorName}`, MARGIN, y);
+    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(doctorName, MARGIN, y);
     y += 18;
 
     let lastDateStr = "";
@@ -1184,7 +1187,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       if (y + recordHeight > getPageBottomLimit()) {
         doc.addPage({ margin: 0 });
         y = 50;
-        doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`Dr. ${doctorName} (cont.)`, MARGIN, y);
+        doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(11).text(`${doctorName} (cont.)`, MARGIN, y);
         y += 18;
       }
 
@@ -1246,7 +1249,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
       // Brand Name and Type (Pushed right to avoid number overlap)
-      doc.fillColor("#b91c1c").text(`${p.form || ""}-${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`${p.form || ""}-${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
       // Dosage Summary (printed immediately after the Brand Name)
       const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
@@ -1362,7 +1365,6 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
       y += 10;
     }
 
-    doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
   }
 
@@ -1389,7 +1391,11 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
 
     // Doctor & Tooth Info
     doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMuted);
-    doc.text(`Doctor: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(record.doctor?.name || "N/A", { continued: true });
+    const docName = record.doctor?.name || "N/A";
+    const formattedDoc = docName.toLowerCase().startsWith("dr") ? docName : `Dr. ${docName}`;
+    const examName = record.examiningDoctor?.name;
+    const formattedExam = examName ? (examName.toLowerCase().startsWith("dr") ? ` And ${examName}` : ` And Dr. ${examName}`) : "";
+    doc.text(`Doctor: `, MARGIN + 25, y, { continued: true }).font("Helvetica").text(`${formattedDoc}${formattedExam}`, { continued: true });
     doc.font("Helvetica-Bold").text(`    Tooth: `, { continued: true }).font("Helvetica").text(record.tooth || "N/A");
     y += 15;
 
@@ -1425,7 +1431,7 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
       }
 
       doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
-      doc.fillColor("#b91c1c").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`${p.type || ""} ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
       const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
       doc.fillColor(COLORS.textMain).text(qtyText);
@@ -2060,7 +2066,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     if (colX.treatment) doc.text(treatName, colX.treatment, y + 8, { width: colW.treatment - 5 });
 
     if (colX.doctor) doc.text(docName.slice(0, 15), colX.doctor, y + 8, { width: colW.doctor - 5, ellipsis: true });
-    
+
     if (colX.walletBalance) doc.fillColor("#7e22ce").text((row.patientInfo?.walletBalance || 0).toString(), colX.walletBalance, y + 8);
 
     if (colX.fees) {
