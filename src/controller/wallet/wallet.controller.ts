@@ -159,3 +159,53 @@ export const addManualCreditToWallet = async (req: any, res: any) => {
     res.status(500).json({ success: false, message: error.message || "Internal server error." });
   }
 };
+
+export const deductManualCreditFromWallet = async (req: any, res: any) => {
+  try {
+    const { patientId, amount, description, company } = req.body;
+    // @ts-ignore
+    const createdBy = req.userId;
+
+    if (!patientId || !amount || amount <= 0 || !company) {
+      return res.status(400).json({ success: false, message: "Valid patientId, company, and amount are required." });
+    }
+
+    if (!description || description.trim() === "") {
+      return res.status(400).json({ success: false, message: "Description is mandatory for deductions." });
+    }
+
+    const patientUser = await User.findById(patientId);
+    if (!patientUser) {
+      return res.status(404).json({ success: false, message: "Patient not found." });
+    }
+
+    if ((patientUser.walletBalance || 0) < amount) {
+      return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
+    }
+
+    // Deduct from Patient's Wallet Balance
+    patientUser.walletBalance = (patientUser.walletBalance || 0) - amount;
+    await patientUser.save();
+
+    // Record the Wallet Transaction
+    const walletTxn = new WalletTransaction({
+      patient: patientId,
+      company: company,
+      amount: amount,
+      type: "Withdrawal",
+      description: description,
+      createdBy,
+    });
+    await walletTxn.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Credit successfully deducted from wallet.",
+      walletBalance: patientUser.walletBalance,
+      transaction: walletTxn
+    });
+  } catch (error: any) {
+    console.error("Error deducting manual credit from wallet:", error);
+    res.status(500).json({ success: false, message: error.message || "Internal server error." });
+  }
+};
