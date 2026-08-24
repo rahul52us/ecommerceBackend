@@ -79,10 +79,31 @@ console.log(`duplicate Wrk_done_id rows re-keyed: ${duplicates}`);
 console.log("[4/7] Aggregating tooth details and prescriptions per visit ...");
 const detAgg: any = {};
 det.forEach(r => {
-  const line = `[${r.ToothNo || ''}] ${r.ToothName || ''}: ${r.Wrk_Done || ''}`.replace(/^\[\]\s*:\s*/, '').trim();
+  const row_tooth = (r.ToothNo || '').toString().trim();
+  const row_name = (r.ToothName || '').toString().trim();
+  const row_done = (r.Wrk_Done || '').toString().trim();
+  const row_sp = (r.Sp_Notes || '').toString().trim();
+
+  const bodyParts = [];
+  if (row_done) bodyParts.push(row_done);
+  if (row_sp) bodyParts.push(row_sp);
+  const body = bodyParts.join(" ").replace(/\n/g, " ").trim();
+
+  let line = "";
+  if (row_tooth) {
+    const label = `[${row_tooth}] ${row_name}`.trim();
+    line = body ? `${label}: ${body}`.replace(/: $/, '') : label;
+  } else {
+    line = body;
+  }
+
+  const is_tooth = row_tooth !== "";
+
   if (!detAgg[r.Wrk_done_id]) detAgg[r.Wrk_done_id] = { Treatments: [], Teeth_Count: 0 };
-  if (line.replace(/\[\]|:/g, '').trim()) {
-    detAgg[r.Wrk_done_id].Treatments.push(line);
+  if (line.trim()) {
+    detAgg[r.Wrk_done_id].Treatments.push(line.trim());
+  }
+  if (is_tooth) {
     detAgg[r.Wrk_done_id].Teeth_Count++;
   }
 });

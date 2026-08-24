@@ -1716,11 +1716,8 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     white: "#FFFFFF"
   };
 
-  // Background Wash
-  doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT).fill("#FAFAFA");
-
   // --- HEADER SECTION ---
-  doc.rect(0, 0, PAGE_WIDTH, 90).fill(COLORS.brandLight);
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, 95).lineTo(PAGE_WIDTH - MARGIN, 95).stroke();
 
   // Clinic Info (Left Side)
   doc
@@ -1728,12 +1725,6 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     .font("Helvetica-Bold")
     .fontSize(22)
     .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25);
-
-  doc
-    .fillColor(COLORS.textMuted)
-    .font("Helvetica")
-    .fontSize(9)
-    .text(clinic?.address || "Clinic Address Not Provided", MARGIN, 52);
 
   // Statement & Patient Info (Right Side)
   const pInfo = patient?.profile_details?.personalInfo || {};
@@ -1760,22 +1751,31 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     .text("TREATMENT REPORT", rightAlignX, 25, { align: "right", width: 250 })
     .fillColor(COLORS.textMain)
     .fontSize(10)
-    .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 })
-    .fillColor(COLORS.textMuted)
-    .fontSize(8.5)
-    .font("Helvetica")
-    .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
-    .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
-    .text(`Receipt No: ${data.receiptNumber || `TRM-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
-    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 96, { align: "right", width: 250 });
+    .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 });
+
+  let currentY = 60;
+  doc.fillColor(COLORS.textMuted).fontSize(8.5).font("Helvetica");
+
+  const metaStr = metaArr.join(" | ");
+  if (metaStr) {
+    doc.text(metaStr, rightAlignX, currentY, { align: "right", width: 250 });
+    currentY += 12;
+  }
+
+  if (patientAddress) {
+    doc.text(patientAddress, rightAlignX, currentY, { align: "right", width: 250, lineBreak: false, ellipsis: true });
+    currentY += 12;
+  }
+
+  doc.text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, currentY, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
-  const tableTop = 115;
+  const tableTop = 105;
   const rowH = 28;
   const headerH = 26;
 
   doc.save();
-  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+  doc.fillColor("#F1F5F9").roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
 
   const colX = {
     sit: MARGIN + 5,
@@ -1788,7 +1788,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   };
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .fontSize(8)
     .font("Helvetica-Bold")
     .text("SITTING", colX.sit, tableTop + 9)
@@ -1809,7 +1809,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     const notesStr = record.notes || "N/A";
     let estimateStr = "N/A";
     if (record.estimateMin || record.estimateMax) {
-      estimateStr = `₹${record.estimateMin || 0} - ₹${record.estimateMax || 0}`;
+      estimateStr = `Rs. ${record.estimateMin || 0} - Rs. ${record.estimateMax || 0}`;
     }
     const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
@@ -1823,8 +1823,8 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     if (y + currentRowH > 770 && rowCount > 0) {
       doc.addPage({ margin: 0 });
       y = 40;
-      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
-      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
+      doc.fillColor("#F1F5F9").roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
+      doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
       y += 24;
     }
 
@@ -1883,8 +1883,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(i);
-    doc.fillColor(COLORS.white).rect(0, 0, PAGE_WIDTH, 15).fill(COLORS.brand);
-    doc.rect(0, PAGE_HEIGHT - 15, PAGE_WIDTH, 15).fill(COLORS.brand);
+    // Removed purple top/bottom bars for a cleaner print
   }
 
   doc.end();
