@@ -314,11 +314,21 @@ export const getToothTreatments = async (query: any) => {
     }
 
     if (query.toDate) {
-      const startOfDay = new Date(query.toDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(query.toDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      matchStage.treatmentDate = { $gte: startOfDay, $lte: endOfDay };
+      // query.toDate is passed as "YYYY-MM-DDT23:59:59.999Z". We should just extract the YYYY-MM-DD part.
+      const dateStr = String(query.toDate).split('T')[0];
+      const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+      const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+      matchStage.$or = [
+        { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
+        {
+          treatmentDate: { $exists: false },
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        },
+        {
+          treatmentDate: null,
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        }
+      ];
     }
 
 
@@ -648,20 +658,31 @@ export const getTodayToothTreatments = async (query: any) => {
       };
     }
 
-    // Use selected date or default to today
-    const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    let startOfDay, endOfDay;
+    if (date && date.length === 10) { // YYYY-MM-DD
+      startOfDay = new Date(`${date}T00:00:00.000Z`);
+      endOfDay = new Date(`${date}T23:59:59.999Z`);
+    } else {
+      const targetDate = date ? new Date(date) : new Date();
+      startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+    }
     const matchStage = {
       isActive: true,
       patient: new mongoose.Types.ObjectId(patientId),
       company: new mongoose.Types.ObjectId(company),
-      // We look for records that were either documented for this date OR created on this date
       $or: [
         { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
-        { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+        {
+          treatmentDate: { $exists: false },
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        },
+        {
+          treatmentDate: null,
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        }
       ]
     };
 
@@ -722,12 +743,17 @@ export const getTodayToothCount = async (query: any) => {
       };
     }
 
-    // Use selected date or default to today
-    const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    let startOfDay, endOfDay;
+    if (date && date.length === 10) { // YYYY-MM-DD
+      startOfDay = new Date(`${date}T00:00:00.000Z`);
+      endOfDay = new Date(`${date}T23:59:59.999Z`);
+    } else {
+      const targetDate = date ? new Date(date) : new Date();
+      startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+    }
 
     const matchStage = {
       isActive: true,
@@ -735,7 +761,14 @@ export const getTodayToothCount = async (query: any) => {
       company: new mongoose.Types.ObjectId(company),
       $or: [
         { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
-        { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+        {
+          treatmentDate: { $exists: false },
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        },
+        {
+          treatmentDate: null,
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
+        }
       ]
     };
 

@@ -569,6 +569,7 @@ export const getWorkDoneCountByDateService = async (req: any, res: any) => {
     const { statusCode, success, message, data }: any = await getWorkDoneCountByDate({
       patientId: req.query.patientId,
       company: req.query.company,
+      treatmentId: req.query.treatmentId,
     });
 
     return res.status(statusCode).send({

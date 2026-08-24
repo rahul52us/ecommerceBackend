@@ -907,11 +907,15 @@ export const getWorkDoneCountByDate = async (query: any) => {
       };
     }
 
-    const matchStage = {
+    const matchStage: any = {
       isActive: { $ne: false },
       patient: new mongoose.Types.ObjectId(patientId),
       company: new mongoose.Types.ObjectId(company),
     };
+
+    if (query.treatmentId) {
+      matchStage.treatment = new mongoose.Types.ObjectId(query.treatmentId);
+    }
 
     const pipeline = [
       { $match: matchStage },
