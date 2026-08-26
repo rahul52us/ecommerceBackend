@@ -161,69 +161,106 @@ class PaymentController {
       if (updatedPayment) {
         // Update total receivedAmount
         const payments = await PaymentService.getPayments({ workDoneId: updatedPayment.workDone });
-        let totalReceived = payments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
         
         const WorkDoneModel = require("../../schemas/workDone/workDone.schema").default;
         const AccountabilityModel = require("../../schemas/accountability/accountability.schema").default;
         
+        // 1. Calculate Sum of Real Payments (excluding auto-generated negative ones)
+        const realPayments = payments.filter((p: any) => p.paymentMethod !== "Transferred to Wallet");
+        const sumReal = realPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+        
+        // 2. Calculate Required Overpayment
         const workDoneDataPre = await WorkDoneModel.findById(updatedPayment.workDone);
         const bill = Math.max(0, (workDoneDataPre?.amount || 0) - (workDoneDataPre?.discount || 0));
+        const requiredOverpayment = Math.max(0, sumReal - bill);
 
-        // Handle overpayment logic
-        const overpayment = totalReceived - bill;
-        if (overpayment > 0) {
-          const User = require("../../schemas/User/User").default;
-          const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
-          const PaymentModel = require("../../schemas/payment/payment.schema").default;
-          
-          const patientId = updatedPayment.patient?._id || updatedPayment.patient;
-          const companyId = updatedPayment.company?._id || updatedPayment.company;
-          const workDoneId = updatedPayment.workDone?._id || updatedPayment.workDone;
+        // 3. Find Current Overpayment (sum of all existing negative "Transferred to Wallet" entries)
+        const currentNegativeEntries = payments.filter((p: any) => p.paymentMethod === "Transferred to Wallet" && p.amount < 0);
+        const currentOverpayment = currentNegativeEntries.reduce((sum: number, p: any) => sum + Math.abs(Number(p.amount) || 0), 0);
 
-          // 1. Create a negative payment to settle the overpaid treatment
-          const negativePayment = new PaymentModel({
+        // 4. Calculate Difference
+        const difference = currentOverpayment - requiredOverpayment;
+
+        const patientId = updatedPayment.patient?._id || updatedPayment.patient;
+        const companyId = updatedPayment.company?._id || updatedPayment.company;
+        const workDoneId = updatedPayment.workDone?._id || updatedPayment.workDone;
+        
+        const User = require("../../schemas/User/User").default;
+        const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
+        const PaymentModel = require("../../schemas/payment/payment.schema").default;
+
+        if (difference > 0) {
+          // Overpayment decreased. We need to withdraw 'difference' from the wallet.
+          const patientUser = await User.findById(patientId);
+          if (!patientUser || (patientUser.walletBalance || 0) < difference) {
+            // Revert the payment update because wallet doesn't have enough balance to refund!
+            await PaymentService.updatePayment(req.params.id, { amount: oldPayment.amount });
+            return res.status(400).json({ 
+              success: false, 
+              message: `Cannot edit this payment down to that amount. It originally generated a larger advance in the patient's wallet which has already been used. Please add ₹${difference} to the wallet first.` 
+            });
+          }
+
+          patientUser.walletBalance -= difference;
+          await patientUser.save();
+          await new WalletTransaction({
+            patient: patientId,
+            amount: difference,
+            type: "Withdrawal",
+            description: "Reversed advance due to edited payment",
+            workDone: workDoneId,
+            company: companyId,
+            createdBy: req.userId,
+          }).save();
+        } else if (difference < 0) {
+           // Overpayment increased! We need to add 'abs(difference)' to the wallet.
+           const patientUser = await User.findById(patientId);
+           if (patientUser) {
+             patientUser.walletBalance = (patientUser.walletBalance || 0) + Math.abs(difference);
+             await patientUser.save();
+             await new WalletTransaction({
+               patient: patientId,
+               amount: Math.abs(difference),
+               type: "Deposit",
+               description: "Auto-transferred advance from edited payment",
+               workDone: workDoneId,
+               company: companyId,
+               createdBy: req.userId,
+             }).save();
+           }
+        }
+
+        // Clean up history: Delete ALL old Transferred to Wallet negative entries for this workDone
+        for (const negEntry of currentNegativeEntries) {
+          await PaymentService.deletePayment(negEntry._id.toString());
+        }
+
+        // Create ONE consolidated clean Transferred to Wallet entry if needed
+        if (requiredOverpayment > 0) {
+          await new PaymentModel({
             patient: patientId,
             company: companyId,
             workDone: workDoneId,
-            amount: -overpayment,
+            amount: -requiredOverpayment,
             paymentMethod: "Transferred to Wallet",
             createdBy: req.userId,
             date: new Date(),
-          });
-          await negativePayment.save();
-
-          // 2. Adjust totalReceived
-          totalReceived -= overpayment;
-
-          // 3. Add to Patient's Wallet Balance
-          const patientUser = await User.findById(patientId);
-          if (patientUser) {
-            patientUser.walletBalance = (patientUser.walletBalance || 0) + overpayment;
-            await patientUser.save();
-
-            // 4. Record Wallet Transaction
-            const walletTxn = new WalletTransaction({
-              patient: patientId,
-              amount: overpayment,
-              type: "Deposit",
-              description: "Auto-transferred advance from edited overpayment",
-              workDone: workDoneId,
-              company: companyId,
-              createdBy: req.userId,
-            });
-            await walletTxn.save();
-          }
+          }).save();
         }
 
+        // Update total receivedAmount and Accountability
+        const finalPayments = await PaymentService.getPayments({ workDoneId: workDoneId });
+        const finalTotalReceived = finalPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+
         const workDoneData = await WorkDoneModel.findByIdAndUpdate(updatedPayment.workDone, {
-          $set: { receivedAmount: totalReceived, updateLastAccountbilityDate: new Date() }
+          $set: { receivedAmount: finalTotalReceived, updateLastAccountbilityDate: new Date() }
         }, { new: true });
 
-        const statusStr = totalReceived >= bill ? "PAID" : "PENDING";
+        const statusStr = finalTotalReceived >= bill ? "PAID" : "PENDING";
 
         await AccountabilityModel.findOneAndUpdate({ workDone: updatedPayment.workDone }, {
           $set: { 
-            doctorShareAmount: totalReceived, 
+            doctorShareAmount: finalTotalReceived, 
             lastAccountabilityAmountUpdated: new Date(),
             payoutStatus: statusStr
           }
@@ -314,6 +351,171 @@ class PaymentController {
       return res.status(200).json({
         success: true,
         message: "Payment deleted successfully"
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  async secureDeletePayment(req: any, res: any) {
+    try {
+      const paymentId = req.params.id;
+      const paymentToDel = await PaymentService.getPaymentById(paymentId);
+      if (!paymentToDel) {
+        return res.status(404).json({ success: false, message: "Payment not found" });
+      }
+
+      const User = require("../../schemas/User/User").default;
+      const WalletTransaction = require("../../schemas/wallet/WalletTransaction").default;
+      const PaymentModel = require("../../schemas/payment/payment.schema").default;
+      const WorkDoneModel = require("../../schemas/workDone/workDone.schema").default;
+      const AccountabilityModel = require("../../schemas/accountability/accountability.schema").default;
+      
+      const workDoneId = paymentToDel.workDone;
+      const patientId = paymentToDel.patient;
+      const companyId = paymentToDel.company;
+
+      // Old logic for Wallet or direct negative payments
+      if (paymentToDel.paymentMethod === "Wallet" || paymentToDel.paymentMethod === "Transferred to Wallet") {
+        const patientUser = await User.findById(patientId);
+        if (patientUser) {
+          if (paymentToDel.paymentMethod === "Wallet") {
+            patientUser.walletBalance = (patientUser.walletBalance || 0) + paymentToDel.amount;
+            await patientUser.save();
+            await new WalletTransaction({
+              patient: patientId,
+              amount: paymentToDel.amount,
+              type: "Deposit",
+              description: "Refund for deleted payment",
+              workDone: workDoneId,
+              company: companyId,
+              createdBy: req.userId,
+            }).save();
+          } else if (paymentToDel.paymentMethod === "Transferred to Wallet") {
+            const transferAmt = Math.abs(paymentToDel.amount);
+            patientUser.walletBalance = (patientUser.walletBalance || 0) - transferAmt;
+            await patientUser.save();
+            await new WalletTransaction({
+              patient: patientId,
+              amount: transferAmt,
+              type: "Withdrawal",
+              description: "Reversed advance transfer (deleted)",
+              workDone: workDoneId,
+              company: companyId,
+              createdBy: req.userId,
+            }).save();
+          }
+        }
+        await PaymentService.deletePayment(paymentId);
+      } else {
+        // Smart Delete Logic for Real Payments (Cash, UPI, etc.)
+        const allPayments = await PaymentService.getPayments({ workDoneId: workDoneId });
+        
+        // 1. Calculate Sum of Real Payments (excluding the one being deleted, and excluding auto-generated negative ones)
+        const remainingRealPayments = allPayments.filter((p: any) => 
+          p._id.toString() !== paymentId && p.paymentMethod !== "Transferred to Wallet"
+        );
+        const sumReal = remainingRealPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+
+        // 2. Calculate Required Overpayment
+        const workDoneDataPre = await WorkDoneModel.findById(workDoneId);
+        const bill = Math.max(0, (workDoneDataPre?.amount || 0) - (workDoneDataPre?.discount || 0));
+        const requiredOverpayment = Math.max(0, sumReal - bill);
+
+        // 3. Find Current Overpayment (sum of all existing negative "Transferred to Wallet" entries)
+        const currentNegativeEntries = allPayments.filter((p: any) => p.paymentMethod === "Transferred to Wallet" && p.amount < 0);
+        const currentOverpayment = currentNegativeEntries.reduce((sum: number, p: any) => sum + Math.abs(Number(p.amount) || 0), 0);
+
+        // 4. Calculate Difference
+        const difference = currentOverpayment - requiredOverpayment;
+
+        if (difference > 0) {
+          // We need to withdraw 'difference' from the wallet
+          const patientUser = await User.findById(patientId);
+          if (!patientUser || (patientUser.walletBalance || 0) < difference) {
+            return res.status(400).json({ 
+              success: false, 
+              message: `Cannot delete this payment. It generated a ₹${difference} advance in the patient's wallet which has already been used. Please add ₹${difference} to the wallet first.` 
+            });
+          }
+
+          // Deduct from wallet
+          patientUser.walletBalance -= difference;
+          await patientUser.save();
+
+          // Log transaction
+          await new WalletTransaction({
+            patient: patientId,
+            amount: difference,
+            type: "Withdrawal",
+            description: "Reversed advance from deleted payment",
+            workDone: workDoneId,
+            company: companyId,
+            createdBy: req.userId,
+          }).save();
+        } else if (difference < 0) {
+           // We need to add 'abs(difference)' to the wallet (Rare edge case if previous manual edits were made)
+           const patientUser = await User.findById(patientId);
+           if (patientUser) {
+             patientUser.walletBalance = (patientUser.walletBalance || 0) + Math.abs(difference);
+             await patientUser.save();
+             await new WalletTransaction({
+               patient: patientId,
+               amount: Math.abs(difference),
+               type: "Deposit",
+               description: "Restored advance from deleted payment",
+               workDone: workDoneId,
+               company: companyId,
+               createdBy: req.userId,
+             }).save();
+           }
+        }
+
+        // Clean up history: Delete ALL old Transferred to Wallet negative entries for this workDone
+        for (const negEntry of currentNegativeEntries) {
+          await PaymentService.deletePayment(negEntry._id.toString());
+        }
+
+        // Create ONE consolidated clean Transferred to Wallet entry if needed
+        if (requiredOverpayment > 0) {
+          await new PaymentModel({
+            patient: patientId,
+            company: companyId,
+            workDone: workDoneId,
+            amount: -requiredOverpayment,
+            paymentMethod: "Transferred to Wallet",
+            createdBy: req.userId,
+            date: new Date(),
+          }).save();
+        }
+
+        // Finally delete the actual payment requested
+        await PaymentService.deletePayment(paymentId);
+      }
+
+      // Update total receivedAmount and Accountability
+      // Using sumReal and requiredOverpayment logic directly
+      const finalPayments = await PaymentService.getPayments({ workDoneId: workDoneId });
+      const finalTotalReceived = finalPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      
+      const workDoneData = await WorkDoneModel.findByIdAndUpdate(workDoneId, {
+        $set: { receivedAmount: finalTotalReceived, updateLastAccountbilityDate: new Date() }
+      }, { new: true });
+
+      const finalBill = (workDoneData?.amount || 0) - (workDoneData?.discount || 0);
+      const statusStr = finalTotalReceived >= finalBill ? "PAID" : "PENDING";
+
+      await AccountabilityModel.findOneAndUpdate({ workDone: workDoneId }, {
+        $set: { 
+          doctorShareAmount: finalTotalReceived, 
+          lastAccountabilityAmountUpdated: new Date(),
+          payoutStatus: statusStr
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment deleted securely"
       });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: err.message });
