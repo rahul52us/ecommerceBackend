@@ -99,13 +99,14 @@ det.forEach(r => {
 
   const is_tooth = row_tooth !== "";
 
-  if (!detAgg[r.Wrk_done_id]) detAgg[r.Wrk_done_id] = { Treatments: [], Teeth_Count: 0 };
+  if (!detAgg[r.Wrk_done_id]) detAgg[r.Wrk_done_id] = { Treatments: [], Teeth_Count: 0, doc_code: null };
   if (line.trim()) {
     detAgg[r.Wrk_done_id].Treatments.push(line.trim());
   }
   if (is_tooth) {
     detAgg[r.Wrk_done_id].Teeth_Count++;
   }
+  if (r.Doc_Code && r.Doc_Code !== '0') detAgg[r.Wrk_done_id].doc_code = r.Doc_Code;
 });
 
 const rxAgg: any = {};
@@ -122,17 +123,19 @@ console.log("[5/7] Summing fees & payments and resolving lookups ...");
 const payAgg: any = {};
 pay.forEach(r => {
   const key = `${r._key}_${r.wrk_date}`;
-  if (!payAgg[key]) payAgg[key] = { Amount_Paid: 0, Payment_Modes: new Set() };
+  if (!payAgg[key]) payAgg[key] = { Amount_Paid: 0, Payment_Modes: new Set(), Doctor: '' };
   payAgg[key].Amount_Paid += parseFloat(r.amt || 0) || 0;
   if ((r.paidAs || '').trim()) payAgg[key].Payment_Modes.add(r.paidAs.trim());
+  if (r.dr && r.dr.trim()) payAgg[key].Doctor = r.dr.trim();
 });
 
 const feeAgg: any = {};
 fee.forEach(r => {
   const key = `${r._key}_${r.wrk_date}`;
-  if (!feeAgg[key]) feeAgg[key] = { Fee_Due: 0, Fee_Discount: 0 };
+  if (!feeAgg[key]) feeAgg[key] = { Fee_Due: 0, Fee_Discount: 0, doc_code: null };
   feeAgg[key].Fee_Due += parseFloat(r.fee_due || 0) || 0;
   feeAgg[key].Fee_Discount += parseFloat(r.fee_dis || 0) || 0;
+  if (r.Doc_Code && r.Doc_Code !== '0') feeAgg[key].doc_code = r.Doc_Code;
 });
 
 const docMap: any = {};
@@ -145,13 +148,19 @@ console.log("[6/7] Joining patients to visits (left join keeps everyone) ...");
 const stageMap: any = { "F": "Finished", "P": "In Progress" };
 
 wc.forEach(r => {
-  r.Doctor = docMap[r.Doc_Code] || '';
+  const pdKey = `${r._key}_${r.wrk_date}`;
+
+  let dName = docMap[r.doc_code];
+  if (!dName || dName.trim() === '') dName = docMap[detAgg[r.Wrk_done_id]?.doc_code];
+  if (!dName || dName.trim() === '') dName = docMap[feeAgg[pdKey]?.doc_code];
+  if (!dName || dName.trim() === '') dName = payAgg[pdKey]?.Doctor;
+  r.Doctor = dName || '';
+
   r.Treatment_Stage = stageMap[r.treat_stage] || r.treat_stage || '';
   r.Teeth_Count = detAgg[r.Wrk_done_id]?.Teeth_Count || 0;
   r.Treatments = (detAgg[r.Wrk_done_id]?.Treatments || []).join(' | ');
   r.Prescriptions = (rxAgg[r.Wrk_done_id]?.Prescriptions || []).join(' | ');
   
-  const pdKey = `${r._key}_${r.wrk_date}`;
   r.Amount_Paid_Raw = payAgg[pdKey]?.Amount_Paid || 0;
   r.Payment_Modes_Raw = Array.from(payAgg[pdKey]?.Payment_Modes || []).sort().join(', ');
   r.Fee_Due_Raw = feeAgg[pdKey]?.Fee_Due || 0;
