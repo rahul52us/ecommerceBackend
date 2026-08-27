@@ -43,17 +43,19 @@ let pat = loadTable("pat_code");
 let wc = loadTable("wrk_comp");
 let det = loadTable("wrk_comp_Detail");
 let rx = loadTable("Wrk_Prescription");
-let pay = loadTable("act_tran_link");
+let payLink = loadTable("act_tran_link");
+let payTran = loadTable("act_tran");
 let fee = loadTable("Wrk_fee");
 const doc = loadTable("doc_mst");
 const grp = loadTable("Pat_Group");
 
-console.log(`patients=${pat.length} visits=${wc.length} tooth_lines=${det.length} rx_lines=${rx.length} payments=${pay.length}`);
+console.log(`patients=${pat.length} visits=${wc.length} tooth_lines=${det.length} rx_lines=${rx.length} payments=${payLink.length}`);
 
 console.log("[2/7] Normalising patient codes (TRIM + UPPERCASE) ...");
 pat.forEach(r => r._key = normCode(r.pcode));
 wc.forEach(r => r._key = normCode(r.pat_code));
-pay.forEach(r => r._key = normCode(r.pat_code));
+payLink.forEach(r => r._key = normCode(r.pat_code));
+payTran.forEach(r => r._key = normCode(r.pat_code));
 fee.forEach(r => r._key = normCode(r.pat_code));
 
 console.log("[3/7] Re-keying duplicate visit IDs ...");
@@ -121,12 +123,17 @@ rx.forEach(r => {
 
 console.log("[5/7] Summing fees & payments and resolving lookups ...");
 const payAgg: any = {};
-pay.forEach(r => {
+payTran.forEach(r => {
   const key = `${r._key}_${r.wrk_date}`;
   if (!payAgg[key]) payAgg[key] = { Amount_Paid: 0, Payment_Modes: new Set(), Doctor: '' };
-  payAgg[key].Amount_Paid += parseFloat(r.amt || 0) || 0;
+  payAgg[key].Amount_Paid += parseFloat(r.fee_rec || 0) || 0;
+  if (r.doctor && r.doctor.trim()) payAgg[key].Doctor = r.doctor.trim();
+});
+payLink.forEach(r => {
+  const key = `${r._key}_${r.wrk_date}`;
+  if (!payAgg[key]) payAgg[key] = { Amount_Paid: 0, Payment_Modes: new Set(), Doctor: '' };
   if ((r.paidAs || '').trim()) payAgg[key].Payment_Modes.add(r.paidAs.trim());
-  if (r.dr && r.dr.trim()) payAgg[key].Doctor = r.dr.trim();
+  if (r.dr && r.dr.trim() && !payAgg[key].Doctor) payAgg[key].Doctor = r.dr.trim();
 });
 
 const feeAgg: any = {};
@@ -145,6 +152,29 @@ const grpMap: any = {};
 grp.forEach(r => grpMap[r.GroupID] = r.GroupName);
 
 console.log("[6/7] Joining patients to visits (left join keeps everyone) ...");
+
+// Ensure we don't miss payments or fees that happened on a date where no work was done
+const existingWcKeys = new Set(wc.map(r => `${r._key}_${r.wrk_date}`));
+const allOtherKeys = new Set([...Object.keys(payAgg), ...Object.keys(feeAgg)]);
+
+allOtherKeys.forEach(pdKey => {
+  if (!existingWcKeys.has(pdKey)) {
+    const parts = pdKey.split('_');
+    const patKey = parts[0];
+    const wrkDate = parts.slice(1).join('_');
+    
+    // Create a dummy visit record for this date so the payment/fee shows up
+    wc.push({
+      _key: patKey,
+      pat_code: patKey,
+      wrk_date: wrkDate,
+      Wrk_done_id: '', // No work ID since there's no actual treatment
+      doc_code: '',
+      treat_stage: ''
+    });
+  }
+});
+
 const stageMap: any = { "F": "Finished", "P": "In Progress" };
 
 wc.forEach(r => {

@@ -4,6 +4,7 @@ export interface IGlobalConfig extends Document {
   paymentQrCode?: string;
   globalLogo?: string;
   cronTime?: string;
+  tutorialDoc?: string;
 }
 
 const GlobalConfigSchema: Schema = new Schema(
@@ -19,6 +20,10 @@ const GlobalConfigSchema: Schema = new Schema(
     cronTime: {
       type: String,
       default: '07:00', // Time string in HH:mm format (e.g., '07:00' for 7 AM)
+    },
+    tutorialDoc: {
+      type: String,
+      default: '',
     },
   },
   {

@@ -32,6 +32,10 @@ app.use('/notes', express.static(path.join(__dirname, 'src', '../public/notes'))
 const uploadPath = path.join(__dirname, '../public/uploads');
 app.use(['/uploads', '/api/uploads'], express.static(uploadPath));
 
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+const publicPath = isVercel ? path.join('/tmp', 'public') : path.join(__dirname, '../public');
+app.use(['/', '/api'], express.static(publicPath));
+
 // Enable CORS for all routes and all origins
 const corsOptions = {
   origin: "*",

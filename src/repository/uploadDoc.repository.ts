@@ -79,4 +79,50 @@ async function deleteFile(fileNameOrUrl: string): Promise<boolean> {
   }
 }
 
-export { uploadFile, deleteFile };
+async function uploadTutorialFile(file: any): Promise<string> {
+  try {
+    const rawExtName = file.originalname || file.filename || 'unknown';
+    const extName = rawExtName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const ext = extName.includes('.') ? `.${extName.split('.').pop()}` : '.docx';
+    
+    const directPublicPath = isVercel
+      ? path.join('/tmp', 'public')
+      : path.join(__dirname, '../../public');
+      
+    if (!fs.existsSync(directPublicPath)) {
+      fs.mkdirSync(directPublicPath, { recursive: true });
+    }
+
+    // Delete any existing tutorial.* files
+    const files = fs.readdirSync(directPublicPath);
+    for (const f of files) {
+      if (f.toLowerCase().startsWith('tutorial.')) {
+        try {
+          fs.unlinkSync(path.join(directPublicPath, f));
+        } catch (err) {}
+      }
+    }
+
+    const uniqueFilename = `tutorial${ext}`;
+    const filePath = path.join(directPublicPath, uniqueFilename);
+
+    let fileData = file.buffer;
+    if (typeof fileData === 'string' && fileData.startsWith('data:')) {
+      const base64Data = fileData.split(',')[1];
+      if (base64Data) {
+        fileData = Buffer.from(base64Data, 'base64');
+      }
+    }
+
+    fs.writeFileSync(filePath, fileData);
+
+    const baseUrl = process.env.APP_BASE_URL || `http://localhost:${process.env.PORT || 9098}`;
+    // It's in the root of the public folder, so URL is just /tutorial.ext
+    return `${baseUrl}/${uniqueFilename}`;
+  } catch (error: any) {
+    console.log(error?.message);
+    throw new Error('Failed to upload tutorial file');
+  }
+}
+
+export { uploadFile, deleteFile, uploadTutorialFile };
