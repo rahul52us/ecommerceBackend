@@ -1287,17 +1287,57 @@ export const getGlobalAccountabilityData = async (payload: any) => {
         $addFields: {
           periodReceivedAmount: { $sum: "$paymentHistory.amount" },
           periodWalletReceived: {
+            $multiply: [
+              -1,
+              {
+                $sum: {
+                  $map: {
+                    input: {
+                      $filter: {
+                        input: "$paymentHistory",
+                        as: "payment",
+                        cond: { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] }
+                      }
+                    },
+                    as: "walletPayment",
+                    in: "$$walletPayment.amount"
+                  }
+                }
+              }
+            ]
+          },
+          periodWalletPaid: {
             $sum: {
               $map: {
                 input: {
                   $filter: {
                     input: "$paymentHistory",
                     as: "payment",
-                    cond: { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] }
+                    cond: { $eq: ["$$payment.paymentMethod", "Wallet"] }
                   }
                 },
                 as: "walletPayment",
-                in: { $abs: "$$walletPayment.amount" }
+                in: "$$walletPayment.amount"
+              }
+            }
+          },
+          periodPhysicalReceived: {
+            $sum: {
+              $map: {
+                input: {
+                  $filter: {
+                    input: "$paymentHistory",
+                    as: "payment",
+                    cond: { 
+                      $and: [
+                        { $ne: ["$$payment.paymentMethod", "Transferred to Wallet"] },
+                        { $ne: ["$$payment.paymentMethod", "Wallet"] }
+                      ]
+                    }
+                  }
+                },
+                as: "physicalPayment",
+                in: "$$physicalPayment.amount"
               }
             }
           },
@@ -1321,7 +1361,9 @@ export const getGlobalAccountabilityData = async (payload: any) => {
           totalPaid: { $sum: { $ifNull: ["$periodReceivedAmount", 0] } },
           totalDue: { $sum: { $cond: [{ $gt: ["$balanceDue", 0] }, "$balanceDue", 0] } },
           totalAdvance: { $sum: { $cond: [{ $lt: ["$balanceDue", 0] }, { $abs: "$balanceDue" }, 0] } },
-          totalWalletReceived: { $sum: { $ifNull: ["$periodWalletReceived", 0] } }
+          totalWalletReceived: { $sum: { $ifNull: ["$periodWalletReceived", 0] } },
+          totalPaidFromWallet: { $sum: { $ifNull: ["$periodWalletPaid", 0] } },
+          totalPhysicalCollected: { $sum: { $ifNull: ["$periodPhysicalReceived", 0] } }
         },
       }
     ];
