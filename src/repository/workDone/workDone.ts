@@ -1296,7 +1296,12 @@ export const getGlobalAccountabilityData = async (payload: any) => {
                       $filter: {
                         input: "$paymentHistory",
                         as: "payment",
-                        cond: { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] }
+                        cond: { 
+                          $and: [
+                            { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] },
+                            { $lt: ["$$payment.amount", 0] }
+                          ]
+                        }
                       }
                     },
                     as: "walletPayment",
@@ -1313,7 +1318,17 @@ export const getGlobalAccountabilityData = async (payload: any) => {
                   $filter: {
                     input: "$paymentHistory",
                     as: "payment",
-                    cond: { $eq: ["$$payment.paymentMethod", "Wallet"] }
+                    cond: { 
+                      $or: [
+                        { $eq: ["$$payment.paymentMethod", "Wallet"] },
+                        { 
+                          $and: [
+                            { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] },
+                            { $gt: ["$$payment.amount", 0] }
+                          ]
+                        }
+                      ]
+                    }
                   }
                 },
                 as: "walletPayment",
