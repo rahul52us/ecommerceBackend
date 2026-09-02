@@ -844,3 +844,42 @@ export const getTodayGlobalAccountabilityStatsService = async (req: any, res: an
     });
   }
 };
+
+export const generateMonthlyPatientReportService = async (req: any, res: any) => {
+  try {
+    const payload = {
+      ...req.body,
+      company: req.body.company || req.bodyData?.company,
+      limit: 5000, 
+      page: 1
+    };
+
+    const { statusCode, success, message, data }: any = await getGlobalAccountabilityData(payload);
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: "error", message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Monthly Patient Report generated successfully",
+        data: base64
+      });
+    });
+
+    const { generateMonthlyPatientPDF } = require("../../modules/config/pdfGenerator");
+    generateMonthlyPatientPDF(data, stream, req.body.fromDate, req.body.toDate);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};

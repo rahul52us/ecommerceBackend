@@ -468,7 +468,6 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
     doc.text(`Address: ${address}`, MARGIN + 20, y + 63, { width: CONTENT_WIDTH - 40 });
   }
 
-  // --- TREATMENT DETAILS ---
   y += cardHeight + 20;
 
   // Doctor Name
@@ -476,6 +475,25 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   doc.fillColor(COLORS.textMuted).fontSize(8).font("Helvetica-Bold").text("DOCTOR", MARGIN + 15, y);
   y += 12;
   doc.fillColor(COLORS.textMain).fontSize(13).font("Helvetica-Bold").text(`Dr. ${doctorName}`, MARGIN + 15, y);
+  y += 30;
+
+  // --- TREATMENT DETAILS ---
+  const treatName = record.treatmentInfo?.name || record.workDoneNote || "-";
+  const treatCode = record.treatmentCode || "-";
+  const tooth = record.tooth || "-";
+
+  doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica-Bold").text("TREATMENT DETAILS", MARGIN + 15, y);
+  y += 14;
+  doc.fillColor(COLORS.textMain).fontSize(14).font("Helvetica-Bold").text(treatName, MARGIN + 15, y, { width: CONTENT_WIDTH - 30 });
+  
+  const metaTreat = [];
+  if (treatCode !== "-") metaTreat.push(`Code: ${treatCode}`);
+  if (tooth !== "-") metaTreat.push(`Tooth: ${tooth}`);
+  if (metaTreat.length > 0) {
+    // We calculate height of the treatName string to properly space the next line since we increased the font
+    y += doc.heightOfString(treatName, { width: CONTENT_WIDTH - 30 }) + 4;
+    doc.fillColor(COLORS.textMuted).fontSize(10).font("Helvetica-Bold").text(metaTreat.join("  |  "), MARGIN + 15, y);
+  }
   y += 35;
 
 
@@ -1942,7 +1960,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   });
   const uniqueRecords = Array.from(uniqueRecordsMap.values());
   const pdfTotalBilled = uniqueRecords.reduce((sum: number, r: any) => sum + Math.max(0, (r.amount || 0) - (r.discount || 0)), 0);
-  const pdfTotalReceived = summary.totalPaid || 0; // Period received = sum of TXN payments in the date range
+  const pdfTotalReceived = summary.totalPhysicalCollected || summary.totalPaid || 0; // Period received = sum of TXN payments + wallet additions in the date range
   const pdfTotalDue = uniqueRecords.reduce((sum: number, r: any) => sum + Math.max(0, r.balanceDue || 0), 0);
 
   doc
@@ -2513,5 +2531,142 @@ export const generateTechnicianReportPDF = (data: any[], stream: any, filters: a
   };
 
   renderLegacyTable(doc, data, allColumns, rowRenderer, LEGACY_COLORS, 595.28, 841.89, 20, 555.28);
+  doc.end();
+};
+
+export const generateMonthlyPatientPDF = (data: any, stream: any, fromDate: string, toDate: string) => {
+  const PDFDocument = require("pdfkit");
+  const moment = require("moment");
+  const { records, clinic } = data;
+  const doc = new PDFDocument({ margin: 0, size: "A4", bufferPages: true });
+  doc.pipe(stream);
+
+  const COLORS = {
+    brand: "#1e3a8a",
+    textMain: "#111827",
+    textMuted: "#4b5563",
+    bgLight: "#f8fafc",
+    border: "#e2e8f0",
+    danger: "#dc2626",
+    success: "#059669"
+  };
+
+  const PAGE_WIDTH = 595.28;
+  const PAGE_HEIGHT = 841.89;
+  const MARGIN = 30;
+  const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+
+  const patientsMap = new Map();
+  (records || []).forEach((record: any) => {
+    const pId = record.patientInfo?._id?.toString();
+    if (!pId) return;
+    if (!patientsMap.has(pId)) {
+      patientsMap.set(pId, {
+        info: record.patientInfo,
+        records: [],
+        totalBilled: 0,
+        totalPaid: 0,
+        totalDiscount: 0,
+        totalDue: 0,
+        uniqueRecordsMap: new Map()
+      });
+    }
+    const pData = patientsMap.get(pId);
+    pData.records.push(record);
+    
+    const wdId = record.workDoneId?.toString() || record._id?.toString();
+    if (wdId && !pData.uniqueRecordsMap.has(wdId)) {
+      pData.uniqueRecordsMap.set(wdId, true);
+      pData.totalBilled += (record.amount || 0);
+      pData.totalDiscount += (record.discount || 0);
+      pData.totalPaid += (record.totalPaid || 0);
+      pData.totalDue += (record.balanceDue || 0);
+    }
+  });
+
+  const patientArray = Array.from(patientsMap.values()).sort((a, b) => (a.info.name || "").localeCompare(b.info.name || ""));
+
+  let y = 30;
+  const checkPageBreak = (neededHeight: number) => {
+    if (y + neededHeight > PAGE_HEIGHT - 40) {
+      doc.addPage();
+      y = 40;
+    }
+  };
+
+  // Header
+  doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(20).text("Monthly Patient Report", MARGIN, y);
+  y += 25;
+  doc.fontSize(10).opacity(0.8).font("Helvetica").text(`Period: ${moment(fromDate).format('DD MMM YYYY')} to ${moment(toDate).format('DD MMM YYYY')}`, MARGIN, y);
+  doc.opacity(1).fontSize(12).font("Helvetica-Bold").text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", PAGE_WIDTH - MARGIN - 200, 30, { align: "right", width: 200 });
+  y += 20;
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+  y += 20;
+
+  if (patientArray.length === 0) {
+    doc.fillColor(COLORS.textMuted).fontSize(12).text("No patient records found in this date range.", MARGIN, y);
+  } else {
+    // Table Header
+    const colX = { sno: MARGIN, name: MARGIN + 30, pid: MARGIN + 180, billed: MARGIN + 280, paid: MARGIN + 370, bal: MARGIN + 460 };
+    doc.fillColor(COLORS.bgLight).rect(MARGIN, y, CONTENT_WIDTH, 20).fill();
+    doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica-Bold");
+    doc.text("S.NO", colX.sno, y + 6);
+    doc.text("PATIENT NAME", colX.name, y + 6);
+    doc.text("PATIENT ID", colX.pid, y + 6);
+    doc.text("TOTAL BILLED", colX.billed, y + 6, { width: 80, align: "right" });
+    doc.text("TOTAL PAID", colX.paid, y + 6, { width: 80, align: "right" });
+    doc.text("BALANCE DUE", colX.bal, y + 6, { width: 80, align: "right" });
+    y += 20;
+
+    let grandBilled = 0;
+    let grandPaid = 0;
+    let grandDue = 0;
+
+    patientArray.forEach((pData: any, index: number) => {
+      checkPageBreak(25);
+      const title = pData.info?.title ? (pData.info.title.label || pData.info.title) : "";
+      const pName = `${title ? title + " " : ""}${pData.info?.name || "N/A"}`.trim();
+      const pid = pData.info?.code || pData.info?.patientId || "-";
+
+      const grossBilled = pData.totalBilled - pData.totalDiscount;
+      const netDue = pData.totalDue;
+      const paid = pData.totalPaid;
+
+      grandBilled += grossBilled;
+      grandPaid += pData.totalPaid;
+      grandDue += netDue;
+
+      doc.fillColor(COLORS.textMain).fontSize(8).font("Helvetica");
+      doc.text((index + 1).toString(), colX.sno, y + 6);
+      doc.font("Helvetica-Bold").text(pName, colX.name, y + 6, { width: 140, ellipsis: true });
+      doc.font("Helvetica").text(pid, colX.pid, y + 6);
+      doc.text(grossBilled.toLocaleString(), colX.billed, y + 6, { width: 80, align: "right" });
+      doc.text(pData.totalPaid.toLocaleString(), colX.paid, y + 6, { width: 80, align: "right" });
+      doc.fillColor(netDue > 0 ? COLORS.danger : (netDue < 0 ? COLORS.success : COLORS.textMain));
+      doc.text(netDue.toLocaleString(), colX.bal, y + 6, { width: 80, align: "right" });
+      
+      y += 20;
+      doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
+    });
+
+    // Grand Totals
+    checkPageBreak(35);
+    y += 5;
+    doc.fillColor(COLORS.bgLight).rect(MARGIN, y, CONTENT_WIDTH, 25).fill();
+    doc.fillColor(COLORS.textMain).fontSize(9).font("Helvetica-Bold");
+    doc.text("GRAND TOTAL:", colX.pid, y + 8);
+    doc.text(grandBilled.toLocaleString(), colX.billed, y + 8, { width: 80, align: "right" });
+    doc.text(grandPaid.toLocaleString(), colX.paid, y + 8, { width: 80, align: "right" });
+    doc.fillColor(grandDue > 0 ? COLORS.danger : (grandDue < 0 ? COLORS.success : COLORS.textMain));
+    doc.text(grandDue.toLocaleString(), colX.bal, y + 8, { width: 80, align: "right" });
+    y += 30;
+  }
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, PAGE_HEIGHT - 20, { align: "center", width: PAGE_WIDTH });
+  }
+
   doc.end();
 };
