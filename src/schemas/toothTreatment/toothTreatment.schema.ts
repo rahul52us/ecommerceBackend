@@ -11,7 +11,8 @@ const ToothTreatmentSchema = new Schema(
 
     doctor: {
       type: Schema.Types.ObjectId,
-      ref: "User"
+      ref: "User",
+      index: true
     },
 
     examiningDoctor: {
@@ -23,6 +24,7 @@ const ToothTreatmentSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      index: true,
     },
 
     tooth: {
@@ -57,6 +59,7 @@ const ToothTreatmentSchema = new Schema(
       type: String,
       default: "pending",
       lowercase: true,
+      index: true,
     },
     recordType: {
       type: String,
@@ -120,6 +123,8 @@ const ToothTreatmentSchema = new Schema(
     },
   }
 );
+
+ToothTreatmentSchema.index({ company: 1, patient: 1 });
 
 export default mongoose.model(
   "ToothTreatment",

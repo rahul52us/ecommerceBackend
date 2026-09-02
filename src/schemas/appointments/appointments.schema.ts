@@ -7,12 +7,14 @@ const appointmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      index: true,
     },
 
     // 👨‍⚕️ Additional doctors involved
@@ -28,17 +30,20 @@ const appointmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     chair: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Chair',
-      required: true
+      required: true,
+      index: true
     },
 
     // 📅 Appointment scheduling
     appointmentDate: {
       type: Date,
       required: true,
+      index: true,
     },
     startTime: {
       type: String, // e.g. "10:00 AM"
@@ -103,6 +108,7 @@ const appointmentSchema = new mongoose.Schema(
         "arrived"
       ],
       default: "scheduled",
+      index: true,
     },
 
     shiftOrCancelledReason: {
@@ -158,5 +164,7 @@ const appointmentSchema = new mongoose.Schema(
     }
   }
 );
+
+appointmentSchema.index({ company: 1, appointmentDate: -1 });
 
 export default mongoose.model("Appointment", appointmentSchema);

@@ -11,12 +11,14 @@ const WorkDoneSchema = new Schema(
     doctor: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
+      index: true
     },
     treatment: {
       type: Schema.Types.ObjectId,
       ref: "ToothTreatment",
       required: true,
+      index: true,
     },
     examiningDoctor: {
       type: Schema.Types.ObjectId,
@@ -26,6 +28,7 @@ const WorkDoneSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      index: true,
     },
     tooth: {
       type: String,
@@ -112,6 +115,8 @@ const WorkDoneSchema = new Schema(
     toObject: { virtuals: true }
   }
 );
+
+WorkDoneSchema.index({ company: 1, patient: 1 });
 
 WorkDoneSchema.virtual('paymentHistory', {
   ref: 'Payment',

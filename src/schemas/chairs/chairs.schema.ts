@@ -38,6 +38,7 @@ const ChairSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      index: true,
     },
   },
   {
@@ -46,8 +47,8 @@ const ChairSchema = new mongoose.Schema(
 );
 
 // (Optional) Indexes for faster searching
-// ChairSchema.index({ chairName: 1 });
-// ChairSchema.index({ chairNo: 1 }, { unique: true });
+ChairSchema.index({ chairName: 1 });
+ChairSchema.index({ company: 1, chairNo: 1 });
 
 export default mongoose.models.Chair ||
   mongoose.model("Chair", ChairSchema);

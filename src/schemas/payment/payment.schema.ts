@@ -58,4 +58,6 @@ const PaymentSchema = new Schema(
   }
 );
 
+PaymentSchema.index({ company: 1, date: -1 });
+
 export default mongoose.model("Payment", PaymentSchema);

@@ -40,7 +40,7 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   username: { type: String },
   mobileNumber: { type: String, index: true },
   code: { type: String, index: true, unique: true, required: true, lowercase: true, trim: true },
-  company: { type: Schema.Types.ObjectId, ref: 'Company' },
+  company: { type: Schema.Types.ObjectId, ref: 'Company',index:true },
   userType: { type: String, required: true, index: true, trim: true },
   pic: {
     name: {
@@ -54,12 +54,13 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
     },
   },
   bio: { type: String, trim: true },
-  profile_details: { type: Schema.Types.ObjectId, ref: "ProfileDetails" },
+  profile_details: { type: Schema.Types.ObjectId, ref: "ProfileDetails", index : true },
   is_active: { type: Boolean, default: false },
   role: {
     type: String,
     enum: ["user", "admin", "superadmin"],
-    default: "user"
+    default: "user",
+    index:true
   },
   permissions: {
     type: mongoose.Schema.Types.Mixed,
@@ -78,7 +79,8 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   }],
   refrenceBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    index:true
   },
   refrenceNote: {
     type: String,
@@ -89,14 +91,17 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   },
   createdBy: {
     type: Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    index:true
   },
   createdAt: {
     type: Date,
     default: Date.now,
+    index:true
   },
   updatedAt: {
     type: Date,
+    index:true
   },
   previousRecord: {
     type: Boolean,
@@ -105,6 +110,7 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
   walletBalance: {
     type: Number,
     default: 0,
+    index:true
   },
   resetPasswordToken: {
     type: String,
@@ -113,6 +119,8 @@ const UserSchema: Schema<UserInterface> = new Schema<UserInterface>({
     type: Date,
   },
 }, { timestamps: true });
+
+UserSchema.index({ company: 1, userType: 1 });
 
 const UserModel = mongoose.model<UserInterface>("User", UserSchema);
 export default UserModel;
