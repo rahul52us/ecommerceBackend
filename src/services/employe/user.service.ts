@@ -261,6 +261,7 @@ const getAllUserService = async (
       search: search,
       isActive: req.body.isActive,
       company: await convertIdsToObjects(req.body.company),
+      _id: req.body._id,
     });
     if (status === "success") {
       res.status(200).send({

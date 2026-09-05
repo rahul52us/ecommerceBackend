@@ -563,6 +563,7 @@ const getUsers = async (data: {
   search?: string;
   company?: string[];
   isActive?: any;
+  _id?: string;
 }) => {
   try {
 
@@ -598,6 +599,10 @@ const getUsers = async (data: {
       if (data.company?.length) {
         matchConditions.company = { $in: data.company };
       }
+    }
+
+    if (data._id) {
+      matchConditions._id = new mongoose.Types.ObjectId(data._id);
     }
 
     // Search filter
