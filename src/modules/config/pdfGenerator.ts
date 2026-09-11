@@ -885,7 +885,8 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     textMain: "#000000",
     textMuted: "#4b5563",
     border: "#000000",
-    white: "#ffffff"
+    white: "#ffffff",
+    danger: "#dc2626"
   };
 
   const PAGE_WIDTH = 595.28;
@@ -1010,7 +1011,7 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
     doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
     // Brand Name and Type (Pushed right to avoid number overlap)
-    doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`${p.form || ""} - ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
+    doc.fillColor(COLORS.danger).font("Helvetica-Bold").text(`${p.form || ""} - ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
     // Dosage Summary (printed immediately after the Brand Name)
     const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
@@ -1045,16 +1046,19 @@ export const generateWorkDoneReportPDF = (data: any, stream: any) => {
   // Remove manual empty space as requested
   y += 10;
 
-  if (data.nextAppointments && data.nextAppointments.length > 0) {
-    if (y + 40 + (data.nextAppointments.length * 15) > 780 - Number(bottomPadding)) {
+  const todayStr = moment().format('DD/MM/YYYY');
+  const validAppts = data.nextAppointments ? data.nextAppointments.filter((a: string) => !a.startsWith(todayStr)) : [];
+
+  if (validAppts.length > 0) {
+    if (y + 40 + (validAppts.length * 15) > 780 - Number(bottomPadding)) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
     doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
-    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${data.nextAppointments.length}): `, MARGIN, y);
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${validAppts.length}): `, MARGIN, y);
     y += 18;
-    data.nextAppointments.forEach((apptStr: string) => {
+    validAppts.forEach((apptStr: string) => {
       doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`• ${apptStr}`, MARGIN + 10, y);
       y += 15;
     });
@@ -1087,7 +1091,8 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     textMain: "#000000",
     textMuted: "#4b5563",
     border: "#000000",
-    white: "#ffffff"
+    white: "#ffffff",
+    danger: "#dc2626"
   };
 
   const PAGE_WIDTH = 595.28;
@@ -1267,7 +1272,7 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
       doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textMain).text(`${index + 1}.)`, MARGIN, y);
 
       // Brand Name and Type (Pushed right to avoid number overlap)
-      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`${p.form || ""}-${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
+      doc.fillColor(COLORS.danger).font("Helvetica-Bold").text(`${p.form || ""} - ${p.brandName || ""}`, MARGIN + 25, y, { continued: true });
 
       // Dosage Summary (printed immediately after the Brand Name)
       const qtyText = `   ( ${p.details || "*__*"} ) ( ${p.doseNo || 0} ${p.form || "Tablet"} Total )${p.noOfDays ? ` ( ${p.noOfDays} Days )` : ""}`;
@@ -1302,16 +1307,19 @@ export const generateFilteredWorkDoneReportPDF = (data: any, stream: any) => {
     y += 10;
   }
 
-  if (data.nextAppointments && data.nextAppointments.length > 0) {
-    if (y + 40 + (data.nextAppointments.length * 15) > 780 - Number(bottomPadding)) {
+  const todayStr = moment().format('DD/MM/YYYY');
+  const validAppts = data.nextAppointments ? data.nextAppointments.filter((a: string) => !a.startsWith(todayStr)) : [];
+
+  if (validAppts.length > 0) {
+    if (y + 40 + (validAppts.length * 15) > 780 - Number(bottomPadding)) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
     doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
-    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${data.nextAppointments.length}): `, MARGIN, y);
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${validAppts.length}): `, MARGIN, y);
     y += 18;
-    data.nextAppointments.forEach((apptStr: string) => {
+    validAppts.forEach((apptStr: string) => {
       doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`• ${apptStr}`, MARGIN + 10, y);
       y += 15;
     });
@@ -1483,16 +1491,19 @@ export const generateDailyWorkDoneReportPDF = (data: any, stream: any) => {
   // Remove manual empty space as requested
   y += 10;
 
-  if (data.nextAppointments && data.nextAppointments.length > 0) {
-    if (y + 40 + (data.nextAppointments.length * 15) > 780 - Number(bottomPadding)) {
+  const todayStr = moment().format('DD/MM/YYYY');
+  const validAppts = data.nextAppointments ? data.nextAppointments.filter((a: string) => !a.startsWith(todayStr)) : [];
+
+  if (validAppts.length > 0) {
+    if (y + 40 + (validAppts.length * 15) > 780 - Number(bottomPadding)) {
       doc.addPage({ margin: 0 });
       y = 50;
     }
     doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     y += 15;
-    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${data.nextAppointments.length}): `, MARGIN, y);
+    doc.fillColor(COLORS.brand).font("Helvetica-Bold").fontSize(10).text(`NEXT APPOINTMENT (${validAppts.length}): `, MARGIN, y);
     y += 18;
-    data.nextAppointments.forEach((apptStr: string) => {
+    validAppts.forEach((apptStr: string) => {
       doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(`• ${apptStr}`, MARGIN + 10, y);
       y += 15;
     });
@@ -1624,14 +1635,6 @@ export const generateTableDataPDF = (data: any, stream: any) => {
   let rowCount = 0;
 
   records.forEach((record: any) => {
-    // Zebra Striping
-    if (rowCount % 2 !== 0) {
-      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
-    }
-
-    // Bottom Border
-    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
-
     const sitStr = record.sittingNo ? String(record.sittingNo) : "-";
     const date = moment(record.createdAt).format('DD/MM/YYYY');
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
@@ -1641,6 +1644,22 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     const paid = record.receivedAmount || 0;
     const isSettled = paid >= bill;
 
+    // Calculate dynamic height
+    doc.font("Helvetica").fontSize(8);
+    let maxH = 12;
+    maxH = Math.max(maxH, doc.heightOfString(toothStr, { width: 35 }));
+    maxH = Math.max(maxH, doc.heightOfString(treatment, { width: 155 }));
+    maxH = Math.max(maxH, doc.heightOfString(doctor, { width: 95 }));
+    const currentDynamicRowH = Math.max(28, maxH + 16);
+
+    // Zebra Striping
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, currentDynamicRowH).fill();
+    }
+
+    // Bottom Border
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + currentDynamicRowH).lineTo(MARGIN + CONTENT_WIDTH, y + currentDynamicRowH).stroke();
+
     // Data Row
     doc
       .fillColor(COLORS.textMain)
@@ -1649,10 +1668,10 @@ export const generateTableDataPDF = (data: any, stream: any) => {
       .text(sitStr, colX.sit, y + 9)
       .text(date, colX.date, y + 9)
       .font("Helvetica")
-      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
-      .text(treatment, colX.treatment, y + 9, { width: 155, height: 12, ellipsis: true })
+      .text(toothStr, colX.tooth, y + 9, { width: 35 })
+      .text(treatment, colX.treatment, y + 9, { width: 155 })
       .fillColor(COLORS.textMuted)
-      .text(doctor, colX.doctor, y + 9, { width: 95, height: 12, ellipsis: true })
+      .text(doctor, colX.doctor, y + 9, { width: 95 })
       .fillColor(COLORS.textMain)
       .font("Helvetica-Bold")
       .text(bill.toLocaleString(), colX.fees, y + 9, { width: 50, align: "right" })
@@ -1662,14 +1681,14 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     const badgeW = 40;
     const badgeH = 13;
     const badgeX = colX.status + (45 - badgeW) / 2;
-    const badgeY = y + 7.5;
+    const badgeY = y + (currentDynamicRowH - badgeH) / 2;
 
     doc.save();
     doc.fillColor(isSettled ? COLORS.success : COLORS.danger).roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill();
     doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(isSettled ? "SETTLED" : "DUE", badgeX, badgeY + 4, { width: badgeW, align: "center" });
     doc.restore();
 
-    y += rowH;
+    y += currentDynamicRowH;
     rowCount++;
 
     // New Page Logic
@@ -1802,14 +1821,6 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
   let rowCount = 0;
 
   records.forEach((record: any) => {
-    // Zebra Striping
-    if (rowCount % 2 !== 0) {
-      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
-    }
-
-    // Bottom Border
-    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
-
     const date = moment(record.createdAt).format('DD/MM/YYYY');
     const patientName = (record.patient as any)?.name || "N/A";
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
@@ -1819,18 +1830,37 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
     const paid = record.receivedAmount || 0;
     const clinicalStatus = (record.status || "complete").toLowerCase();
 
+    // Calculate dynamic height
+    doc.font("Helvetica").fontSize(8);
+    let maxH = 12;
+    doc.font("Helvetica-Bold");
+    maxH = Math.max(maxH, doc.heightOfString(patientName, { width: 85 }));
+    doc.font("Helvetica");
+    maxH = Math.max(maxH, doc.heightOfString(toothStr, { width: 35 }));
+    maxH = Math.max(maxH, doc.heightOfString(treatment, { width: 125 }));
+    maxH = Math.max(maxH, doc.heightOfString(doctor, { width: 75 }));
+    const currentDynamicRowH = Math.max(28, maxH + 16);
+
+    // Zebra Striping
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, currentDynamicRowH).fill();
+    }
+
+    // Bottom Border
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + currentDynamicRowH).lineTo(MARGIN + CONTENT_WIDTH, y + currentDynamicRowH).stroke();
+
     // Data Row
     doc
       .fillColor(COLORS.textMain)
       .fontSize(8)
       .font("Helvetica-Bold")
       .text(date, colX.date, y + 9)
-      .text(patientName, colX.patient, y + 9, { width: 85, height: 12, ellipsis: true })
+      .text(patientName, colX.patient, y + 9, { width: 85 })
       .font("Helvetica")
-      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
-      .text(treatment, colX.treatment, y + 9, { width: 125, height: 12, ellipsis: true })
+      .text(toothStr, colX.tooth, y + 9, { width: 35 })
+      .text(treatment, colX.treatment, y + 9, { width: 125 })
       .fillColor(COLORS.textMuted)
-      .text(doctor, colX.doctor, y + 9, { width: 75, height: 12, ellipsis: true })
+      .text(doctor, colX.doctor, y + 9, { width: 75 })
       .fillColor(COLORS.textMain)
       .font("Helvetica-Bold")
       .text(bill.toLocaleString(), colX.fees, y + 9, { width: 50, align: "right" })
@@ -1840,8 +1870,8 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
     const badgeW = 45;
     const badgeH = 13;
     const badgeX = colX.status + (45 - badgeW) / 2;
-    const badgeY = y + 7.5;
-    
+    const badgeY = y + (currentDynamicRowH - badgeH) / 2;
+
     let statusColor = COLORS.success;
     if (clinicalStatus === "pending") statusColor = "#f59e0b"; // amber for pending
     if (clinicalStatus === "incomplete") statusColor = COLORS.danger;
@@ -1851,7 +1881,7 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
     doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(clinicalStatus.toUpperCase(), badgeX, badgeY + 4, { width: badgeW, align: "center" });
     doc.restore();
 
-    y += rowH;
+    y += currentDynamicRowH;
     rowCount++;
 
     // New Page Logic
@@ -2097,6 +2127,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   const doc = new PDFDocument({
     margin: 0,
     size: "A4",
+    layout: "landscape",
     bufferPages: true
   });
 
@@ -2117,8 +2148,8 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   };
 
   // --- DIMENSIONS ---
-  const PAGE_WIDTH = 595.28;
-  const PAGE_HEIGHT = 841.89;
+  const PAGE_WIDTH = 841.89;
+  const PAGE_HEIGHT = 595.28;
   const MARGIN = 20;
   const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 
@@ -2171,8 +2202,8 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     { key: "lastPaid", label: "Pay Date", width: 45 },
     { key: "due", label: "DUE", width: 30 },
     { key: "walletBalance", label: "WALLET", width: 40 },
-    { key: "paymentMode", label: "MODE", width: 35 },
-    { key: "status", label: "STATUS", width: 35 }
+    { key: "paymentMode", label: "MODE", width: 50 },
+    { key: "status", label: "STATUS", width: 40 }
   ];
 
   const columnsToRender = selectedColumns && selectedColumns.length > 0
@@ -2202,7 +2233,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   doc.save();
   doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
 
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7);
+  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(6);
   columnsToRender.forEach(c => {
     doc.text(c.label, colX[c.key], tableTop + 8);
   });
@@ -2214,7 +2245,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   const drawHeaders = (currentY: number) => {
     doc.save();
     doc.fillColor(COLORS.brand).roundedRect(MARGIN, currentY, CONTENT_WIDTH, headerH, 6).fill();
-    doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7);
+    doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(6);
     columnsToRender.forEach(c => {
       doc.text(c.label, colX[c.key], currentY + 8);
     });
@@ -2239,7 +2270,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     const statusColor = balDue < 0 ? "#7e22ce" : balDue === 0 ? COLORS.success : COLORS.danger;
 
     // Calculate dynamic row height based on text wrapping
-    doc.font("Helvetica").fontSize(8);
+    doc.font("Helvetica").fontSize(7);
     let maxH = 12; // Minimum approx 1 line
     if (colX.patient) {
       doc.font("Helvetica-Bold");
@@ -2262,7 +2293,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
       doc.save().fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, currentDynamicRowH).fill().restore();
     }
 
-    doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(8);
+    doc.fillColor(COLORS.textMain).font("Helvetica").fontSize(7);
 
     if (colX.date) doc.text(moment(row.createdAt).format('DD/MM/YYYY'), colX.date, y + 8);
     if (colX.patient) doc.font("Helvetica-Bold").text(patientName, colX.patient, y + 8, { width: colW.patient - 5 }).font("Helvetica");
@@ -2304,7 +2335,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
       if (history.length > 0 && history[history.length - 1].paymentMethod) {
         paymentModeStr = String(history[history.length - 1].paymentMethod).toUpperCase();
       }
-      doc.text(paymentModeStr.slice(0, 15), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
+      doc.text(paymentModeStr.slice(0, 25), colX.paymentMode, y + 8, { width: colW.paymentMode - 5, ellipsis: true });
     }
 
     if (colX.status) {
@@ -2320,7 +2351,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     rowCount++;
   });
 
-  const footerY = 795;
+  const footerY = PAGE_HEIGHT - 45;
   doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
 
   doc
