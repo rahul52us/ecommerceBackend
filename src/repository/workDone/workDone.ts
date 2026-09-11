@@ -458,6 +458,44 @@ export const getSingleWorkDoneStatementData = async (query: any) => {
   }
 };
 
+export const getGlobalFilteredTablePDFData = async (query: any) => {
+  try {
+    const { company } = query;
+    const cId = toObjectId(company);
+
+    if (!cId) {
+      return { success: "error", message: "Company ID required", statusCode: 400 };
+    }
+
+    // Reuse getWorkDone to fetch the exact table data without limit
+    const result = await getWorkDone({
+      ...query,
+      limit: 10000,
+      page: 1
+    });
+
+    if (result.success === "error") return result;
+
+    const records = result.data || [];
+    records.sort((a: any, b: any) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    const clinic = await CompanyModel.findById(cId);
+
+    return {
+      success: "success",
+      data: {
+        clinic,
+        records
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
+
 /**
  * FETCH FILTERED TABLE DATA FOR PDF
  */

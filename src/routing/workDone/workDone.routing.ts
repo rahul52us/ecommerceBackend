@@ -18,6 +18,7 @@ import {
   generateFilteredWorkDoneReportService,
   assignWorkDoneSittingNoService,
   generateFilteredTablePDFService,
+  generateGlobalFilteredTablePDFService,
   updateWorkDoneAmountService,
   generateReceiptsLogPDFService,
   getGlobalAccountabilityDataService,
@@ -42,6 +43,7 @@ workDone.post("/generate-workdone-report/:id", authenticate, generateWorkDoneRep
 workDone.post("/generate-daily-report/:patientId", authenticate, generateDailyWorkDoneReportService);
 workDone.post("/generate-filtered-report/:patientId", authenticate, generateFilteredWorkDoneReportService);
 workDone.get("/generate-filtered-table-pdf/:patientId", authenticate, generateFilteredTablePDFService);
+workDone.get("/generate-global-filtered-table-pdf", authenticate, generateGlobalFilteredTablePDFService);
 workDone.get("/generate-receipts-log/:patientId", authenticate, generateReceiptsLogPDFService);
 workDone.post("/global-accountability", authenticate, getGlobalAccountabilityDataService);
 workDone.post("/global-accountability/today-stats", authenticate, getTodayGlobalAccountabilityStatsService);

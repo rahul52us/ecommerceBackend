@@ -15,6 +15,7 @@ import {
   assignWorkDoneSittingNo,
   updateWorkDoneAmount,
   getFilteredTablePDFData,
+  getGlobalFilteredTablePDFData,
   getReceiptsLogData,
   getGlobalAccountabilityData,
   getTodayGlobalAccountabilityStats,
@@ -27,7 +28,8 @@ import {
   generateWorkDoneReportPDF,
   generateFilteredWorkDoneReportPDF,
   generateDailyWorkDoneReportPDF,
-  generateTableDataPDF
+  generateTableDataPDF,
+  generateGlobalTableDataPDF
 } from "../../modules/config/pdfGenerator";
 import UserModel from "../../schemas/User/User";
 import PatientPrescriptionModel from "../../schemas/prescription/patientPrescription.schema";
@@ -685,6 +687,39 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       reportType: reportType || "both"
     }, stream);
 
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+export const generateGlobalFilteredTablePDFService = async (req: any, res: any) => {
+  try {
+    const { statusCode, success, message, data }: any = await getGlobalFilteredTablePDFData({
+      ...req.query
+    });
+
+    if (success === "error") {
+      return res.status(statusCode).send({ status: success, message });
+    }
+
+    const chunks: any[] = [];
+    const stream = new (require("stream").PassThrough)();
+
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const base64 = pdfBuffer.toString("base64");
+      return res.status(200).send({
+        status: "success",
+        message: "Global Table PDF generated successfully",
+        data: base64
+      });
+    });
+
+    generateGlobalTableDataPDF(data, stream);
   } catch (err: any) {
     return res.status(500).send({
       status: "error",

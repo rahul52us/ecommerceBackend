@@ -154,7 +154,7 @@ export const createToothTreatmentService = async (req: any, res: any) => {
 /* =====================================================
    UPDATE TOOTH TREATMENT
 ===================================================== */
-export const updateToothTreatmentService = async (req: any, res: any) => {
+export const updateToothTreatmentService = async (req: any, res: any): Promise<any> => {
   try {
     console.log("UPDATING TREATMENT PAYLOAD:", { ...req.body, treatmentId: req.params.id });
     const { status, statusCode, data, message }: any =
@@ -349,6 +349,29 @@ export const generateFilteredTreatmentTablePDFService = async (req: any, res: an
     return res.status(500).send({
       status: "error",
       message: err?.message || "Error generating treatment table PDF"
+    });
+  }
+};
+
+export const generateGlobalFilteredTreatmentTablePDFService = async (req: any, res: any) => {
+  try {
+    const { getGlobalFilteredTreatmentTablePDFData } = await import("../../repository/toothTreatment/toothTreatment");
+    const { success, message, data }: any = await getGlobalFilteredTreatmentTablePDFData(req.query);
+
+    if (success === "error") {
+      return res.status(400).send({ status: "error", message });
+    }
+
+    const { generateGlobalTreatmentTableDataPDF } = await import("../../modules/config/pdfGenerator");
+    
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", 'attachment; filename="Global_Treatment_Report.pdf"');
+
+    generateGlobalTreatmentTableDataPDF(data, res);
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Error generating global treatment table PDF"
     });
   }
 };

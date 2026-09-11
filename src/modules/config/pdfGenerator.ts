@@ -1703,6 +1703,188 @@ export const generateTableDataPDF = (data: any, stream: any) => {
 };
 
 /**
+ * GENERATE GLOBAL WORK DONE TABLE PDF
+ */
+export const generateGlobalTableDataPDF = (data: any, stream: any) => {
+  const { clinic, records } = data;
+  const doc = new PDFDocument({
+    margin: 0,
+    size: "A4",
+    bufferPages: true
+  });
+
+  doc.pipe(stream);
+
+  // --- STYLE TOKENS ---
+  const COLORS = {
+    brand: "#1e3a8a",
+    brandLight: "#3b82f6",
+    textMain: "#111827",
+    textMuted: "#4b5563",
+    bgLight: "#f8fafc",
+    zebra: "#f1f5f9",
+    success: "#059669",
+    danger: "#dc2626",
+    border: "#e2e8f0",
+    white: "#ffffff"
+  };
+
+  // --- DIMENSIONS ---
+  const PAGE_WIDTH = 595.28;
+  const MARGIN = 20;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  // --- COMPACT HEADER ---
+  const headerHeight = 110;
+  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
+
+  // Clinic Info (Left Side)
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(20)
+    .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25)
+    .fontSize(8.5)
+    .font("Helvetica")
+    .opacity(0.8)
+    .text(`${clinic?.addressInfo?.[0]?.address || ""} ${clinic?.addressInfo?.[0]?.city ? '| ' + clinic?.addressInfo?.[0]?.city : ""}`, MARGIN, 52);
+
+  // Statement & Patient Info (Right Side)
+  const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .text("GLOBAL WORK DONE REPORT", rightAlignX, 25, { align: "right", width: 250 })
+    .opacity(0.8)
+    .fontSize(10)
+    .text("ALL PATIENTS", rightAlignX, 48, { align: "right", width: 250 })
+    .fontSize(8.5)
+    .font("Helvetica")
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 96, { align: "right", width: 250 });
+
+  // --- PREMIUM TABLE SECTION ---
+  const tableTop = 135;
+  const rowH = 28;
+  const headerH = 26;
+
+  doc.save();
+  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+
+  // Rebalanced Column Widths for Global
+  const colX = {
+    date: MARGIN + 5,
+    patient: MARGIN + 55,
+    tooth: MARGIN + 145,
+    treatment: MARGIN + 185,
+    doctor: MARGIN + 315,
+    fees: MARGIN + 395,
+    paid: MARGIN + 445,
+    status: MARGIN + 500
+  };
+
+  doc
+    .fillColor(COLORS.white)
+    .fontSize(8)
+    .font("Helvetica-Bold")
+    .text("DATE", colX.date, tableTop + 9)
+    .text("PATIENT", colX.patient, tableTop + 9)
+    .text("TOOTH", colX.tooth, tableTop + 9)
+    .text("TREATMENT", colX.treatment, tableTop + 9)
+    .text("DOCTOR", colX.doctor, tableTop + 9)
+    .text("FEES", colX.fees, tableTop + 9, { width: 50, align: "right" })
+    .text("PAID", colX.paid, tableTop + 9, { width: 50, align: "right" })
+    .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
+  doc.restore();
+
+  let y = tableTop + headerH;
+  let rowCount = 0;
+
+  records.forEach((record: any) => {
+    // Zebra Striping
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
+    }
+
+    // Bottom Border
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
+
+    const date = moment(record.createdAt).format('DD/MM/YYYY');
+    const patientName = (record.patient as any)?.name || "N/A";
+    const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
+    const toothStr = record.tooth || "N/A";
+    const doctor = (record.doctor as any)?.name || "N/A";
+    const bill = record.amount - (record.discount || 0);
+    const paid = record.receivedAmount || 0;
+    const clinicalStatus = (record.status || "complete").toLowerCase();
+
+    // Data Row
+    doc
+      .fillColor(COLORS.textMain)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text(date, colX.date, y + 9)
+      .text(patientName, colX.patient, y + 9, { width: 85, height: 12, ellipsis: true })
+      .font("Helvetica")
+      .text(toothStr, colX.tooth, y + 9, { width: 35, height: 12, ellipsis: true })
+      .text(treatment, colX.treatment, y + 9, { width: 125, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMuted)
+      .text(doctor, colX.doctor, y + 9, { width: 75, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMain)
+      .font("Helvetica-Bold")
+      .text(bill.toLocaleString(), colX.fees, y + 9, { width: 50, align: "right" })
+      .text(paid.toLocaleString(), colX.paid, y + 9, { width: 50, align: "right" });
+
+    // Status Badge
+    const badgeW = 45;
+    const badgeH = 13;
+    const badgeX = colX.status + (45 - badgeW) / 2;
+    const badgeY = y + 7.5;
+    
+    let statusColor = COLORS.success;
+    if (clinicalStatus === "pending") statusColor = "#f59e0b"; // amber for pending
+    if (clinicalStatus === "incomplete") statusColor = COLORS.danger;
+
+    doc.save();
+    doc.fillColor(statusColor).roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill();
+    doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(clinicalStatus.toUpperCase(), badgeX, badgeY + 4, { width: badgeW, align: "center" });
+    doc.restore();
+
+    y += rowH;
+    rowCount++;
+
+    // New Page Logic
+    if (y > 770 && rowCount < records.length) {
+      doc.addPage({ margin: 0 });
+      y = 40;
+      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
+      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
+      y += 24;
+    }
+  });
+
+  // --- FOOTER ---
+  const footerY = 795;
+  doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
+
+  doc
+    .fillColor(COLORS.textMuted)
+    .fontSize(7)
+    .font("Helvetica")
+    .text(`Generated by ${clinic?.company_name || "Clinic System"}`, MARGIN, footerY + 10, { align: "left", lineBreak: false })
+    .text(`Page Count: ${doc.bufferedPageRange().count}`, PAGE_WIDTH - MARGIN - 100, footerY + 10, { align: "right", width: 100, lineBreak: false });
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, 815, { align: "center", width: PAGE_WIDTH, lineBreak: false });
+  }
+
+  doc.end();
+};
+
+/**
  * GENERATE TREATMENT TABLE PDF
  */
 export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
@@ -1976,19 +2158,19 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
   // --- DYNAMIC COLUMNS SETUP ---
   const allColumns = [
-    { key: "date", label: "BILLING DATE", width: 55 },
-    { key: "receiptNumber", label: "RECEIPT", width: 45 },
+    { key: "date", label: "Bill Date", width: 45 },
+    { key: "receiptNumber", label: "RECEIPT", width: 40 },
     { key: "patient", label: "PATIENT", width: 60 },
     { key: "tooth", label: "TOOTH", width: 30 },
-    { key: "treatmentCode", label: "CODE", width: 65 },
-    { key: "treatment", label: "TREATMENT", width: 65 },
-    { key: "doctor", label: "DOCTOR", width: 60 },
-    { key: "walletBalance", label: "WALLET BAL.", width: 45 },
+    { key: "treatmentCode", label: "CODE", width: 60 },
+    { key: "treatment", label: "TREATMENT", width: 60 },
+    { key: "doctor", label: "DOCTOR", width: 55 },
     { key: "fees", label: "FEES", width: 35 },
-    { key: "paid", label: "TXN PAID", width: 30 },
-    { key: "lastPaid", label: "PAYMENT DATE", width: 55 },
+    { key: "discount", label: "DISC", width: 30 },
+    { key: "paid", label: "PAID", width: 35 },
+    { key: "lastPaid", label: "Pay Date", width: 45 },
     { key: "due", label: "DUE", width: 30 },
-    { key: "overpay", label: "ADVANCE", width: 45 },
+    { key: "walletBalance", label: "WALLET", width: 40 },
     { key: "paymentMode", label: "MODE", width: 35 },
     { key: "status", label: "STATUS", width: 35 }
   ];
@@ -2020,7 +2202,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   doc.save();
   doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
 
-  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
+  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7);
   columnsToRender.forEach(c => {
     doc.text(c.label, colX[c.key], tableTop + 8);
   });
@@ -2032,14 +2214,22 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   const drawHeaders = (currentY: number) => {
     doc.save();
     doc.fillColor(COLORS.brand).roundedRect(MARGIN, currentY, CONTENT_WIDTH, headerH, 6).fill();
-    doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(8);
+    doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7);
     columnsToRender.forEach(c => {
       doc.text(c.label, colX[c.key], currentY + 8);
     });
     doc.restore();
   };
 
-  records.forEach((row: any) => {
+  const sortedRecords = [...records].sort((a: any, b: any) => {
+    const nameA = (a.patientInfo?.name || "Unknown").toLowerCase();
+    const nameB = (b.patientInfo?.name || "Unknown").toLowerCase();
+    if (nameA < nameB) return -1;
+    if (nameA > nameB) return 1;
+    return 0;
+  });
+
+  sortedRecords.forEach((row: any) => {
     const patientName = row.patientInfo?.name || "Unknown";
     const docName = row.doctorInfo?.name || "Unknown";
     const treatName = row.treatmentInfo?.name || row.workDoneNote || "-";
@@ -2087,8 +2277,11 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     if (colX.walletBalance) doc.fillColor("#7e22ce").text((row.patientInfo?.walletBalance || 0).toString(), colX.walletBalance, y + 8);
 
     if (colX.fees) {
-      const feesAmount = (row.amount || 0) - (row.discount || 0);
-      doc.font("Helvetica-Bold").text(feesAmount.toString(), colX.fees, y + 8);
+      const feesAmount = row.amount || 0;
+      doc.fillColor(COLORS.textMain).font("Helvetica-Bold").text(feesAmount.toString(), colX.fees, y + 8);
+    }
+    if (colX.discount) {
+      doc.fillColor(COLORS.danger).font("Helvetica-Bold").text((row.discount || 0).toString(), colX.discount, y + 8);
     }
     if (colX.paid) doc.fillColor(COLORS.success).text((row.totalPaid || 0).toString(), colX.paid, y + 8);
     if (colX.receiptNumber) {
@@ -2104,10 +2297,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
       doc.fillColor(COLORS.textMain).text(paymentDate, colX.lastPaid, y + 8);
     }
     if (colX.due) doc.fillColor(balDue > 0 ? COLORS.danger : COLORS.textMuted).text(balDue > 0 ? balDue.toString() : "0", colX.due, y + 8);
-    if (colX.overpay) {
-      const overpayAmt = Math.max(0, -balDue);
-      doc.fillColor(overpayAmt > 0 ? "#7e22ce" : COLORS.textMuted).text(overpayAmt.toString(), colX.overpay, y + 8);
-    }
+
     if (colX.paymentMode) {
       let paymentModeStr = "-";
       const history = Array.isArray(row.paymentHistory) ? row.paymentHistory : (row.paymentHistory ? [row.paymentHistory] : []);
@@ -2666,6 +2856,165 @@ export const generateMonthlyPatientPDF = (data: any, stream: any, fromDate: stri
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(i);
     doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, PAGE_HEIGHT - 20, { align: "center", width: PAGE_WIDTH });
+  }
+
+  doc.end();
+};
+
+/**
+ * GENERATE GLOBAL TREATMENT TABLE PDF
+ */
+export const generateGlobalTreatmentTableDataPDF = (data: any, stream: any) => {
+  const { clinic, records } = data;
+  const doc = new PDFDocument({
+    margin: 0,
+    size: "A4",
+    bufferPages: true
+  });
+
+  doc.pipe(stream);
+
+  // --- STYLE TOKENS ---
+  const COLORS = {
+    brand: "#4c1d95", // purple theme for treatments
+    brandLight: "#7c3aed",
+    textMain: "#111827",
+    textMuted: "#4b5563",
+    bgLight: "#f8fafc",
+    zebra: "#f5f3ff",
+    success: "#059669",
+    danger: "#dc2626",
+    border: "#e2e8f0",
+    white: "#ffffff"
+  };
+
+  const PAGE_WIDTH = 595.28;
+  const MARGIN = 20;
+  const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+  const headerHeight = 110;
+  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
+
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(20)
+    .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25)
+    .fontSize(8.5)
+    .font("Helvetica")
+    .opacity(0.8)
+    .text(`${clinic?.addressInfo?.[0]?.address || ""} ${clinic?.addressInfo?.[0]?.city ? '| ' + clinic?.addressInfo?.[0]?.city : ""}`, MARGIN, 52);
+
+  const rightAlignX = PAGE_WIDTH - MARGIN - 250;
+
+  doc
+    .fillColor(COLORS.white)
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .text("GLOBAL TREATMENT REPORT", rightAlignX, 25, { align: "right", width: 250 })
+    .opacity(0.8)
+    .fontSize(10)
+    .text("ALL PATIENTS", rightAlignX, 48, { align: "right", width: 250 })
+    .fontSize(8.5)
+    .font("Helvetica")
+    .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 96, { align: "right", width: 250 });
+
+  const tableTop = 135;
+  const rowH = 28;
+  const headerH = 26;
+
+  doc.save();
+  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+
+  const colX = {
+    date: MARGIN + 10,
+    patient: MARGIN + 80,
+    tooth: MARGIN + 200,
+    treatment: MARGIN + 250,
+    doctor: MARGIN + 420,
+    status: MARGIN + 500
+  };
+
+  doc
+    .fillColor(COLORS.white)
+    .fontSize(8)
+    .font("Helvetica-Bold")
+    .text("DATE", colX.date, tableTop + 9)
+    .text("PATIENT", colX.patient, tableTop + 9)
+    .text("TOOTH", colX.tooth, tableTop + 9)
+    .text("TREATMENT", colX.treatment, tableTop + 9)
+    .text("DOCTOR", colX.doctor, tableTop + 9)
+    .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
+  doc.restore();
+
+  let y = tableTop + headerH;
+  let rowCount = 0;
+
+  records.forEach((record: any) => {
+    if (rowCount % 2 !== 0) {
+      doc.fillColor(COLORS.zebra).rect(MARGIN, y, CONTENT_WIDTH, rowH).fill();
+    }
+    doc.lineWidth(0.2).strokeColor(COLORS.border).moveTo(MARGIN, y + rowH).lineTo(MARGIN + CONTENT_WIDTH, y + rowH).stroke();
+
+    const date = moment(record.treatmentDate || record.createdAt).format('DD/MM/YYYY');
+    const patientName = (record.patient as any)?.name || "N/A";
+    const treatment = record.treatmentPlan || record.notes || "Clinical Note";
+    const toothStr = record.tooth || "N/A";
+    const doctor = (record.doctor as any)?.name || "N/A";
+    const clinicalStatus = (record.status || "pending").toLowerCase();
+
+    doc
+      .fillColor(COLORS.textMain)
+      .fontSize(8)
+      .font("Helvetica-Bold")
+      .text(date, colX.date, y + 9)
+      .text(patientName, colX.patient, y + 9, { width: 110, height: 12, ellipsis: true })
+      .font("Helvetica")
+      .text(toothStr, colX.tooth, y + 9, { width: 40, height: 12, ellipsis: true })
+      .text(treatment, colX.treatment, y + 9, { width: 160, height: 12, ellipsis: true })
+      .fillColor(COLORS.textMuted)
+      .text(doctor, colX.doctor, y + 9, { width: 75, height: 12, ellipsis: true });
+
+    const badgeW = 45;
+    const badgeH = 13;
+    const badgeX = colX.status + (45 - badgeW) / 2;
+    const badgeY = y + 7.5;
+    
+    let statusColor = COLORS.success;
+    if (clinicalStatus === "pending") statusColor = "#f59e0b";
+    if (clinicalStatus === "incomplete") statusColor = COLORS.danger;
+
+    doc.save();
+    doc.fillColor(statusColor).roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill();
+    doc.fillColor(COLORS.white).fontSize(6).font("Helvetica-Bold").text(clinicalStatus.toUpperCase(), badgeX, badgeY + 4, { width: badgeW, align: "center" });
+    doc.restore();
+
+    y += rowH;
+    rowCount++;
+
+    if (y > 770 && rowCount < records.length) {
+      doc.addPage({ margin: 0 });
+      y = 40;
+      doc.fillColor(COLORS.brand).roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 4).fill();
+      doc.fillColor(COLORS.white).fontSize(8).font("Helvetica-Bold").text("CONTINUED...", colX.date, y + 6);
+      y += 24;
+    }
+  });
+
+  const footerY = 795;
+  doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
+
+  doc
+    .fillColor(COLORS.textMuted)
+    .fontSize(7)
+    .font("Helvetica")
+    .text(`Generated by ${clinic?.company_name || "Clinic System"}`, MARGIN, footerY + 10, { align: "left", lineBreak: false })
+    .text(`Total Records: ${records.length}`, PAGE_WIDTH - MARGIN - 100, footerY + 10, { align: "right", width: 100, lineBreak: false });
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(COLORS.textMuted).fontSize(7).text(`Page ${i + 1} of ${pages.count}`, 0, 815, { align: "center", width: PAGE_WIDTH, lineBreak: false });
   }
 
   doc.end();

@@ -986,3 +986,72 @@ export const getFilteredTreatmentTablePDFData = async (query: any) => {
     return { success: "error", message: error.message, statusCode: 500 };
   }
 };
+
+export const getGlobalFilteredTreatmentTablePDFData = async (query: any) => {
+  try {
+    const { company, fromDate, toDate, status } = query;
+    const ToothTreatmentModel = mongoose.model("ToothTreatment");
+    const CompanyModel = mongoose.model("Company");
+
+    console.log("DEBUG: company parameter is:", typeof company, company, company?.length);
+    if (!company || !mongoose.Types.ObjectId.isValid(company)) {
+      return { success: "error", message: "Valid Company ID required", statusCode: 400 };
+    }
+
+    const matchStage: any = {
+      isActive: true,
+      company: new mongoose.Types.ObjectId(company),
+    };
+
+    if (status && status !== 'all' && status !== 'undefined') {
+      matchStage.status = { $regex: new RegExp(`^${status}$`, 'i') };
+    }
+
+    if (fromDate && toDate) {
+      const startOfDay = new Date(`${fromDate.split('T')[0]}T00:00:00.000Z`);
+      const endOfDay = new Date(`${toDate.split('T')[0]}T23:59:59.999Z`);
+      matchStage.$or = [
+        { treatmentDate: { $gte: startOfDay, $lte: endOfDay } },
+        { treatmentDate: { $exists: false }, createdAt: { $gte: startOfDay, $lte: endOfDay } },
+        { treatmentDate: null, createdAt: { $gte: startOfDay, $lte: endOfDay } }
+      ];
+    }
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patient",
+          foreignField: "_id",
+          as: "patient",
+        },
+      },
+      { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "doctor",
+          foreignField: "_id",
+          as: "doctor",
+        },
+      },
+      { $unwind: { path: "$doctor", preserveNullAndEmptyArrays: true } }
+    ];
+
+    const records = await ToothTreatmentModel.aggregate(pipeline);
+    const clinic = await CompanyModel.findById(matchStage.company);
+
+    return {
+      success: "success",
+      data: {
+        clinic,
+        records
+      },
+      statusCode: 200
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
+  }
+};
