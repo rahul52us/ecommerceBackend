@@ -142,6 +142,10 @@ export const updateToothTreatment = async (data: any) => {
     if (sittingNo !== undefined) updatePayload.sittingNo = sittingNo;
     if (data.position) updatePayload.position = data.position;
     if (data.side) updatePayload.side = data.side;
+    if (data.tooth) updatePayload.tooth = data.tooth;
+    if (data.dentitionType) updatePayload.dentitionType = data.dentitionType;
+    if (data.toothNotation) updatePayload.toothNotation = data.toothNotation;
+    if (data.recordType) updatePayload.recordType = data.recordType;
 
     const updated = await ToothTreatmentSchema.findByIdAndUpdate(
       treatmentId,
