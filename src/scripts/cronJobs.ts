@@ -9,15 +9,16 @@ import User from '../schemas/User/User';
 const sendWhatsAppReminder = async (
   phone: string,
   params: string, // e.g. "Rahul,12-Aug,10:00 AM,Dr. Smith,Clinic"
-  templateName: string = 'daily_appointment_update'
+  templateName: string = 'daily_appointment_update',
+  credentials?: { user?: string, pass?: string, sender?: string }
 ) => {
   try {
-    const user = process.env.BHASH_SMS_USER;
-    const pass = process.env.BHASH_SMS_PASS;
-    const sender = process.env.BHASH_SMS_SENDER;
+    const user = credentials?.user;
+    const pass = credentials?.pass;
+    const sender = credentials?.sender;
 
     if (!user || !pass || !sender) {
-      console.error("Missing BhashSMS credentials in environment variables.");
+      console.error("Missing BhashSMS credentials. Cannot send message.");
       return;
     }
 
@@ -44,15 +45,16 @@ const sendWhatsAppReminder = async (
 // Function dedicated to sending Marketing Campaign WhatsApp messages
 const sendMarketingWhatsApp = async (
   phone: string,
-  templateName: string
+  templateName: string,
+  credentials?: { user?: string, pass?: string, sender?: string }
 ) => {
   try {
-    const user = process.env.BHASH_SMS_USER;
-    const pass = process.env.BHASH_SMS_PASS;
-    const sender = process.env.BHASH_SMS_SENDER;
+    const user = credentials?.user;
+    const pass = credentials?.pass;
+    const sender = credentials?.sender;
 
     if (!user || !pass || !sender) {
-      console.error("Missing BhashSMS credentials in environment variables.");
+      console.error("Missing BhashSMS credentials. Cannot send marketing message.");
       return;
     }
 
@@ -78,8 +80,21 @@ const sendMarketingWhatsApp = async (
 };
 
 // Send reminders for tomorrow's appointments for a specific company
-const sendTomorrowReminders = async (companyId: any) => {
+const sendTomorrowReminders = async (company: any) => {
   try {
+    const companyId = company._id;
+    const creds = company.whatsappConfig?.watsappMessageCredentails;
+    
+    if (!creds || !creds.user || !creds.pass || !creds.sender) {
+      console.log(`[Cron Reminder] WhatsApp credentials missing for company ${company.company_name}. Skipping reminders.`);
+      return;
+    }
+
+    const credentials = {
+      user: creds.user,
+      pass: creds.pass,
+      sender: creds.sender
+    };
     console.log("Sending reminders for tomorrow's appointments...");
     const now = new Date();
 
@@ -124,7 +139,7 @@ const sendTomorrowReminders = async (companyId: any) => {
 
         const params = `${patientName},${dateStr},${friendlyTimeStr}`;
         console.log(`[Cron Reminder] Sending reminder to ${patientName} at ${patient.mobileNumber} for ${friendlyTimeStr}`);
-        await sendWhatsAppReminder(patient.mobileNumber, params, 'daily_appointment_update');
+        await sendWhatsAppReminder(patient.mobileNumber, params, 'daily_appointment_update', credentials);
       }
     }
   } catch (error) {
@@ -133,8 +148,21 @@ const sendTomorrowReminders = async (companyId: any) => {
 };
 
 // Send reminders for tomorrow's recalls for a specific company
-const sendTomorrowRecalls = async (companyId: any) => {
+const sendTomorrowRecalls = async (company: any) => {
   try {
+    const companyId = company._id;
+    const creds = company.whatsappConfig?.watsappMessageCredentails;
+
+    if (!creds || !creds.user || !creds.pass || !creds.sender) {
+      console.log(`[Cron Reminder] WhatsApp credentials missing for company ${company.company_name}. Skipping recalls.`);
+      return;
+    }
+
+    const credentials = {
+      user: creds.user,
+      pass: creds.pass,
+      sender: creds.sender
+    };
     console.log("Sending reminders for tomorrow's recalls...");
     const now = new Date();
 
@@ -164,7 +192,7 @@ const sendTomorrowRecalls = async (companyId: any) => {
 
         const params = `${patientName},${dateStr}`;
         console.log(`[Cron Reminder] Sending recall reminder to ${patientName} at ${patient.mobileNumber}`);
-        await sendWhatsAppReminder(patient.mobileNumber, params, 'recall_reminder');
+        await sendWhatsAppReminder(patient.mobileNumber, params, 'recall_reminder', credentials);
       }
     }
   } catch (error) {
@@ -203,15 +231,35 @@ const processMarketingCampaigns = async () => {
         userQuery.company = { $in: campaign.company };
       }
       
-      const activeUsers = await User.find(userQuery).select('name mobileNumber');
+      const activeUsers = await User.find(userQuery).select('name mobileNumber company');
+
+      // Pre-fetch companies for these users to get credentials
+      const companyIds = [...new Set(activeUsers.map(u => u.company?.toString()).filter(Boolean))];
+      const companies = await Company.find({ _id: { $in: companyIds } }).select('whatsappConfig');
+      const companyMap = new Map();
+      companies.forEach(c => companyMap.set(c._id.toString(), c));
 
       for (const user of activeUsers) {
         if (user.mobileNumber) {
+          const userCompany: any = user.company ? companyMap.get(user.company.toString()) : null;
+          const creds = userCompany?.whatsappConfig?.watsappMessageCredentails;
+          
+          if (!creds || !creds.user || !creds.pass || !creds.sender) {
+            console.log(`[Marketing Campaign] WhatsApp credentials missing for company of user ${user.name}. Skipping.`);
+            continue;
+          }
+
+          const credentials = {
+            user: creds.user,
+            pass: creds.pass,
+            sender: creds.sender
+          };
+
           // Validate mobile number: must have at least 10 digits
           const numericPhone = user.mobileNumber.replace(/\D/g, '');
           if (numericPhone.length >= 10 && numericPhone.length <= 15) {
             // Using dedicated marketing function
-            await sendMarketingWhatsApp(user.mobileNumber, campaign.templateName);
+            await sendMarketingWhatsApp(user.mobileNumber, campaign.templateName, credentials);
           } else {
             console.log(`[Marketing Campaign] Skipped invalid mobile number: ${user.mobileNumber} for user ${user.name}`);
           }
@@ -245,8 +293,8 @@ export const initCronJobs = async () => {
           const reminderTime = company.whatsappConfig.reminderTime || '07:00';
           if (reminderTime === timeStr) {
             console.log(`[Cron Reminder] Triggering reminders for company ${company.company_name} at ${timeStr}`);
-            await sendTomorrowReminders(company._id);
-            await sendTomorrowRecalls(company._id);
+            await sendTomorrowReminders(company);
+            await sendTomorrowRecalls(company);
           }
         }
       }
