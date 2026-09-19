@@ -1551,11 +1551,10 @@ export const generateTableDataPDF = (data: any, stream: any) => {
 
   // --- COMPACT HEADER ---
   const headerHeight = 110;
-  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
-
+  
   // Clinic Info (Left Side) - Using company_name from schema
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .font("Helvetica-Bold")
     .fontSize(20)
     .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25)
@@ -1583,7 +1582,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
   if (sexStr) metaArr.push(sexStr);
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .font("Helvetica-Bold")
     .fontSize(13)
     .text("WORK DONE REPORT", rightAlignX, 25, { align: "right", width: 250 })
@@ -1603,7 +1602,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
   const headerH = 26;
 
   doc.save();
-  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+  doc.lineWidth(1).strokeColor(COLORS.textMain).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).stroke();
 
   // Rebalanced Column Widths
   const colX = {
@@ -1618,7 +1617,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
   };
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .fontSize(8)
     .font("Helvetica-Bold")
     .text("SITTING", colX.sit, tableTop + 9)
@@ -1755,11 +1754,10 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
 
   // --- COMPACT HEADER ---
   const headerHeight = 110;
-  doc.rect(0, 0, PAGE_WIDTH, headerHeight).fill(COLORS.brand);
 
   // Clinic Info (Left Side)
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .font("Helvetica-Bold")
     .fontSize(20)
     .text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", MARGIN, 25)
@@ -1772,7 +1770,7 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
   const rightAlignX = PAGE_WIDTH - MARGIN - 250;
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .font("Helvetica-Bold")
     .fontSize(13)
     .text("GLOBAL WORK DONE REPORT", rightAlignX, 25, { align: "right", width: 250 })
@@ -1789,7 +1787,7 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
   const headerH = 26;
 
   doc.save();
-  doc.fillColor(COLORS.brand).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).fill();
+  doc.lineWidth(1).strokeColor(COLORS.textMain).roundedRect(MARGIN, tableTop, CONTENT_WIDTH, headerH, 6).stroke();
 
   // Rebalanced Column Widths for Global
   const colX = {
@@ -1804,7 +1802,7 @@ export const generateGlobalTableDataPDF = (data: any, stream: any) => {
   };
 
   doc
-    .fillColor(COLORS.white)
+    .fillColor(COLORS.textMain)
     .fontSize(8)
     .font("Helvetica-Bold")
     .text("DATE", colX.date, tableTop + 9)
