@@ -1593,7 +1593,6 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .font("Helvetica")
     .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
     .text(patientAddress, rightAlignX, 72, { align: "right", width: 250, lineBreak: false, ellipsis: true })
-    .text(`Receipt No: ${data.receiptNumber || `WDR-${new Date().getTime().toString().slice(-6)}`}`, rightAlignX, 84, { align: "right", width: 250 })
     .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 96, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
