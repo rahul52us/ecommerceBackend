@@ -2253,15 +2253,7 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
     doc.restore();
   };
 
-  const sortedRecords = [...records].sort((a: any, b: any) => {
-    const nameA = (a.patientInfo?.name || "Unknown").toLowerCase();
-    const nameB = (b.patientInfo?.name || "Unknown").toLowerCase();
-    if (nameA < nameB) return -1;
-    if (nameA > nameB) return 1;
-    return 0;
-  });
-
-  sortedRecords.forEach((row: any) => {
+  records.forEach((row: any) => {
     const patientName = row.patientInfo?.name || "Unknown";
     const docName = row.doctorInfo?.name || "Unknown";
     const treatName = row.treatmentInfo?.name || row.workDoneNote || "-";

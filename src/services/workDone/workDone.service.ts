@@ -848,6 +848,8 @@ export const generateGlobalAccountabilityReportService = async (req: any, res: a
       });
     });
 
+    const pdfPath = require.resolve("../../modules/config/pdfGenerator");
+    delete require.cache[pdfPath];
     const { generateGlobalAccountabilityPDF } = require("../../modules/config/pdfGenerator");
     generateGlobalAccountabilityPDF(data, stream, req.body.columns, req.body.fromDate, req.body.toDate);
   } catch (err: any) {

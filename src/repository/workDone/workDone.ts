@@ -1187,9 +1187,19 @@ export const getGlobalAccountabilityData = async (payload: any) => {
       matchStage["treatmentCode"] = { $regex: new RegExp("^" + escapedTreatmentCode + "(?:\\s*·|$)", "i") };
     }
 
+    let sortStage: any = { updateLastAccountbilityDate: -1, createdAt: -1 };
+    
+    if (payload.sortBy === 'payment_asc') {
+      sortStage = { updateLastAccountbilityDate: 1, createdAt: 1 };
+    } else if (payload.sortBy === 'date_desc') {
+      sortStage = { createdAt: -1 };
+    } else if (payload.sortBy === 'date_asc') {
+      sortStage = { createdAt: 1 };
+    }
+
     const pipeline: any[] = [
       { $match: matchStage },
-      { $sort: { updateLastAccountbilityDate: -1, createdAt: -1 } },
+      { $sort: sortStage },
       {
         $lookup: {
           from: "users",
