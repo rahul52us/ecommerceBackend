@@ -1,6 +1,6 @@
 import express from "express";
 import authenticate from "../../modules/config/authenticate";
-import { createToothTreatmentService, deleteToothTreatmentService, getTodayCountService, getTodayToothTreatmentsService, getToothTreatmentByIdService, getToothTreatmentsService, updateToothTreatmentService, updateToothTreatmentStatusService, getTreatmentCountByDateService, getTreatmentsBySittingService, assignSittingNoService, generateFilteredTreatmentTablePDFService, generateGlobalFilteredTreatmentTablePDFService } from "../../services/toothTreatment/toothTreatment.service";
+import { createToothTreatmentService, deleteToothTreatmentService, getTodayCountService, getTodayToothTreatmentsService, getToothTreatmentByIdService, getToothTreatmentsService, updateToothTreatmentService, updateToothTreatmentStatusService, getTreatmentCountByDateService, getTreatmentsBySittingService, assignSittingNoService, generateFilteredTreatmentTablePDFService, generateGlobalFilteredTreatmentTablePDFService, completeToothTreatmentAndWorkDoneService } from "../../services/toothTreatment/toothTreatment.service";
 
 const toothTreatment = express.Router();
 toothTreatment.post("/create", authenticate, createToothTreatmentService);
@@ -16,6 +16,7 @@ toothTreatment.get("/:id", authenticate, getToothTreatmentByIdService);
 toothTreatment.put("/:id", authenticate, updateToothTreatmentService);
 toothTreatment.put("/:id/sitting", authenticate, assignSittingNoService);
 toothTreatment.put("/:id/status", authenticate, updateToothTreatmentStatusService);
+toothTreatment.put("/:id/complete-all", authenticate, completeToothTreatmentAndWorkDoneService);
 toothTreatment.delete("/:id", authenticate, deleteToothTreatmentService);
 
 export default toothTreatment;

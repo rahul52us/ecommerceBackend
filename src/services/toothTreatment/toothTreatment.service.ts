@@ -13,6 +13,7 @@ import {
   getTreatmentsBySitting,
   assignSittingNo,
   getFilteredTreatmentTablePDFData,
+  completeToothTreatmentAndWorkDone,
 } from "../../repository/toothTreatment/toothTreatment";
 import { generateTreatmentTableDataPDF } from "../../modules/config/pdfGenerator";
 import { Writable } from "stream";
@@ -375,3 +376,30 @@ export const generateGlobalFilteredTreatmentTablePDFService = async (req: any, r
     });
   }
 };
+
+/* =====================================================
+   COMPLETE TOOTH TREATMENT AND WORK DONE
+===================================================== */
+export const completeToothTreatmentAndWorkDoneService = async (req: any, res: any): Promise<any> => {
+  try {
+    const { status, statusCode, data, message }: any =
+      await completeToothTreatmentAndWorkDone({
+        treatmentId: new mongoose.Types.ObjectId(req.params.id),
+        user: req.userId,
+        company: req.body.company,
+      });
+
+    return res.status(statusCode).send({
+      status,
+      message,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(500).send({
+      status: "error",
+      message: err?.message || "Internal Server Error",
+    });
+  }
+};
+
+

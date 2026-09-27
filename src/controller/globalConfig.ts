@@ -18,7 +18,7 @@ export const getGlobalConfig = async (req: Request, res: Response) => {
 
 export const updateGlobalConfig = async (req: Request, res: Response) => {
   try {
-    const { paymentQrCode, globalLogo, cronTime } = req.body;
+    const { paymentQrCode, globalLogo, cronTime, tutorialDoc } = req.body;
 
     let config = await GlobalConfig.findOne();
     if (!config) {
@@ -27,6 +27,7 @@ export const updateGlobalConfig = async (req: Request, res: Response) => {
 
     if (paymentQrCode !== undefined) config.paymentQrCode = paymentQrCode;
     if (globalLogo !== undefined) config.globalLogo = globalLogo;
+    if (tutorialDoc !== undefined) config.tutorialDoc = tutorialDoc;
     if (cronTime !== undefined) {
       config.cronTime = cronTime;
     }

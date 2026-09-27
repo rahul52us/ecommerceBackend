@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import ToothTreatmentSchema from "../../schemas/toothTreatment/toothTreatment.schema";
+import WorkDoneSchema from "../../schemas/workDone/workDone.schema";
 
 /* =====================================================
    1️⃣ CREATE TOOTH TREATMENT
@@ -174,6 +175,39 @@ export const updateToothTreatment = async (data: any) => {
       error: error.message,
       statusCode: 500,
     };
+  }
+};
+
+/* =====================================================
+   COMPLETE TOOTH TREATMENT AND ASSOCIATED WORK DONE
+===================================================== */
+export const completeToothTreatmentAndWorkDone = async (data: any) => {
+  try {
+    const { treatmentId, user } = data;
+
+    const updatedTreatment = await ToothTreatmentSchema.findByIdAndUpdate(
+      treatmentId,
+      { $set: { status: "complete" } },
+      { new: true }
+    );
+
+    if (!updatedTreatment) {
+      return { success: "error", message: "Tooth treatment not found.", statusCode: 404 };
+    }
+
+    await WorkDoneSchema.updateMany(
+      { treatment: treatmentId, status: { $ne: "complete" } },
+      { $set: { status: "complete", updatedBy: user } }
+    );
+
+    return {
+      success: "success",
+      message: "Treatment plan and all entries marked as complete.",
+      data: updatedTreatment,
+      statusCode: 200,
+    };
+  } catch (error: any) {
+    return { success: "error", message: error.message, statusCode: 500 };
   }
 };
 
