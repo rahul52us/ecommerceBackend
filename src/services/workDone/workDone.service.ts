@@ -345,7 +345,7 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
 
     // Check if the payment already has a receipt number
     let receiptNumber = data.payment?.receiptNumber;
-    
+
     // Fallback: Create Receipt document if it doesn't have one (for older legacy payments)
     if (!receiptNumber) {
       const receiptResult = await createReceipt({
@@ -356,14 +356,14 @@ export const generateIndividualPaymentPDFService = async (req: any, res: any) =>
         type: "payment", // explicitly use payment to guarantee unique sequence
       });
       receiptNumber = receiptResult?.data?.receiptNumber || "N/A";
-      
+
       // Permanently save this newly generated receipt number back to the database for this specific transaction
       if (receiptNumber !== "N/A") {
         const PaymentModel = require("../../schemas/payment/payment.schema").default;
         await PaymentModel.findByIdAndUpdate(req.params.paymentId, {
           $set: { receiptNumber: receiptNumber }
         });
-        
+
         // Inject into memory so PDF generator sees it
         if (data.payment) data.payment.receiptNumber = receiptNumber;
         const paymentInHistory = (data.record as any).paymentHistory?.find((p: any) => String(p._id) === String(req.params.paymentId));
@@ -457,7 +457,7 @@ export const generateWorkDoneReportService = async (req: any, res: any) => {
       }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
 
       if (nextAppts && nextAppts.length > 0) {
-        nextAppointmentsList = nextAppts.map((appt: any) => 
+        nextAppointmentsList = nextAppts.map((appt: any) =>
           `${moment(appt.appointmentDate).format('DD/MM/YYYY')} at ${appt.startTime || 'TBD'} (Dr. ${appt.primaryDoctor?.name || 'N/A'})`
         );
       }
@@ -542,7 +542,7 @@ export const generateDailyWorkDoneReportService = async (req: any, res: any) => 
       }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
 
       if (nextAppts && nextAppts.length > 0) {
-        nextAppointmentsList = nextAppts.map((appt: any) => 
+        nextAppointmentsList = nextAppts.map((appt: any) =>
           `${moment(appt.appointmentDate).format('DD/MM/YYYY')} at ${appt.startTime || 'TBD'} (Dr. ${appt.primaryDoctor?.name || 'N/A'})`
         );
       }
@@ -671,7 +671,7 @@ export const generateFilteredWorkDoneReportService = async (req: any, res: any) 
       }).sort({ appointmentDate: 1, startTime: 1 }).populate("primaryDoctor", "name");
 
       if (nextAppts && nextAppts.length > 0) {
-        nextAppointmentsList = nextAppts.map((appt: any) => 
+        nextAppointmentsList = nextAppts.map((appt: any) =>
           `${moment(appt.appointmentDate).format('DD/MM/YYYY')} at ${appt.startTime || 'TBD'} (Dr. ${appt.primaryDoctor?.name || 'N/A'})`
         );
       }
@@ -848,8 +848,8 @@ export const generateGlobalAccountabilityReportService = async (req: any, res: a
       });
     });
 
-    const pdfPath = require.resolve("../../modules/config/pdfGenerator");
-    delete require.cache[pdfPath];
+    // const pdfPath = require.resolve("../../modules/config/pdfGenerator");
+    // delete require.cache[pdfPath];
     const { generateGlobalAccountabilityPDF } = require("../../modules/config/pdfGenerator");
     generateGlobalAccountabilityPDF(data, stream, req.body.columns, req.body.fromDate, req.body.toDate);
   } catch (err: any) {
@@ -887,7 +887,7 @@ export const generateMonthlyPatientReportService = async (req: any, res: any) =>
     const payload = {
       ...req.body,
       company: req.body.company || req.bodyData?.company,
-      limit: 5000, 
+      limit: 5000,
       page: 1
     };
 
