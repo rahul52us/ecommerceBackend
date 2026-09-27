@@ -109,7 +109,8 @@ export const generateStatementPDF = (data: any, stream: any) => {
     .text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, 84, { align: "right", width: 250 });
 
   // --- SUMMARY CARDS ---
-  const contentY = 125;
+  // Pushed down to 195 to avoid physical stamp overlapping
+  const contentY = 195;
   const totalBilled = records.reduce((sum: number, r: any) => sum + (r.amount - (r.discount || 0)), 0);
   const totalPaid = records.reduce((sum: number, r: any) => sum + (r.receivedAmount || 0), 0);
   const balance = totalBilled - totalPaid;
@@ -123,7 +124,8 @@ export const generateStatementPDF = (data: any, stream: any) => {
   drawCompactCard(MARGIN + (cardW + cardGap) * 2, contentY, cardW, cardH, "BALANCE DUE", `Rs. ${balance.toLocaleString()}`, COLORS.danger);
 
   // --- PREMIUM TABLE SECTION ---
-  const tableTop = 185;
+  // Pushed down to 255
+  const tableTop = 255;
   const rowH = 28;
   const headerH = 26;
 
@@ -1944,7 +1946,8 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   };
 
   // --- HEADER SECTION ---
-  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, 95).lineTo(PAGE_WIDTH - MARGIN, 95).stroke();
+  // Moved line down to 180 to make room for physical stamp in the center
+  doc.lineWidth(1).strokeColor(COLORS.border).moveTo(MARGIN, 180).lineTo(PAGE_WIDTH - MARGIN, 180).stroke();
 
   // Clinic Info (Left Side)
   doc
@@ -1997,7 +2000,8 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
   doc.text(`Generated On: ${moment().format('DD/MM/YYYY')}`, rightAlignX, currentY, { align: "right", width: 250 });
 
   // --- PREMIUM TABLE SECTION ---
-  const tableTop = 105;
+  // Moved tableTop down to 190 to make room for physical stamp
+  const tableTop = 190;
   const rowH = 28;
   const headerH = 26;
 
