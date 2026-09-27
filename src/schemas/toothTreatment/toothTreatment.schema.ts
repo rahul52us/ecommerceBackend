@@ -71,6 +71,10 @@ const ToothTreatmentSchema = new Schema(
       type: String,
       trim: true,
     },
+    generalTitle: {
+      type: String,
+      trim: true,
+    },
 
     estimateMin: {
       type: Number,

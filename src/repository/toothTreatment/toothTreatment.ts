@@ -61,6 +61,7 @@ export const createToothTreatment = async (data: any) => {
       totalMin: totalMin || 0,
       totalMax: totalMax || 0,
       toothNote: toothNote || "",
+      generalTitle: data.generalTitle || "",
       complaintType: complaintType || "",
       sittingNo: sittingNo || null,
       createdBy: user,
@@ -147,6 +148,7 @@ export const updateToothTreatment = async (data: any) => {
     if (data.dentitionType) updatePayload.dentitionType = data.dentitionType;
     if (data.toothNotation) updatePayload.toothNotation = data.toothNotation;
     if (data.recordType) updatePayload.recordType = data.recordType;
+    if (data.generalTitle !== undefined) updatePayload.generalTitle = data.generalTitle;
 
     const updated = await ToothTreatmentSchema.findByIdAndUpdate(
       treatmentId,
@@ -419,6 +421,7 @@ export const getToothTreatments = async (query: any) => {
                 { "doctor.name": { $regex: query.search, $options: "i" } },
                 { "patient.name": { $regex: query.search, $options: "i" } },
                 { treatmentPlan: { $regex: query.search, $options: "i" } },
+                { generalTitle: { $regex: query.search, $options: "i" } },
                 { notes: { $regex: query.search, $options: "i" } },
                 { tooth: { $regex: query.search, $options: "i" } },
               ],
@@ -479,6 +482,8 @@ export const getToothTreatments = async (query: any) => {
           complaintType: 1,
           sittingNo: 1,
           receivedAmount: 1,
+          generalTitle: 1,
+          recordType: 1,
           createdAt: 1,
 
           "patient._id": 1,
