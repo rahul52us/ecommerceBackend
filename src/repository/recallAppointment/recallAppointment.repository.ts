@@ -192,12 +192,20 @@ export const getRecallAppointments = async (query: any) => {
     if (company) matchStage.company = new mongoose.Types.ObjectId(company);
     if (patient) matchStage.patient = new mongoose.Types.ObjectId(patient);
     if (doctor) matchStage.doctor = new mongoose.Types.ObjectId(doctor);
-    if (status) matchStage.status = status;
+    if (status) matchStage.status = { $regex: new RegExp(`^${status}$`, "i") };
 
     if (fromDate || toDate) {
       matchStage.recallDate = {};
-      if (fromDate) matchStage.recallDate.$gte = new Date(fromDate);
-      if (toDate) matchStage.recallDate.$lte = new Date(toDate);
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        matchStage.recallDate.$gte = start;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        matchStage.recallDate.$lte = end;
+      }
     }
 
     const pipeline: any[] = [
