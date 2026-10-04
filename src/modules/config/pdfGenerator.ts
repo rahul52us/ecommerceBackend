@@ -1590,7 +1590,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .text("WORK DONE REPORT", rightAlignX, 25, { align: "right", width: 250 })
     .opacity(0.8)
     .fontSize(10)
-    .text(patient?.name?.toUpperCase() || "N/A", rightAlignX, 48, { align: "right", width: 250 })
+    .text(((patient?.title ? patient.title + " " : "") + (patient?.name || "N/A")).toUpperCase(), rightAlignX, 48, { align: "right", width: 250 })
     .fontSize(8.5)
     .font("Helvetica")
     .text(metaArr.join(" | "), rightAlignX, 60, { align: "right", width: 250 })
@@ -1612,9 +1612,10 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     tooth: MARGIN + 95,
     treatment: MARGIN + 135,
     doctor: MARGIN + 295,
-    fees: MARGIN + 390,
-    paid: MARGIN + 445,
-    status: MARGIN + 500
+    fees: MARGIN + 370,
+    discount: MARGIN + 420,
+    paid: MARGIN + 460,
+    status: MARGIN + 510
   };
 
   doc
@@ -1626,8 +1627,9 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .text("TOOTH", colX.tooth, tableTop + 9)
     .text("TREATMENT / PROCEDURE", colX.treatment, tableTop + 9)
     .text("DOCTOR", colX.doctor, tableTop + 9)
-    .text("FEES", colX.fees, tableTop + 9, { width: 50, align: "right" })
-    .text("PAID", colX.paid, tableTop + 9, { width: 50, align: "right" })
+    .text("FEES", colX.fees, tableTop + 9, { width: 45, align: "right" })
+    .text("", colX.discount, tableTop + 9, { width: 35, align: "right" }) // Empty header as requested
+    .text("PAID", colX.paid, tableTop + 9, { width: 45, align: "right" })
     .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
   doc.restore();
 
@@ -1674,8 +1676,9 @@ export const generateTableDataPDF = (data: any, stream: any) => {
       .text(doctor, colX.doctor, y + 9, { width: 95 })
       .fillColor(COLORS.textMain)
       .font("Helvetica-Bold")
-      .text(bill.toLocaleString(), colX.fees, y + 9, { width: 50, align: "right" })
-      .text(paid.toLocaleString(), colX.paid, y + 9, { width: 50, align: "right" });
+      .text(bill.toLocaleString(), colX.fees, y + 9, { width: 45, align: "right" })
+      .text(record.discount > 0 ? record.discount.toLocaleString() : "", colX.discount, y + 9, { width: 35, align: "right" })
+      .text(paid.toLocaleString(), colX.paid, y + 9, { width: 45, align: "right" });
 
     // Status Badge
     const badgeW = 40;
