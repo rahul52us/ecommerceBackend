@@ -2244,6 +2244,12 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
   let y = tableTop + headerH + 5;
   let rowCount = 0;
 
+  let sumFees = 0;
+  let sumDisc = 0;
+  let sumPaid = 0;
+  let sumDue = 0;
+  let sumWallet = 0;
+
   const drawHeaders = (currentY: number) => {
     doc.save();
     doc.fillColor(COLORS.brand).roundedRect(MARGIN, currentY, CONTENT_WIDTH, headerH, 6).fill();
@@ -2343,7 +2349,37 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
     y += currentDynamicRowH;
     rowCount++;
+
+    sumFees += Number(row.amount || 0);
+    sumDisc += Number(row.discount || 0);
+    sumPaid += Number(row.totalPaid || 0);
+    if (balDue > 0) sumDue += Number(balDue);
+    // Wallet is an absolute current balance, summing it across rows is logically incorrect
+    // but if we must display something, we leave it blank or show a dash in the totals.
   });
+
+  // --- TOTALS ROW ---
+  if (y + 30 > PAGE_HEIGHT - 60) {
+    doc.addPage();
+    y = MARGIN;
+    drawHeaders(y);
+    y += headerH + 5;
+  }
+
+  doc.save().fillColor(COLORS.brand).rect(MARGIN, y, CONTENT_WIDTH, 24).fill().restore();
+  doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7);
+  
+  // Use the first available column for the label
+  const firstColX = colX.date || colX.patient || MARGIN + 10;
+  doc.text("TOTALS", firstColX, y + 8);
+  
+  if (colX.fees) doc.text(sumFees.toLocaleString(), colX.fees, y + 8);
+  if (colX.discount) doc.text(sumDisc.toLocaleString(), colX.discount, y + 8);
+  if (colX.paid) doc.text(sumPaid.toLocaleString(), colX.paid, y + 8);
+  if (colX.due) doc.text(sumDue.toLocaleString(), colX.due, y + 8);
+  if (colX.walletBalance) doc.text("-", colX.walletBalance, y + 8); // Wallet balances shouldn't be summed
+
+  y += 24;
 
   const footerY = PAGE_HEIGHT - 45;
   doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, footerY).lineTo(MARGIN + CONTENT_WIDTH, footerY).stroke();
