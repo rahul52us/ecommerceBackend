@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface DoctorInventoryInterface extends Document {
-  labDoctor: mongoose.Schema.Types.ObjectId;
+  labDoctor: string;
   description?: string;
   company: mongoose.Schema.Types.ObjectId;
   createdBy: mongoose.Schema.Types.ObjectId;
@@ -13,8 +13,7 @@ export interface DoctorInventoryInterface extends Document {
 
 const DoctorInventorySchema = new Schema<DoctorInventoryInterface>({
   labDoctor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "LabDoctor",
+    type: String,
     required: true,
   },
   description: {

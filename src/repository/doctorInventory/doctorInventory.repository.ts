@@ -73,19 +73,31 @@ export const getDoctorInventories = async (
 
     if (search) {
       query.$or = [
-        { description: { $regex: search, $options: "i" } }
+        { description: { $regex: search, $options: "i" } },
+        { labDoctor: { $regex: search, $options: "i" } }
       ];
     }
 
-    if (userId && userType === "staff") {
-      query.createdBy = userId;
-    }
 
-    const inventories = await DoctorInventoryModel.find(query)
-      .populate("labDoctor", "labDoctorName email mobileNumber")
+    let inventories = await DoctorInventoryModel.find(query)
+      .lean()
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
+      
+    // Backward compatibility: If labDoctor is an ObjectId, fetch the name
+    const mongoose = require("mongoose");
+    const LabDoctorModel = mongoose.model("LabDoctor");
+    
+    inventories = await Promise.all(inventories.map(async (inv: any) => {
+      if (inv.labDoctor && mongoose.isValidObjectId(inv.labDoctor)) {
+        const ld = await LabDoctorModel.findById(inv.labDoctor).select('labDoctorName').lean();
+        if (ld) {
+          inv.labDoctor = ld.labDoctorName;
+        }
+      }
+      return inv;
+    }));
 
     const totalInventories = await DoctorInventoryModel.countDocuments(query);
 

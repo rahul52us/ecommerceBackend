@@ -2013,7 +2013,7 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     date: MARGIN + 45,
     tooth: MARGIN + 95,
     notes: MARGIN + 135,
-    estimate: MARGIN + 335,
+    estimate: MARGIN + 315,
     doctor: MARGIN + 395,
     status: MARGIN + 470
   };
@@ -2047,8 +2047,9 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
     const status = record.status || "N/A";
 
     doc.font("Helvetica").fontSize(8);
-    const notesHeight = doc.heightOfString(notesStr, { width: 200 });
-    const currentRowH = Math.max(rowH, notesHeight + 16);
+    const notesHeight = doc.heightOfString(notesStr, { width: 175 });
+    const estimateHeight = doc.heightOfString(estimateStr, { width: 75 });
+    const currentRowH = Math.max(rowH, notesHeight + 16, estimateHeight + 16);
 
     // New Page Logic
     if (y + currentRowH > 770 && rowCount > 0) {
@@ -2080,8 +2081,8 @@ export const generateTreatmentTableDataPDF = (data: any, stream: any) => {
       .text(date, colX.date, y + 9)
       .font("Helvetica")
       .text(toothStr, colX.tooth, y + 9, { width: 35, height: currentRowH - 10, ellipsis: true })
-      .text(notesStr, colX.notes, y + 9, { width: 200, lineBreak: true })
-      .text(estimateStr, colX.estimate, y + 9, { width: 55, height: currentRowH - 10, ellipsis: true })
+      .text(notesStr, colX.notes, y + 9, { width: 175, lineBreak: true })
+      .text(estimateStr, colX.estimate, y + 9, { width: 75, lineBreak: true })
       .fillColor(COLORS.textMuted)
       .text(doctor, colX.doctor, y + 9, { width: 70, height: currentRowH - 10, ellipsis: true });
 
