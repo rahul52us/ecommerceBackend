@@ -806,7 +806,7 @@ export const generatePaymentReceiptPDF = (data: any, stream: any) => {
   let y = 30;
   doc.fillColor(COLORS.textMain).font("Helvetica-Bold").fontSize(16).text(clinic?.company_name?.toUpperCase() || "DENTAL CLINIC", 0, y, { align: "center", width: WIDTH });
   y += 18;
-  doc.fontSize(9).font("Helvetica").fillColor(COLORS.textMuted).text(clinic?.addressInfo?.[0]?.address || "Clinic Address", 30, y, { align: "center", width: WIDTH - 60 });
+  doc.fontSize(9).font("Helvetica").fillColor(COLORS.textMuted).text(clinic?.addressInfo?.[0]?.address || "", 30, y, { align: "center", width: WIDTH - 60 });
 
   y += 20;
   doc.lineWidth(1).strokeColor(COLORS.border).moveTo(30, y).lineTo(WIDTH - 30, y).stroke();
