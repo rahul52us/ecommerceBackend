@@ -1316,6 +1316,21 @@ export const getGlobalAccountabilityData = async (payload: any) => {
 
     const records = await WorkDoneSchema.aggregate(pipeline);
 
+    // Apply manual sorting for receipt No after aggregation as requested
+    if (payload.sortBy === 'receipt_desc') {
+      records.sort((a, b) => {
+        const rA = a.fullPaymentHistory?.[0]?.receiptNumber || "";
+        const rB = b.fullPaymentHistory?.[0]?.receiptNumber || "";
+        return rB.localeCompare(rA);
+      });
+    } else if (payload.sortBy === 'receipt_asc') {
+      records.sort((a, b) => {
+        const rA = a.fullPaymentHistory?.[0]?.receiptNumber || "";
+        const rB = b.fullPaymentHistory?.[0]?.receiptNumber || "";
+        return rA.localeCompare(rB);
+      });
+    }
+
     // Summary totals across ALL matching records (not just this page)
     const summaryPipeline: any[] = [
       { $match: matchStage },
