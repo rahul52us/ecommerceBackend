@@ -19,10 +19,21 @@ export const createWorkDone = async (data: any) => {
       position, side, toothNote, recordType, examiningDoctor, user, company,
     } = data;
 
+    // Fetch the treatment to copy the generalTitle
+    let generalTitle = data.generalTitle;
+    if (treatment) {
+      const ToothTreatmentSchema = require("../../schemas/toothTreatment/toothTreatment.schema").default;
+      const tmt = await ToothTreatmentSchema.findById(treatment);
+      if (tmt && tmt.generalTitle) {
+        generalTitle = tmt.generalTitle;
+      }
+    }
+
     const newWorkDone = new WorkDoneSchema({
       patient, treatment, status, workDoneNote, amount, discount, doctor,
       treatmentCode, complaintType, tooth, toothNotation, dentitionType,
       position, side, toothNote, recordType, examiningDoctor, company,
+      generalTitle,
       createdBy: user, updatedBy: user,
     });
 

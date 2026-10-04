@@ -58,6 +58,10 @@ const WorkDoneSchema = new Schema(
       enum: ["tooth", "note"],
       default: "tooth",
     },
+    generalTitle: {
+      type: String,
+      trim: true,
+    },
     complaintType: {
       type: String,
       trim: true,

@@ -148,7 +148,13 @@ export const updateToothTreatment = async (data: any) => {
     if (data.dentitionType) updatePayload.dentitionType = data.dentitionType;
     if (data.toothNotation) updatePayload.toothNotation = data.toothNotation;
     if (data.recordType) updatePayload.recordType = data.recordType;
-    if (data.generalTitle !== undefined) updatePayload.generalTitle = data.generalTitle;
+    if (data.generalTitle !== undefined) {
+      updatePayload.generalTitle = data.generalTitle;
+      await WorkDoneSchema.updateMany(
+        { treatment: treatmentId },
+        { $set: { generalTitle: data.generalTitle } }
+      );
+    }
 
     const updated = await ToothTreatmentSchema.findByIdAndUpdate(
       treatmentId,
