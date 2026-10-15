@@ -487,7 +487,7 @@ export const generateSingleRecordPDF = (data: any, stream: any) => {
   doc.fillColor(COLORS.textMuted).fontSize(9).font("Helvetica-Bold").text("TREATMENT DETAILS", MARGIN + 15, y);
   y += 14;
   doc.fillColor(COLORS.textMain).fontSize(14).font("Helvetica-Bold").text(treatName, MARGIN + 15, y, { width: CONTENT_WIDTH - 30 });
-  
+
   const metaTreat = [];
   if (treatCode !== "-") metaTreat.push(`Code: ${treatCode}`);
   if (tooth !== "-") metaTreat.push(`Tooth: ${tooth}`);
@@ -1553,7 +1553,7 @@ export const generateTableDataPDF = (data: any, stream: any) => {
 
   // --- COMPACT HEADER ---
   const headerHeight = 110;
-  
+
   // Clinic Info (Left Side) - Using company_name from schema
   doc
     .fillColor(COLORS.textMain)
@@ -1610,12 +1610,12 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     sit: MARGIN + 5,
     date: MARGIN + 45,
     tooth: MARGIN + 95,
-    treatment: MARGIN + 135,
-    doctor: MARGIN + 295,
-    fees: MARGIN + 370,
-    discount: MARGIN + 420,
-    paid: MARGIN + 460,
-    status: MARGIN + 510
+    treatment: MARGIN + 132,
+    doctor: MARGIN + 288,
+    fees: MARGIN + 364,
+    discount: MARGIN + 414,
+    paid: MARGIN + 466,
+    status: MARGIN + 512
   };
 
   doc
@@ -1627,10 +1627,10 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     .text("TOOTH", colX.tooth, tableTop + 9)
     .text("TREATMENT / PROCEDURE", colX.treatment, tableTop + 9)
     .text("DOCTOR", colX.doctor, tableTop + 9)
-    .text("FEES", colX.fees, tableTop + 9, { width: 45, align: "right" })
-    .text("", colX.discount, tableTop + 9, { width: 35, align: "right" }) // Empty header as requested
-    .text("PAID", colX.paid, tableTop + 9, { width: 45, align: "right" })
-    .text("STATUS", colX.status, tableTop + 9, { width: 45, align: "center" });
+    .text("FEES", colX.fees, tableTop + 9, { width: 46, align: "right" })
+    .text("DISCOUNT", colX.discount, tableTop + 9, { width: 48, align: "right" })
+    .text("PAID", colX.paid, tableTop + 9, { width: 42, align: "right" })
+    .text("STATUS", colX.status, tableTop + 9, { width: 43, align: "center" });
   doc.restore();
 
   let y = tableTop + headerH;
@@ -1642,16 +1642,18 @@ export const generateTableDataPDF = (data: any, stream: any) => {
     const treatment = (record.treatment as any)?.treatmentName || record.workDoneNote || record.treatmentCode || "General Procedure";
     const toothStr = record.tooth || "N/A";
     const doctor = (record.doctor as any)?.name || "N/A";
-    const bill = record.amount - (record.discount || 0);
+    const actualFee = record.amount || 0;
+    const discount = record.discount || 0;
     const paid = record.receivedAmount || 0;
+    const bill = actualFee - discount;
     const isSettled = paid >= bill;
 
     // Calculate dynamic height
     doc.font("Helvetica").fontSize(8);
     let maxH = 12;
-    maxH = Math.max(maxH, doc.heightOfString(toothStr, { width: 35 }));
-    maxH = Math.max(maxH, doc.heightOfString(treatment, { width: 155 }));
-    maxH = Math.max(maxH, doc.heightOfString(doctor, { width: 95 }));
+    maxH = Math.max(maxH, doc.heightOfString(toothStr, { width: 32 }));
+    maxH = Math.max(maxH, doc.heightOfString(treatment, { width: 150 }));
+    maxH = Math.max(maxH, doc.heightOfString(doctor, { width: 72 }));
     const currentDynamicRowH = Math.max(28, maxH + 16);
 
     // Zebra Striping
@@ -1670,20 +1672,20 @@ export const generateTableDataPDF = (data: any, stream: any) => {
       .text(sitStr, colX.sit, y + 9)
       .text(date, colX.date, y + 9)
       .font("Helvetica")
-      .text(toothStr, colX.tooth, y + 9, { width: 35 })
-      .text(treatment, colX.treatment, y + 9, { width: 155 })
+      .text(toothStr, colX.tooth, y + 9, { width: 32 })
+      .text(treatment, colX.treatment, y + 9, { width: 150 })
       .fillColor(COLORS.textMuted)
-      .text(doctor, colX.doctor, y + 9, { width: 95 })
+      .text(doctor, colX.doctor, y + 9, { width: 72 })
       .fillColor(COLORS.textMain)
       .font("Helvetica-Bold")
-      .text(bill.toLocaleString(), colX.fees, y + 9, { width: 45, align: "right" })
-      .text(record.discount > 0 ? record.discount.toLocaleString() : "", colX.discount, y + 9, { width: 35, align: "right" })
-      .text(paid.toLocaleString(), colX.paid, y + 9, { width: 45, align: "right" });
+      .text(actualFee.toLocaleString(), colX.fees, y + 9, { width: 46, align: "right" })
+      .text(discount > 0 ? discount.toLocaleString() : "0", colX.discount, y + 9, { width: 48, align: "right" })
+      .text(paid.toLocaleString(), colX.paid, y + 9, { width: 42, align: "right" });
 
     // Status Badge
     const badgeW = 40;
     const badgeH = 13;
-    const badgeX = colX.status + (45 - badgeW) / 2;
+    const badgeX = colX.status + (43 - badgeW) / 2;
     const badgeY = y + (currentDynamicRowH - badgeH) / 2;
 
     doc.save();
@@ -2371,11 +2373,11 @@ export const generateGlobalAccountabilityPDF = (data: any, stream: any, selected
 
   doc.save().fillColor(COLORS.brand).rect(MARGIN, y, CONTENT_WIDTH, 24).fill().restore();
   doc.fillColor(COLORS.white).font("Helvetica-Bold").fontSize(7);
-  
+
   // Use the first available column for the label
   const firstColX = colX.date || colX.patient || MARGIN + 10;
   doc.text("TOTALS", firstColX, y + 8);
-  
+
   if (colX.fees) doc.text(sumFees.toLocaleString(), colX.fees, y + 8);
   if (colX.discount) doc.text(sumDisc.toLocaleString(), colX.discount, y + 8);
   if (colX.paid) doc.text(sumPaid.toLocaleString(), colX.paid, y + 8);
@@ -2827,7 +2829,7 @@ export const generateMonthlyPatientPDF = (data: any, stream: any, fromDate: stri
     }
     const pData = patientsMap.get(pId);
     pData.records.push(record);
-    
+
     const wdId = record.workDoneId?.toString() || record._id?.toString();
     if (wdId && !pData.uniqueRecordsMap.has(wdId)) {
       pData.uniqueRecordsMap.set(wdId, true);
@@ -2898,7 +2900,7 @@ export const generateMonthlyPatientPDF = (data: any, stream: any, fromDate: stri
       doc.text(pData.totalPaid.toLocaleString(), colX.paid, y + 6, { width: 80, align: "right" });
       doc.fillColor(netDue > 0 ? COLORS.danger : (netDue < 0 ? COLORS.success : COLORS.textMain));
       doc.text(netDue.toLocaleString(), colX.bal, y + 6, { width: 80, align: "right" });
-      
+
       y += 20;
       doc.lineWidth(0.5).strokeColor(COLORS.border).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
     });
@@ -3043,7 +3045,7 @@ export const generateGlobalTreatmentTableDataPDF = (data: any, stream: any) => {
     const badgeH = 13;
     const badgeX = colX.status + (45 - badgeW) / 2;
     const badgeY = y + 7.5;
-    
+
     let statusColor = COLORS.success;
     if (clinicalStatus === "pending") statusColor = "#f59e0b";
     if (clinicalStatus === "incomplete") statusColor = COLORS.danger;

@@ -1199,7 +1199,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
     }
 
     let sortStage: any = { updateLastAccountbilityDate: -1, createdAt: -1 };
-    
+
     if (payload.sortBy === 'payment_asc') {
       sortStage = { updateLastAccountbilityDate: 1, createdAt: 1 };
     } else if (payload.sortBy === 'date_desc') {
@@ -1370,7 +1370,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
                       $filter: {
                         input: "$paymentHistory",
                         as: "payment",
-                        cond: { 
+                        cond: {
                           $and: [
                             { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] },
                             { $lt: ["$$payment.amount", 0] }
@@ -1392,10 +1392,10 @@ export const getGlobalAccountabilityData = async (payload: any) => {
                   $filter: {
                     input: "$paymentHistory",
                     as: "payment",
-                    cond: { 
+                    cond: {
                       $or: [
                         { $eq: ["$$payment.paymentMethod", "Wallet"] },
-                        { 
+                        {
                           $and: [
                             { $eq: ["$$payment.paymentMethod", "Transferred to Wallet"] },
                             { $gt: ["$$payment.amount", 0] }
@@ -1417,7 +1417,7 @@ export const getGlobalAccountabilityData = async (payload: any) => {
                   $filter: {
                     input: "$paymentHistory",
                     as: "payment",
-                    cond: { 
+                    cond: {
                       $and: [
                         { $ne: ["$$payment.paymentMethod", "Transferred to Wallet"] },
                         { $ne: ["$$payment.paymentMethod", "Wallet"] }
